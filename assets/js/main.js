@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.maintenance) {
                 // Redirect to maintenance page
-                window.location.href = 'https://heatlabs.net/maintenance';
+                window.location.href = 'https://dev.heatlabs.net/maintenance';
                 return;
             }
 
