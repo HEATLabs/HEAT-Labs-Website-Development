@@ -71,7 +71,7 @@ class TwitchAlert {
             const text = await res.text();
             console.log(`DecAPI response for ${this.channel}:`, text);
 
-            const isLive = !text.toLowerCase().includes('channel is offline');
+            const isLive = !text.toLowerCase().includes('offline');
             console.log(`${this.channel} is ${isLive ? 'LIVE' : 'OFFLINE'}`);
 
             if (isLive && !this.isCurrentlyLive) {
