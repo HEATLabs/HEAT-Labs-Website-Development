@@ -162,7 +162,7 @@ class TwitchAlert {
                 animation: twitchBannerSlideIn 0.5s ease-out;
                 border: 1px solid rgba(255, 255, 255, 0.1);
                 backdrop-filter: blur(10px);
-                max-width: 400px;
+                max-width: 440px;
                 overflow: hidden;
             }
 
