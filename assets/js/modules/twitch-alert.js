@@ -289,47 +289,91 @@ class TwitchAlert {
             /* Responsive design */
             @media (max-width: 768px) {
                 .twitch-live-banner {
-                    bottom: 10px;
-                    right: 10px;
-                    left: 10px;
+                    bottom: 12px;
+                    right: 12px;
+                    left: 12px;
                     max-width: none;
                 }
 
                 .twitch-banner-content {
-                    padding: 12px 16px;
+                    flex-direction: column;
+                    padding: 14px 16px;
                     gap: 12px;
                 }
 
                 .twitch-banner-info {
-                    flex-direction: column;
-                    align-items: flex-start;
-                    gap: 8px;
+                    width: 100%;
+                    flex-direction: row;
+                    align-items: center;
+                    gap: 10px;
+                }
+
+                .twitch-live-indicator {
+                    flex-shrink: 0;
+                    padding: 4px 8px;
+                    font-size: 0.7rem;
                 }
 
                 .twitch-banner-message {
-                    font-size: 0.85rem;
+                    font-size: 0.9rem;
+                    line-height: 1.4;
                 }
 
                 .twitch-watch-btn {
-                    padding: 6px 12px;
-                    font-size: 0.8rem;
+                    width: 100%;
+                    justify-content: center;
+                    padding: 10px 16px;
+                    font-size: 0.9rem;
+                }
+
+                .twitch-close-btn {
+                    position: absolute;
+                    top: 8px;
+                    right: 8px;
+                    padding: 6px;
                 }
             }
 
             @media (max-width: 480px) {
                 .twitch-live-banner {
-                    bottom: 5px;
-                    right: 5px;
-                    left: 5px;
+                    bottom: 8px;
+                    right: 8px;
+                    left: 8px;
                 }
 
                 .twitch-banner-content {
-                    padding: 10px 12px;
+                    padding: 12px 14px;
+                    gap: 10px;
+                }
+
+                .twitch-banner-info {
                     gap: 8px;
                 }
 
+                .twitch-live-indicator {
+                    padding: 3px 6px;
+                    font-size: 0.65rem;
+                }
+
+                .live-dot {
+                    width: 5px;
+                    height: 5px;
+                }
+
                 .twitch-banner-message {
+                    font-size: 0.85rem;
+                    line-height: 1.3;
+                }
+
+                .twitch-watch-btn {
+                    padding: 9px 14px;
                     font-size: 0.8rem;
+                }
+
+                .twitch-close-btn {
+                    top: 6px;
+                    right: 6px;
+                    padding: 5px;
                 }
             }
 
