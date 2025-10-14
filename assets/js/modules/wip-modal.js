@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', function() {
             clearTimeout(bypassClickTimeout);
 
             // Redirect to dev site
-            window.location.href = '//dev.heatlabs.net';
+            window.location.href = '//heatlabs.net';
         }
     }
 
