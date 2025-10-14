@@ -35,7 +35,7 @@ class TwitchAlert {
                 }
             }
         } catch (err) {
-            console.warn('Could not access localStorage:', err);
+            // Could not access localStorage
         }
     }
 
@@ -45,7 +45,7 @@ class TwitchAlert {
             localStorage.setItem(this.storageKey, dismissUntilTime.toString());
             this.dismissedUntil = dismissUntilTime;
         } catch (err) {
-            console.warn('Could not save to localStorage:', err);
+            // Could not save to localStorage
         }
     }
 
@@ -60,19 +60,14 @@ class TwitchAlert {
     async checkLiveStatus() {
         // Don't check if user has dismissed the alert
         if (this.dismissedUntil && Date.now() < this.dismissedUntil) {
-            console.log(`Twitch alert dismissed until ${new Date(this.dismissedUntil).toLocaleTimeString()}`);
             return false;
         }
-
-        console.log(`Checking if ${this.channel} is live...`);
 
         try {
             const res = await fetch(`https://decapi.me/twitch/uptime/${encodeURIComponent(this.channel)}`);
             const text = await res.text();
-            console.log(`DecAPI response for ${this.channel}:`, text);
 
             const isLive = !text.toLowerCase().includes('offline');
-            console.log(`${this.channel} is ${isLive ? 'LIVE' : 'OFFLINE'}`);
 
             if (isLive && !this.isCurrentlyLive) {
                 this.showBanner();
@@ -84,7 +79,6 @@ class TwitchAlert {
 
             return isLive;
         } catch (err) {
-            console.error('Error checking Twitch live status:', err);
             return false;
         }
     }
