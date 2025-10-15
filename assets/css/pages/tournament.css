@@ -1049,6 +1049,17 @@ p {
 		grid-template-columns: 1fr;
 	}
 }
+
+/* Stream Cards */
+.stream-card {
+	background-color: var(--card-bg);
+	border-radius: 0.75rem;
+	overflow: hidden;
+	box-shadow: var(--shadow);
+	border: 1px solid var(--border-color);
+	transition: transform 0.3s ease;
+}
+
 /* Video Cards */
 .video-card {
 	background-color: var(--card-bg);
