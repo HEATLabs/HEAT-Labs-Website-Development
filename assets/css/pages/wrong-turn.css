@@ -1,0 +1,284 @@
+/* API Subdomain Redirect Page Styles */
+.api-redirect-page {
+	overflow: hidden;
+}
+
+.api-hero {
+	position: relative;
+	height: 100vh;
+	min-height: 500px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 100%);
+	background-size: cover;
+	background-position: center;
+	color: white;
+	text-align: center;
+	padding-top: 50px;
+	overflow: hidden;
+}
+
+.api-hero .waves-container {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 0;
+	background: rgba(255, 107, 107, 0.3);
+	backdrop-filter: blur(5px);
+}
+
+.api-hero-content {
+	position: relative;
+	z-index: 2;
+	max-width: 700px;
+	padding: 1.5rem;
+	animation: fadeInUp 1s ease-out;
+}
+
+.api-icon {
+	font-size: 3rem;
+	margin-bottom: 1.5rem;
+}
+
+.api-icon i {
+	color: white;
+	text-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.api-hero h1 {
+	font-size: 2.5rem;
+	font-weight: bold;
+	margin-bottom: 1rem;
+	text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.api-subtitle {
+	font-size: 1.25rem;
+	max-width: 500px;
+	margin: 0 auto 1.5rem;
+	color: rgba(255, 255, 255, 0.9);
+	line-height: 1.5;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.api-message {
+	font-size: 1rem;
+	max-width: 600px;
+	margin: 0 auto 2rem;
+	color: rgba(255, 255, 255, 0.9);
+	line-height: 1.5;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+	background: rgba(255, 255, 255, 0.1);
+	padding: 1.25rem;
+	border-radius: 0.75rem;
+	backdrop-filter: blur(10px);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.api-buttons {
+	display: flex;
+	justify-content: center;
+	gap: 1rem;
+	flex-wrap: wrap;
+	margin: 2rem 0;
+}
+
+.api-btn {
+	display: inline-flex;
+	align-items: center;
+	padding: 1rem 2rem;
+	font-size: 1rem;
+	font-weight: 600;
+	border-radius: 50px;
+	text-decoration: none;
+	transition: all 0.3s ease;
+	box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+	min-width: 180px;
+	justify-content: center;
+}
+
+.api-btn.primary {
+	background: white;
+	color: #FF6B6B;
+	border: 2px solid white;
+}
+
+.api-btn.primary:hover {
+	background: transparent;
+	color: white;
+	transform: translateY(-2px);
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.api-btn.secondary {
+	background: transparent;
+	color: white;
+	border: 2px solid white;
+}
+
+.api-btn.secondary:hover {
+	background: white;
+	color: #FF6B6B;
+	transform: translateY(-2px);
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.redirect-timer {
+	margin-top: 1.5rem;
+	padding: 0.875rem;
+	background: rgba(255, 255, 255, 0.1);
+	border-radius: 0.75rem;
+	backdrop-filter: blur(10px);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.redirect-timer p {
+	margin: 0;
+	font-size: 0.9rem;
+	color: rgba(255, 255, 255, 0.9);
+}
+
+#countdown {
+	font-weight: bold;
+	color: white;
+	font-size: 1.1rem;
+}
+
+/* Animations */
+@keyframes pulse {
+	0% {
+		transform: scale(1);
+	}
+
+	50% {
+		transform: scale(1.05);
+	}
+
+	100% {
+		transform: scale(1);
+	}
+}
+
+@keyframes shake {
+
+	0%,
+	100% {
+		transform: translateX(0);
+	}
+
+	25% {
+		transform: translateX(-3px);
+	}
+
+	75% {
+		transform: translateX(3px);
+	}
+}
+
+@keyframes fadeInUp {
+	from {
+		opacity: 0;
+		transform: translateY(30px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.error-shake {
+	animation: shake 0.5s ease-in-out;
+}
+
+/* Responsive Design */
+@media (max-width: 991px) {
+	.api-hero h1 {
+		font-size: 2.25rem;
+	}
+
+	.api-subtitle {
+		font-size: 1.125rem;
+	}
+
+	.api-message {
+		font-size: 0.95rem;
+	}
+
+	.api-hero {
+		min-height: 450px;
+	}
+}
+
+@media (max-width: 767px) {
+	.api-hero h1 {
+		font-size: 2rem;
+	}
+
+	.api-subtitle {
+		font-size: 1rem;
+	}
+
+	.api-message {
+		font-size: 0.9rem;
+		padding: 1rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.api-buttons {
+		flex-direction: column;
+		align-items: center;
+		margin: 1.5rem 0;
+	}
+
+	.api-btn {
+		width: 100%;
+		max-width: 250px;
+		padding: 0.875rem 1.5rem;
+		font-size: 0.95rem;
+	}
+
+	.api-icon {
+		font-size: 2.5rem;
+		margin-bottom: 1rem;
+	}
+
+	.api-hero {
+		min-height: 400px;
+		padding-top: 40px;
+	}
+}
+
+@media (max-width: 575px) {
+	.api-hero h1 {
+		font-size: 1.75rem;
+	}
+
+	.api-subtitle {
+		font-size: 0.9rem;
+	}
+
+	.api-message {
+		font-size: 0.85rem;
+		padding: 0.875rem;
+	}
+
+	.api-hero-content {
+		padding: 1rem;
+	}
+
+	.redirect-timer {
+		padding: 0.75rem;
+	}
+
+	.redirect-timer p {
+		font-size: 0.85rem;
+	}
+
+	#countdown {
+		font-size: 1rem;
+	}
+}
