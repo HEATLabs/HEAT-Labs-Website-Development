@@ -4,22 +4,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const PIXEL_MAPPING_URL = 'https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/tracking-pixel.json';
     const GSC_INDEX_URL = 'https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/gsc-index.json';
 
-    // CDN API endpoints
-    const CDN_CONFIGS_URL = 'https://data.jsdelivr.com/v1/stats/packages/gh/heatlabs/HEAT-Labs-Configs';
-    const CDN_IMAGES_URLS = [
-        'https://data.jsdelivr.com/v1/stats/packages/gh/heatlabs/HEAT-Labs-Images',
-        'https://data.jsdelivr.com/v1/stats/packages/gh/heatlabs/HEAT-Labs-Images-Tanks',
-        'https://data.jsdelivr.com/v1/stats/packages/gh/heatlabs/HEAT-Labs-Images-Maps',
-        'https://data.jsdelivr.com/v1/stats/packages/gh/heatlabs/HEAT-Labs-Images-News',
-        'https://data.jsdelivr.com/v1/stats/packages/gh/heatlabs/HEAT-Labs-Images-Features',
-        'https://data.jsdelivr.com/v1/stats/packages/gh/heatlabs/HEAT-Labs-Images-Guides',
-        'https://data.jsdelivr.com/v1/stats/packages/gh/heatlabs/HEAT-Labs-Images-Blogs',
-        'https://data.jsdelivr.com/v1/stats/packages/gh/heatlabs/HEAT-Labs-Images-Gallery',
-        'https://data.jsdelivr.com/v1/stats/packages/gh/heatlabs/HEAT-Labs-Images-Tournaments'
-    ];
-    const CDN_DATABASE_URL = 'https://data.jsdelivr.com/v1/stats/packages/gh/heatlabs/HEAT-Labs-Database';
-    const CDN_SOUNDS_URL = 'https://data.jsdelivr.com/v1/stats/packages/gh/heatlabs/HEAT-Labs-Sounds';
-
     // DOM elements
     const totalViewsEl = document.getElementById('totalViews');
     const todaysViewsEl = document.getElementById('todaysViews');
@@ -37,20 +21,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const prevPageBtn = document.getElementById('prevPage');
     const nextPageBtn = document.getElementById('nextPage');
     const pageInfo = document.getElementById('pageInfo');
-
-    // CDN DOM elements
-    const configsRequestsEl = document.getElementById('configsRequests');
-    const imagesRequestsEl = document.getElementById('imagesRequests');
-    const databaseRequestsEl = document.getElementById('databaseRequests');
-    const soundsRequestsEl = document.getElementById('soundsRequests');
-    const configsBandwidthEl = document.getElementById('configsBandwidth');
-    const imagesBandwidthEl = document.getElementById('imagesBandwidth');
-    const databaseBandwidthEl = document.getElementById('databaseBandwidth');
-    const soundsBandwidthEl = document.getElementById('soundsBandwidth');
-    const configsCdnChartEl = document.getElementById('configsCdnChart');
-    const imagesCdnChartEl = document.getElementById('imagesCdnChart');
-    const databaseCdnChartEl = document.getElementById('databaseCdnChart');
-    const soundsCdnChartEl = document.getElementById('soundsCdnChart');
 
     // Loading overlay
     const loadingOverlay = document.createElement('div');
@@ -89,29 +59,11 @@ document.addEventListener('DOMContentLoaded', function() {
     let statsData = {};
     let pixelMapping = {};
     let gscIndexData = {};
-    let cdnData = {
-        configs: null,
-        images: null,
-        database: null,
-        sounds: null
-    };
     let processedData = [];
     let currentPage = 1;
     const itemsPerPage = 10;
     let filteredData = [];
     let dataLoadFailed = false;
-    let cdnDataLoadFailed = false;
-
-    // Format bytes to human readable
-    function formatBytes(bytes) {
-        if (bytes === 0) return '0 B';
-
-        const k = 1024;
-        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
 
     // Initialize the page
     async function init() {
@@ -119,33 +71,10 @@ document.addEventListener('DOMContentLoaded', function() {
             showLoading();
             updateLoadingProgress(10);
 
-            // Load main stats and CDN stats in parallel
-            const [mainStatsResult, cdnStatsResult] = await Promise.allSettled([
-                loadMainStats(),
-                loadCdnStats()
-            ]);
+            // Load main stats
+            await loadMainStats();
 
             updateLoadingProgress(90);
-
-            // Handle main stats result
-            if (mainStatsResult.status === 'fulfilled') {
-                dataLoadFailed = false;
-            } else {
-                console.error('Main stats failed:', mainStatsResult.reason);
-                dataLoadFailed = true;
-                showErrorState();
-            }
-
-            // Handle CDN stats result
-            if (cdnStatsResult.status === 'fulfilled') {
-                cdnDataLoadFailed = false;
-            } else {
-                console.error('CDN stats failed:', cdnStatsResult.reason);
-                cdnDataLoadFailed = true;
-                showCdnErrorState();
-            }
-
-            updateLoadingProgress(95);
             setupEventListeners();
             updateLoadingProgress(100);
 
@@ -154,9 +83,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error('Error loading data:', error);
             dataLoadFailed = true;
-            cdnDataLoadFailed = true;
             showErrorState();
-            showCdnErrorState();
             hideLoading();
         }
     }
@@ -218,136 +145,6 @@ document.addEventListener('DOMContentLoaded', function() {
         renderTable();
     }
 
-    async function loadCdnStats() {
-        updateLoadingProgress(25);
-
-        // Fetch all image repos
-        const imagePromises = CDN_IMAGES_URLS.map(url =>
-            fetch(url).catch(error => {
-                console.warn('Image CDN API failed:', error);
-                return { ok: false };
-            })
-        );
-
-        const [configsResponse, ...imageResponses] = await Promise.all([
-            fetch(CDN_CONFIGS_URL).catch(error => {
-                console.warn('Config CDN API failed:', error);
-                return { ok: false };
-            }),
-            ...imagePromises,
-            fetch(CDN_DATABASE_URL).catch(error => {
-                console.warn('Database CDN API failed:', error);
-                return { ok: false };
-            }),
-            fetch(CDN_SOUNDS_URL).catch(error => {
-                console.warn('Sound CDN API failed:', error);
-                return { ok: false };
-            })
-        ]);
-
-        const databaseResponse = imageResponses.pop();
-        const soundsResponse = imageResponses.pop();
-
-        // Handle configs
-        if (configsResponse.ok) {
-            cdnData.configs = await configsResponse.json();
-        } else {
-            console.warn('Config CDN data not available');
-            cdnData.configs = null;
-        }
-
-        // Handle images, aggregate all repos
-        const imageDataArray = [];
-        for (const response of imageResponses) {
-            if (response.ok) {
-                imageDataArray.push(await response.json());
-            }
-        }
-
-        if (imageDataArray.length > 0) {
-            cdnData.images = aggregateImageData(imageDataArray);
-        } else {
-            console.warn('No Image CDN data available');
-            cdnData.images = null;
-        }
-
-        // Handle database
-        if (databaseResponse.ok) {
-            cdnData.database = await databaseResponse.json();
-        } else {
-            console.warn('Database CDN data not available');
-            cdnData.database = null;
-        }
-
-        // Handle sounds
-        if (soundsResponse.ok) {
-            cdnData.sounds = await soundsResponse.json();
-        } else {
-            console.warn('Sound CDN data not available');
-            cdnData.sounds = null;
-        }
-
-        updateLoadingProgress(65);
-        updateCdnSummaryCards();
-        updateLoadingProgress(75);
-        renderCdnCharts();
-    }
-
-    function aggregateImageData(imageDataArray) {
-        // Initialize aggregated structure
-        const aggregated = {
-            hits: {
-                rank: null,
-                typeRank: null,
-                total: 0,
-                dates: {},
-                prev: {
-                    rank: null,
-                    typeRank: null,
-                    total: 0
-                }
-            },
-            bandwidth: {
-                rank: null,
-                typeRank: null,
-                total: 0,
-                dates: {},
-                prev: {
-                    rank: null,
-                    typeRank: null,
-                    total: 0
-                }
-            }
-        };
-
-        // Aggregate data from all repos
-        for (const data of imageDataArray) {
-            // Aggregate hits totals
-            aggregated.hits.total += data.hits?.total || 0;
-            aggregated.hits.prev.total += data.hits?.prev?.total || 0;
-
-            // Aggregate bandwidth totals
-            aggregated.bandwidth.total += data.bandwidth?.total || 0;
-            aggregated.bandwidth.prev.total += data.bandwidth?.prev?.total || 0;
-
-            // Aggregate hits by date
-            if (data.hits?.dates) {
-                for (const [date, value] of Object.entries(data.hits.dates)) {
-                    aggregated.hits.dates[date] = (aggregated.hits.dates[date] || 0) + (value || 0);
-                }
-            }
-
-            // Aggregate bandwidth by date
-            if (data.bandwidth?.dates) {
-                for (const [date, value] of Object.entries(data.bandwidth.dates)) {
-                    aggregated.bandwidth.dates[date] = (aggregated.bandwidth.dates[date] || 0) + (value || 0);
-                }
-            }
-        }
-
-        return aggregated;
-    }
-
     function showErrorState() {
         // Add error state to summary cards
         const statCards = document.querySelectorAll('.stat-card');
@@ -381,21 +178,6 @@ document.addEventListener('DOMContentLoaded', function() {
         sortBy.disabled = true;
         prevPageBtn.disabled = true;
         nextPageBtn.disabled = true;
-    }
-
-    function showCdnErrorState() {
-        // Update CDN summary cards with error state
-        configsRequestsEl.textContent = 'N/A';
-        imagesRequestsEl.textContent = 'N/A';
-        databaseRequestsEl.textContent = 'N/A';
-        soundsRequestsEl.textContent = 'N/A';
-        configsBandwidthEl.textContent = 'N/A';
-        imagesBandwidthEl.textContent = 'N/A';
-        databaseBandwidthEl.textContent = 'N/A';
-        soundsBandwidthEl.textContent = 'N/A';
-
-        // Render error placeholders for CDN charts
-        renderCdnErrorCharts();
     }
 
     function renderErrorCharts() {
@@ -433,43 +215,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         <i class="fas fa-exclamation-triangle"></i>
                         <p>Failed to load chart data</p>
                         <small>Statistics API is currently unavailable</small>
-                    </div>
-                `;
-            }
-        });
-    }
-
-    function renderCdnErrorCharts() {
-        const cdnChartContainers = [{
-                element: configsCdnChartEl,
-                title: 'Config CDN Stats (Last 30 Days)'
-            },
-            {
-                element: imagesCdnChartEl,
-                title: 'Image CDN Stats (Last 30 Days)'
-            },
-            {
-                element: databaseCdnChartEl,
-                title: 'Database CDN Stats (Last 30 Days)'
-            },
-            {
-                element: soundsCdnChartEl,
-                title: 'Sound CDN Stats (Last 30 Days)'
-            }
-        ];
-
-        cdnChartContainers.forEach(({
-            element,
-            title
-        }) => {
-            if (element && element.parentNode) {
-                const container = element.parentNode;
-                container.innerHTML = `
-                    <h3>${title}</h3>
-                    <div class="chart-error-placeholder">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <p>Failed to load CDN data</p>
-                        <small>CDN API is currently unavailable</small>
                     </div>
                 `;
             }
@@ -601,46 +346,6 @@ document.addEventListener('DOMContentLoaded', function() {
         mostPopularPageEl.textContent = mostPopular.pageName;
     }
 
-    function updateCdnSummaryCards() {
-        if (cdnDataLoadFailed) return;
-
-        // Update configs
-        if (cdnData.configs) {
-            configsRequestsEl.textContent = cdnData.configs.hits.total.toLocaleString();
-            configsBandwidthEl.textContent = formatBytes(cdnData.configs.bandwidth.total);
-        } else {
-            configsRequestsEl.textContent = 'N/A';
-            configsBandwidthEl.textContent = 'N/A';
-        }
-
-        // Update images
-        if (cdnData.images) {
-            imagesRequestsEl.textContent = cdnData.images.hits.total.toLocaleString();
-            imagesBandwidthEl.textContent = formatBytes(cdnData.images.bandwidth.total);
-        } else {
-            imagesRequestsEl.textContent = 'N/A';
-            imagesBandwidthEl.textContent = 'N/A';
-        }
-
-        // Update database
-        if (cdnData.database) {
-            databaseRequestsEl.textContent = cdnData.database.hits.total.toLocaleString();
-            databaseBandwidthEl.textContent = formatBytes(cdnData.database.bandwidth.total);
-        } else {
-            databaseRequestsEl.textContent = 'N/A';
-            databaseBandwidthEl.textContent = 'N/A';
-        }
-
-        // Update sounds
-        if (cdnData.sounds) {
-            soundsRequestsEl.textContent = cdnData.sounds.hits.total.toLocaleString();
-            soundsBandwidthEl.textContent = formatBytes(cdnData.sounds.bandwidth.total);
-        } else {
-            soundsRequestsEl.textContent = 'N/A';
-            soundsBandwidthEl.textContent = 'N/A';
-        }
-    }
-
     function renderCharts() {
         if (dataLoadFailed) {
             renderErrorCharts();
@@ -652,139 +357,6 @@ document.addEventListener('DOMContentLoaded', function() {
         renderViewsByTimeChart();
         renderIndexedPagesChart();
         renderViewsByCategoryChart();
-    }
-
-    function renderCdnCharts() {
-        if (cdnDataLoadFailed) {
-            renderCdnErrorCharts();
-            return;
-        }
-
-        renderCdnChart('configs', configsCdnChartEl, 'Config CDN Stats');
-        renderCdnChart('images', imagesCdnChartEl, 'Image CDN Stats');
-        renderCdnChart('database', databaseCdnChartEl, 'Database CDN Stats');
-        renderCdnChart('sounds', soundsCdnChartEl, 'Sound CDN Stats');
-    }
-
-    function renderCdnChart(type, chartElement, title) {
-        const data = cdnData[type];
-        if (!data) {
-            if (chartElement && chartElement.parentNode) {
-                const container = chartElement.parentNode;
-                container.innerHTML = `
-                    <h3>${title} (Last 30 Days)</h3>
-                    <div class="chart-error-placeholder">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <p>Failed to load CDN data</p>
-                        <small>${type} CDN data is unavailable</small>
-                    </div>
-                `;
-            }
-            return;
-        }
-
-        const dates = [];
-        const today = new Date();
-
-        for (let i = 29; i >= 0; i--) {
-            const date = new Date(today);
-            date.setDate(date.getDate() - i);
-            dates.push(date.toISOString().split('T')[0]);
-        }
-
-        const hitsData = dates.map(date => data.hits.dates[date] || 0);
-        const bandwidthData = dates.map(date => data.bandwidth.dates[date] || 0);
-
-        const displayDates = dates.map(date => {
-            const [year, month, day] = date.split('-');
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            return `${monthNames[parseInt(month) - 1]} ${parseInt(day)}`;
-        });
-
-        new Chart(chartElement, {
-            type: 'line',
-            data: {
-                labels: displayDates,
-                datasets: [{
-                        label: 'Requests',
-                        data: hitsData,
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                        tension: 0.3,
-                        fill: true,
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Bandwidth',
-                        data: bandwidthData,
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                        tension: 0.3,
-                        fill: true,
-                        yAxisID: 'y1'
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top'
-                    },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.datasetIndex === 0) {
-                                    label += context.raw.toLocaleString() + ' requests';
-                                } else {
-                                    label += formatBytes(context.raw);
-                                }
-                                return label;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        title: {
-                            display: true,
-                            text: 'Requests'
-                        },
-                        ticks: {
-                            precision: 0
-                        }
-                    },
-                    y1: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        title: {
-                            display: true,
-                            text: 'Bandwidth'
-                        },
-                        ticks: {
-                            callback: function(value) {
-                                return formatBytes(value);
-                            }
-                        },
-                        grid: {
-                            drawOnChartArea: false
-                        }
-                    }
-                }
-            }
-        });
     }
 
     function renderDailyViewsChart() {
@@ -1003,18 +575,38 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         const sortedCategories = Object.entries(categories)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 10); // Limit to top 10 categories
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 8);
+
+        const categoryNames = sortedCategories.map(([name]) => name);
+        const categoryViews = sortedCategories.map(([, views]) => views);
 
         new Chart(viewsByCategoryChartEl, {
-            type: 'bar',
+            type: 'doughnut',
             data: {
-                labels: sortedCategories.map(item => item[0]),
+                labels: categoryNames,
                 datasets: [{
-                    label: 'Views',
-                    data: sortedCategories.map(item => item[1]),
-                    backgroundColor: 'rgba(153, 102, 255, 0.7)',
-                    borderColor: 'rgba(153, 102, 255, 1)',
+                    data: categoryViews,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 205, 86, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(153, 102, 255, 0.7)',
+                        'rgba(255, 159, 64, 0.7)',
+                        'rgba(199, 199, 199, 0.7)',
+                        'rgba(83, 102, 255, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 205, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)',
+                        'rgba(199, 199, 199, 1)',
+                        'rgba(83, 102, 255, 1)'
+                    ],
                     borderWidth: 1
                 }]
             },
@@ -1023,14 +615,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            precision: 0
+                        position: 'right'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
                         }
                     }
                 }
@@ -1043,75 +638,68 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        applySorting();
-        const totalPages = Math.ceil(filteredData.length / itemsPerPage);
         const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
+        const endIndex = startIndex + itemsPerPage;
         const pageData = filteredData.slice(startIndex, endIndex);
 
         statsTableBody.innerHTML = '';
 
-        for (const page of pageData) {
+        if (pageData.length === 0) {
+            statsTableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        No pages found matching your search criteria.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        pageData.forEach(page => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${page.pageName}</td>
-                <td>${page.todaysViews.toLocaleString()}</td>
+                <td>${page.category}</td>
                 <td>${page.totalViews.toLocaleString()}</td>
+                <td>${page.todaysViews.toLocaleString()}</td>
                 <td>${page.last7DaysViews.toLocaleString()}</td>
-                <td>${page.last30DaysViews.toLocaleString()}</td>
                 <td>
-                    <button class="view-details-btn" data-page="${page.pageName}">
-                        <i class="fas fa-chart-line mr-1"></i>Details
+                    <button class="view-details-btn" data-page='${JSON.stringify(page).replace(/'/g, "\\'")}'>
+                        View Details
                     </button>
                 </td>
             `;
             statsTableBody.appendChild(row);
-        }
-
-        updatePaginationControls(totalPages);
-    }
-
-    function applySorting() {
-        const [sortKey, sortDir] = sortBy.value.split('-');
-        filteredData.sort((a, b) => {
-            let comparison = 0;
-            if (sortKey === 'total') {
-                comparison = a.totalViews - b.totalViews;
-            } else if (sortKey === 'name') {
-                comparison = a.pageName.localeCompare(b.pageName);
-            }
-            return sortDir === 'desc' ? -comparison : comparison;
         });
+
+        updatePagination();
     }
 
-    function updatePaginationControls(totalPages) {
+    function updatePagination() {
+        const totalPages = Math.ceil(filteredData.length / itemsPerPage);
         pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
-        prevPageBtn.disabled = currentPage <= 1;
-        nextPageBtn.disabled = currentPage >= totalPages;
+        prevPageBtn.disabled = currentPage === 1;
+        nextPageBtn.disabled = currentPage === totalPages || totalPages === 0;
     }
 
     function setupEventListeners() {
-        pageSearch.addEventListener('input', () => {
-            if (dataLoadFailed) return;
-
-            const searchTerm = pageSearch.value.toLowerCase();
-            filteredData = searchTerm ?
-                processedData.filter(page =>
-                    page.pageName.toLowerCase().includes(searchTerm) ||
-                    page.htmlFile.toLowerCase().includes(searchTerm)
-                ) : [...processedData];
+        // Search functionality
+        pageSearch.addEventListener('input', debounce(() => {
+            const searchTerm = pageSearch.value.toLowerCase().trim();
+            filterData(searchTerm);
             currentPage = 1;
             renderTable();
-        });
+        }, 300));
 
+        // Sort functionality
         sortBy.addEventListener('change', () => {
-            if (dataLoadFailed) return;
+            sortData();
             currentPage = 1;
             renderTable();
         });
 
+        // Pagination
         prevPageBtn.addEventListener('click', () => {
-            if (dataLoadFailed) return;
             if (currentPage > 1) {
                 currentPage--;
                 renderTable();
@@ -1119,7 +707,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         nextPageBtn.addEventListener('click', () => {
-            if (dataLoadFailed) return;
             const totalPages = Math.ceil(filteredData.length / itemsPerPage);
             if (currentPage < totalPages) {
                 currentPage++;
@@ -1127,14 +714,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        statsTableBody.addEventListener('click', (e) => {
-            if (dataLoadFailed) return;
-            if (e.target.closest('.view-details-btn')) {
-                const pageName = e.target.closest('.view-details-btn').dataset.page;
-                viewPageDetails(pageName);
-            }
-        });
-
+        // Modal functionality
         modalClose.addEventListener('click', closeModal);
         modalOverlay.addEventListener('click', (e) => {
             if (e.target === modalOverlay) {
@@ -1142,54 +722,97 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeModal();
+        // View details buttons (delegated)
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('view-details-btn')) {
+                const pageData = JSON.parse(e.target.getAttribute('data-page'));
+                openModal(pageData);
             }
         });
     }
 
-    function viewPageDetails(pageName) {
-        const page = processedData.find(p => p.pageName === pageName);
-        if (!page) return;
-
-        modalTitle.textContent = page.pageName;
-
-        modalStatsGrid.innerHTML = `
-      <div class="modal-stat-item">
-        <div class="modal-stat-label">Total Views</div>
-        <div class="modal-stat-value">${page.totalViews.toLocaleString()}</div>
-      </div>
-      <div class="modal-stat-item">
-        <div class="modal-stat-label">Today's Views</div>
-        <div class="modal-stat-value">${page.todaysViews.toLocaleString()}</div>
-      </div>
-      <div class="modal-stat-item">
-        <div class="modal-stat-label">Last 7 Days</div>
-        <div class="modal-stat-value">${page.last7DaysViews.toLocaleString()}</div>
-      </div>
-      <div class="modal-stat-item">
-        <div class="modal-stat-label">Last 30 Days</div>
-        <div class="modal-stat-value">${page.last30DaysViews.toLocaleString()}</div>
-      </div>
-      <div class="modal-stat-item">
-        <div class="modal-stat-label">Category</div>
-        <div class="modal-stat-value">${page.category}</div>
-      </div>
-      <div class="modal-stat-item">
-        <div class="modal-stat-label">Page URL</div>
-        <div class="modal-stat-value" style="word-break: break-all;">${page.htmlFile}</div>
-      </div>
-      <div class="modal-stat-item">
-        <div class="modal-stat-label">Indexed Status</div>
-        <div class="modal-stat-value">${page.isIndexed ? 'Indexed' : 'Not Indexed'}</div>
-      </div>
-    `;
-
-        openModal();
+    function filterData(searchTerm) {
+        if (!searchTerm) {
+            filteredData = [...processedData];
+        } else {
+            filteredData = processedData.filter(page =>
+                page.pageName.toLowerCase().includes(searchTerm) ||
+                page.category.toLowerCase().includes(searchTerm) ||
+                page.htmlFile.toLowerCase().includes(searchTerm)
+            );
+        }
+        sortData(); // Re-sort after filtering
     }
 
-    function openModal() {
+    function sortData() {
+        const sortValue = sortBy.value;
+        filteredData.sort((a, b) => {
+            switch (sortValue) {
+                case 'name-asc':
+                    return a.pageName.localeCompare(b.pageName);
+                case 'name-desc':
+                    return b.pageName.localeCompare(a.pageName);
+                case 'views-asc':
+                    return a.totalViews - b.totalViews;
+                case 'views-desc':
+                    return b.totalViews - a.totalViews;
+                case 'today-asc':
+                    return a.todaysViews - b.todaysViews;
+                case 'today-desc':
+                    return b.todaysViews - a.todaysViews;
+                case 'category-asc':
+                    return a.category.localeCompare(b.category);
+                case 'category-desc':
+                    return b.category.localeCompare(a.category);
+                default:
+                    return 0;
+            }
+        });
+    }
+
+    function openModal(pageData) {
+        modalTitle.textContent = pageData.pageName;
+
+        // Calculate additional stats
+        const last7DaysViews = pageData.last7DaysViews;
+        const last30DaysViews = pageData.last30DaysViews;
+        const averageDailyViews = Math.round(pageData.totalViews / Object.keys(pageData.dailyViews).length);
+
+        modalStatsGrid.innerHTML = `
+            <div class="modal-stat-item">
+                <div class="modal-stat-label">Total Views</div>
+                <div class="modal-stat-value">${pageData.totalViews.toLocaleString()}</div>
+            </div>
+            <div class="modal-stat-item">
+                <div class="modal-stat-label">Today's Views</div>
+                <div class="modal-stat-value">${pageData.todaysViews.toLocaleString()}</div>
+            </div>
+            <div class="modal-stat-item">
+                <div class="modal-stat-label">Last 7 Days</div>
+                <div class="modal-stat-value">${last7DaysViews.toLocaleString()}</div>
+            </div>
+            <div class="modal-stat-item">
+                <div class="modal-stat-label">Last 30 Days</div>
+                <div class="modal-stat-value">${last30DaysViews.toLocaleString()}</div>
+            </div>
+            <div class="modal-stat-item">
+                <div class="modal-stat-label">Average Daily Views</div>
+                <div class="modal-stat-value">${averageDailyViews.toLocaleString()}</div>
+            </div>
+            <div class="modal-stat-item">
+                <div class="modal-stat-label">Category</div>
+                <div class="modal-stat-value">${pageData.category}</div>
+            </div>
+            <div class="modal-stat-item">
+                <div class="modal-stat-label">Indexed in Google</div>
+                <div class="modal-stat-value">${pageData.isIndexed ? 'Yes' : 'No'}</div>
+            </div>
+            <div class="modal-stat-item">
+                <div class="modal-stat-label">HTML File</div>
+                <div class="modal-stat-value" style="font-size: 0.9rem;">${pageData.htmlFile}</div>
+            </div>
+        `;
+
         modalOverlay.classList.add('active');
         document.body.style.overflow = 'hidden';
     }
@@ -1201,17 +824,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function showLoading() {
         loadingOverlay.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-        updateLoadingProgress(10);
     }
 
     function hideLoading() {
         loadingOverlay.classList.add('hidden');
-        document.body.style.overflow = '';
     }
 
     function updateLoadingProgress(percent) {
-        loadingProgressBar.style.width = `${percent}%`;
+        if (loadingProgressBar) {
+            loadingProgressBar.style.width = `${percent}%`;
+        }
+    }
+
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
     }
 
     init();

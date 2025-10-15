@@ -386,9 +386,9 @@
         <div class="container mx-auto px-4">
           <h2 class="section-title">Website Analytics</h2>
           <div class="stats-description">
-            <p>Our website statistics are powered by an in-house, privacy-focused tracker that counts page views using dedicated images. It collects no personal data, no IP addresses, cookies, user agents, browser fingerprints, or device types. These fully anonymous view counts help us understand which content is popular and are displayed across the site, including blogs, tank pages, and guides, as helpful indicators. Page View statistics are updated in real time, while CDN statistics are refreshed every 24 hours. Our website also uses Cloudflare Web Analytics that does not use cookies and does not track individual users.</p>
-            <p><b>Website view tracking was started on May 31, 2025 and JsDelivr CDN tracking was started on October 5, 2025.</b></p>
-            <p>The tracking system is transparent and open source - you can inspect the code by <a href="https://github.com/ThatSINEWAVE/HEAT-Labs-Views-API" target="_blank" rel="noopener">clicking here</a>.</p>
+            <p>Our website statistics are powered by an in-house, privacy-focused tracker that counts page views using dedicated images. It collects no personal data, no IP addresses, cookies, user agents, browser fingerprints, or device types. These fully anonymous view counts help us understand which content is popular and are displayed across the site, including blogs, tank pages, and guides, as helpful indicators. Page View statistics are updated in real time and our website also uses Cloudflare Web Analytics that does not use cookies and does not track individual users.</p>
+            <p><b>Website view tracking was started on May 31, 2025.</b></p>
+            <p>The tracking system is transparent and open source, you can inspect the code by <a href="https://github.com/ThatSINEWAVE/HEAT-Labs-Views-API" target="_blank" rel="noopener">clicking here</a>.</p>
           </div>
           <!-- Summary Cards -->
           <div class="stats-summary-grid">
@@ -433,91 +433,6 @@
               </div>
             </div>
           </div>
-          <!-- CDN Summary Cards -->
-          <div class="stats-summary-grid">
-            <div class="stat-card">
-              <div class="stat-icon">
-                <i class="fas fa-download"></i>
-              </div>
-              <div class="stat-content">
-                <h3>Configs Requests</h3>
-                <div class="stat-value" id="configsRequests">0</div>
-                <div class="stat-description">Total CDN requests</div>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon">
-                <i class="fas fa-download"></i>
-              </div>
-              <div class="stat-content">
-                <h3>Images Requests</h3>
-                <div class="stat-value" id="imagesRequests">0</div>
-                <div class="stat-description">Total CDN requests</div>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon">
-                <i class="fas fa-download"></i>
-              </div>
-              <div class="stat-content">
-                <h3>Database Requests</h3>
-                <div class="stat-value" id="databaseRequests">0</div>
-                <div class="stat-description">Total CDN requests</div>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon">
-                <i class="fas fa-download"></i>
-              </div>
-              <div class="stat-content">
-                <h3>Sounds Requests</h3>
-                <div class="stat-value" id="soundsRequests">0</div>
-                <div class="stat-description">Total CDN requests</div>
-              </div>
-            </div>
-          </div>
-          <div class="stats-summary-grid">
-            <div class="stat-card">
-              <div class="stat-icon">
-                <i class="fas fa-network-wired"></i>
-              </div>
-              <div class="stat-content">
-                <h3>Configs Bandwidth</h3>
-                <div class="stat-value" id="configsBandwidth">0 MB</div>
-                <div class="stat-description">Total CDN bandwidth</div>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon">
-                <i class="fas fa-network-wired"></i>
-              </div>
-              <div class="stat-content">
-                <h3>Images Bandwidth</h3>
-                <div class="stat-value" id="imagesBandwidth">0 MB</div>
-                <div class="stat-description">Total CDN bandwidth</div>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon">
-                <i class="fas fa-network-wired"></i>
-              </div>
-              <div class="stat-content">
-                <h3>Database Bandwidth</h3>
-                <div class="stat-value" id="databaseBandwidth">0 MB</div>
-                <div class="stat-description">Total CDN bandwidth</div>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon">
-                <i class="fas fa-network-wired"></i>
-              </div>
-              <div class="stat-content">
-                <h3>Sounds Bandwidth</h3>
-                <div class="stat-value" id="soundsBandwidth">0 MB</div>
-                <div class="stat-description">Total CDN bandwidth</div>
-              </div>
-            </div>
-          </div>
           <!-- Charts Section -->
           <div class="charts-grid">
             <div class="chart-container full-width-chart">
@@ -539,23 +454,6 @@
             <div class="chart-container half-width-chart">
               <h3>Indexed vs Tracked Pages</h3>
               <canvas id="indexedPagesChart"></canvas>
-            </div>
-            <!-- CDN Charts -->
-            <div class="chart-container half-width-chart">
-              <h3>Config CDN Stats (Last 30 Days)</h3>
-              <canvas id="configsCdnChart"></canvas>
-            </div>
-            <div class="chart-container half-width-chart">
-              <h3>Image CDN Stats (Last 30 Days)</h3>
-              <canvas id="imagesCdnChart"></canvas>
-            </div>
-            <div class="chart-container half-width-chart">
-              <h3>Database CDN Stats (Last 30 Days)</h3>
-              <canvas id="databaseCdnChart"></canvas>
-            </div>
-            <div class="chart-container half-width-chart">
-              <h3>Sound CDN Stats (Last 30 Days)</h3>
-              <canvas id="soundsCdnChart"></canvas>
             </div>
           </div>
           <!-- Detailed Stats Table -->
