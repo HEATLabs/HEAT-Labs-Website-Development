@@ -170,7 +170,8 @@ async function fetchTournamentData() {
 
         // For use in Dev Env
         if (debugTournamentCards === true) {
-            dataURL = "../HEAT-Labs-Configs/tournaments-dev.json";
+            //dataURL = "../HEAT-Labs-Configs/tournaments-dev.json";
+            dataURL = "https://cdn.jsdelivr.net/gh/HEATLabs/HEAT-Labs-Configs@main/tournaments-dev.json" ;
         }
 
         const response = await fetch(dataURL);
