@@ -3,7 +3,7 @@ window.tournamentData = [];
 let originalCards = [];
 let currentPage = 1;
 let postsPerPage = 12;
-let debugTournamentCards = false;
+let debugTournamentCards = true;
 // Function to format date as "Month Day, Year"
 function formatDate(dateString) {
     const date = new Date(dateString);
@@ -170,7 +170,7 @@ async function fetchTournamentData() {
 
         // For use in Dev Env
         if (debugTournamentCards === true) {
-            dataURL = "../HEAT-Labs-Configs/tournaments.json";
+            dataURL = "../HEAT-Labs-Configs/tournaments-dev.json";
         }
 
         const response = await fetch(dataURL);
@@ -279,12 +279,19 @@ function createTournamentCard(tournament) {
         // `<div class="${hasEnded ? 'ended' : hasStarted ? 'ongoing' : 'upcoming'}-tournament-tag">${hasEnded ? 'Ended' : hasStarted ? 'Ongoing' : 'Upcoming'}</div>`;
         `<div class="dev-tournament-tag">No type set in config</div>`;
 
-    // Determine which link to use based on time comparison
-    const tournamentLink = (tournament.type?.toLowerCase()) === 'dev' ?
-        'tournaments/tournament-maintenance' :
+    // Determine which link to use based on time comparison (Force change dev tournaments)
+    // let tournamentLink = (tournament.type?.toLowerCase()) === 'dev' ?
+    //     'tournaments/tournament-maintenance' :
+    //         hasStarted ?
+    //         `tournaments/${tournament.slug}` :
+    //         'tournaments/tournament-maintenance';
+
+    const tournamentLink =
+        (debugTournamentCards === true) ?
+            `tournaments/${tournament.slug}.html`:
             hasStarted ?
-            `tournaments/${tournament.slug}` :
-            'tournaments/tournament-maintenance';
+                `tournaments/${tournament.slug}` :
+                'tournaments/tournament-maintenance';
 
     card.innerHTML = `
         <div class="tournament-img-container">
