@@ -229,3 +229,15 @@ p {
 	top: 0;
 	left: 0;
 }
+
+.twitch-chat-wrapper {
+	background-color: #1e1e1e;
+}
+
+.twitch-chat-wrapper iframe {
+	background-color: #1e1e1e;
+}
+
+.twitch-chat-wrapper::after {
+	background: rgba(30, 30, 30, 0.6);
+}
