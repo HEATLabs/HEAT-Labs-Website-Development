@@ -584,6 +584,66 @@
 	display: block;
 }
 
+.identified .status-dot,
+.status-dot.identified {
+	background-color: #f59e0b;
+}
+
+.monitoring .status-dot,
+.status-dot.monitoring {
+	background-color: #3b82f6;
+}
+
+.in-progress .status-dot,
+.status-dot.in-progress {
+	background-color: #f97316;
+}
+
+.identified {
+	color: #f59e0b;
+	background-color: rgba(245, 158, 11, 0.1);
+}
+
+.monitoring {
+	color: #3b82f6;
+	background-color: rgba(59, 130, 246, 0.1);
+}
+
+.in-progress {
+	color: #f97316;
+	background-color: rgba(249, 115, 22, 0.1);
+}
+
+.incident-status.identified {
+	background-color: rgba(245, 158, 11, 0.1);
+	color: #f59e0b;
+}
+
+.incident-status.monitoring {
+	background-color: rgba(59, 130, 246, 0.1);
+	color: #3b82f6;
+}
+
+.incident-status.in-progress {
+	background-color: rgba(249, 115, 22, 0.1);
+	color: #f97316;
+}
+
+.update-status.identified {
+	background-color: rgba(245, 158, 11, 0.1);
+	color: #f59e0b;
+}
+
+.update-status.monitoring {
+	background-color: rgba(59, 130, 246, 0.1);
+	color: #3b82f6;
+}
+
+.update-status.in-progress {
+	background-color: rgba(249, 115, 22, 0.1);
+	color: #f97316;
+}
+
 /* Status Legend */
 .status-legend {
 	background-color: var(--card-bg);

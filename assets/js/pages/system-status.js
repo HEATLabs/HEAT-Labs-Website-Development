@@ -46,7 +46,7 @@ let serverRefreshTimer = null;
 let serverChartInstances = {};
 
 function fetchStatusData() {
-    fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/system-status.json')
+    fetch('https://cdn1.heatlabs.net/system-status.json')
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
@@ -205,9 +205,7 @@ function updateIncidents(incidents) {
         const incidentItem = document.createElement('div');
         incidentItem.className = `incident-item ${incident.severity}`;
 
-        const statusText = incident.status === 'ended' ? 'Resolved' :
-            incident.status === 'started' ? 'Started' :
-            formatStatusText(incident.status);
+        const statusText = formatStatusText(incident.status);
 
         const endTimeText = incident.end_time ?
             `Ended: ${new Date(incident.end_time).toLocaleString()}` :
@@ -223,9 +221,7 @@ function updateIncidents(incidents) {
             updatesHtml += '<h4 class="updates-title">Updates Timeline</h4>';
 
             sortedUpdates.forEach(update => {
-                const updateStatus = update.status === 'ended' ? 'Ended' :
-                    update.status === 'started' ? 'Started' :
-                    formatStatusText(update.status);
+                const updateStatus = formatStatusText(update.status);
 
                 updatesHtml += `
                     <div class="incident-update">
@@ -281,6 +277,12 @@ function formatStatusText(status) {
             return 'Started';
         case 'ended':
             return 'Resolved';
+        case 'identified':
+            return 'Issue Identified';
+        case 'monitoring':
+            return 'Monitoring';
+        case 'in_progress':
+            return 'In Progress';
         default:
             return status;
     }
