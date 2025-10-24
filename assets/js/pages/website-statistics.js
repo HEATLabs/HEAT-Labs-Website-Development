@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const STATS_API_URL = 'https://views.heatlabs.net/api/stats';
     const PIXEL_MAPPING_URL = 'https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/tracking-pixel.json';
     const GSC_INDEX_URL = 'https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/gsc-index.json';
+    const PAGE_DATA_URL = 'https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/page-data.json';
 
     // DOM elements
     const totalViewsEl = document.getElementById('totalViews');
@@ -15,6 +16,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const viewsByTimeChartEl = document.getElementById('viewsByTimeChart');
     const indexedPagesChartEl = document.getElementById('indexedPagesChart');
     const viewsByCategoryChartEl = document.getElementById('viewsByCategoryChart');
+    const googleIndexChartEl = document.getElementById('googleIndexChart');
+    const googleApiChartEl = document.getElementById('googleApiChart');
+    const httpsStatusChartEl = document.getElementById('httpsStatusChart');
+    const breadcrumbChartEl = document.getElementById('breadcrumbChart');
     const statsTableBody = document.getElementById('statsTableBody');
     const pageSearch = document.getElementById('pageSearch');
     const sortBy = document.getElementById('sortBy');
@@ -59,6 +64,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let statsData = {};
     let pixelMapping = {};
     let gscIndexData = {};
+    let pageData = {};
     let processedData = [];
     let currentPage = 1;
     const itemsPerPage = 10;
@@ -91,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
     async function loadMainStats() {
         updateLoadingProgress(20);
 
-        const [statsResponse, mappingResponse, gscResponse] = await Promise.all([
+        const [statsResponse, mappingResponse, gscResponse, pageDataResponse] = await Promise.all([
             fetch(STATS_API_URL).catch(error => {
                 console.warn('Stats API failed:', error);
                 return {
@@ -106,6 +112,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }),
             fetch(GSC_INDEX_URL).catch(error => {
                 console.warn('GSC index API failed:', error);
+                return {
+                    ok: false
+                };
+            }),
+            fetch(PAGE_DATA_URL).catch(error => {
+                console.warn('Page data API failed:', error);
                 return {
                     ok: false
                 };
@@ -133,6 +145,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             };
             console.warn('GSC index data not available, using fallback');
+        }
+
+        // Page data is optional
+        if (pageDataResponse.ok) {
+            pageData = await pageDataResponse.json();
+        } else {
+            pageData = {
+                statistics: {
+                    google_index_data: {
+                        pending: 0,
+                        not_indexed: 0,
+                        indexed: 0
+                    },
+                    google_api_status: {
+                        pending: 0,
+                        not_indexed: 0,
+                        indexed: 0
+                    },
+                    https_page_status: {
+                        unknown: 0,
+                        not_https: 0,
+                        https: 0
+                    },
+                    breadcrumb_status: {
+                        unknown: 0,
+                        invalid: 0,
+                        valid: 0
+                    }
+                }
+            };
+            console.warn('Page data not available, using fallback to 0');
         }
 
         updateLoadingProgress(70);
@@ -200,6 +243,22 @@ document.addEventListener('DOMContentLoaded', function() {
             {
                 element: viewsByCategoryChartEl,
                 title: 'Views by Category (Last 30 Days)'
+            },
+            {
+                element: googleIndexChartEl,
+                title: 'Google Index Data'
+            },
+            {
+                element: googleApiChartEl,
+                title: 'Google API Status'
+            },
+            {
+                element: httpsStatusChartEl,
+                title: 'HTTPS Page Status'
+            },
+            {
+                element: breadcrumbChartEl,
+                title: 'Breadcrumb Validation Status'
             }
         ];
 
@@ -357,6 +416,10 @@ document.addEventListener('DOMContentLoaded', function() {
         renderViewsByTimeChart();
         renderIndexedPagesChart();
         renderViewsByCategoryChart();
+        renderGoogleIndexChart();
+        renderGoogleApiChart();
+        renderHttpsStatusChart();
+        renderBreadcrumbChart();
     }
 
     function renderDailyViewsChart() {
@@ -633,6 +696,170 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function renderGoogleIndexChart() {
+        const googleIndexData = pageData.statistics.google_index_data;
+        const labels = ['Pending', 'Not Indexed', 'Indexed'];
+        const data = [googleIndexData.pending, googleIndexData.not_indexed, googleIndexData.indexed];
+        const colors = ['rgba(255, 205, 86, 0.7)', 'rgba(255, 99, 132, 0.7)', 'rgba(75, 192, 192, 0.7)'];
+        const borderColors = ['rgba(255, 205, 86, 1)', 'rgba(255, 99, 132, 1)', 'rgba(75, 192, 192, 1)'];
+
+        new Chart(googleIndexChartEl, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors,
+                    borderColor: borderColors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderGoogleApiChart() {
+        const googleApiData = pageData.statistics.google_api_status;
+        const labels = ['Pending', 'Not Indexed', 'Indexed'];
+        const data = [googleApiData.pending, googleApiData.not_indexed, googleApiData.indexed];
+        const colors = ['rgba(255, 205, 86, 0.7)', 'rgba(255, 99, 132, 0.7)', 'rgba(75, 192, 192, 0.7)'];
+        const borderColors = ['rgba(255, 205, 86, 1)', 'rgba(255, 99, 132, 1)', 'rgba(75, 192, 192, 1)'];
+
+        new Chart(googleApiChartEl, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors,
+                    borderColor: borderColors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderHttpsStatusChart() {
+        const httpsData = pageData.statistics.https_page_status;
+        const labels = ['Unknown', 'Not HTTPS', 'HTTPS'];
+        const data = [httpsData.unknown, httpsData.not_https, httpsData.https];
+        const colors = ['rgba(199, 199, 199, 0.7)', 'rgba(255, 99, 132, 0.7)', 'rgba(75, 192, 192, 0.7)'];
+        const borderColors = ['rgba(199, 199, 199, 1)', 'rgba(255, 99, 132, 1)', 'rgba(75, 192, 192, 1)'];
+
+        new Chart(httpsStatusChartEl, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors,
+                    borderColor: borderColors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderBreadcrumbChart() {
+        const breadcrumbData = pageData.statistics.breadcrumb_status;
+        const labels = ['Unknown', 'Invalid', 'Valid'];
+        const data = [breadcrumbData.unknown, breadcrumbData.invalid, breadcrumbData.valid];
+        const colors = ['rgba(199, 199, 199, 0.7)', 'rgba(255, 99, 132, 0.7)', 'rgba(75, 192, 192, 0.7)'];
+        const borderColors = ['rgba(199, 199, 199, 1)', 'rgba(255, 99, 132, 1)', 'rgba(75, 192, 192, 1)'];
+
+        new Chart(breadcrumbChartEl, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors,
+                    borderColor: borderColors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     function renderTable() {
         if (dataLoadFailed) {
             return;
@@ -831,9 +1058,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateLoadingProgress(percent) {
-        if (loadingProgressBar) {
-            loadingProgressBar.style.width = `${percent}%`;
-        }
+        loadingProgressBar.style.width = `${percent}%`;
     }
 
     function debounce(func, wait) {
