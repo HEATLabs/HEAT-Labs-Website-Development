@@ -46,7 +46,7 @@ let serverRefreshTimer = null;
 let serverChartInstances = {};
 
 function fetchStatusData() {
-    fetch('https://cdn1.heatlabs.net/system-status.json')
+    fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/system-status.json')
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
