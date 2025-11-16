@@ -113,6 +113,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
 
+            <div class="settings-group">
+                <h3 class="settings-group-title">
+                    <i class="fas fa-comment-alt"></i>
+                    Feedback
+                </h3>
+
+                <div class="settings-option">
+                    <div>
+                        <div class="settings-label">Send Feedback</div>
+                        <div class="settings-description">Share your thoughts and suggestions about HEAT Labs</div>
+                    </div>
+                    <button class="settings-btn settings-btn-secondary" id="sendFeedbackBtn">
+                        Provide Feedback
+                    </button>
+                </div>
+            </div>
+
             <div class="settings-footer">
                 <button class="settings-btn settings-btn-secondary" id="settingsCancelBtn">
                     Cancel
@@ -161,6 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const dataRetentionSelect = document.getElementById('dataRetentionSelect');
     const exportDataBtn = document.getElementById('exportDataBtn');
     const eraseDataBtn = document.getElementById('eraseDataBtn');
+    const sendFeedbackBtn = document.getElementById('sendFeedbackBtn');
     const confirmationModal = document.getElementById('confirmationModal');
     const confirmationOverlay = document.getElementById('confirmationOverlay');
     const confirmationCancelBtn = document.getElementById('confirmationCancelBtn');
@@ -452,6 +470,16 @@ document.addEventListener('DOMContentLoaded', function() {
         );
     }
 
+    // Send feedback
+    function sendFeedback() {
+        const feedbackUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSew6Eig9MwuUmYjIa7wQ__1TXD-sTERRyji7u9dTnVefGApCQ/viewform?usp=dialog';
+        window.open(feedbackUrl, '_blank');
+        showToast('Opening feedback form...', 'info');
+
+        // Close settings modal after a short delay
+        setTimeout(closeSettingsModal, 500);
+    }
+
     // Check and clean expired data
     function checkDataExpiration() {
         const retentionMonths = parseInt(localStorage.getItem('dataRetention') || '3');
@@ -520,6 +548,7 @@ document.addEventListener('DOMContentLoaded', function() {
     exportDataBtn.addEventListener('click', exportClickHandler);
 
     eraseDataBtn.addEventListener('click', eraseAllData);
+    sendFeedbackBtn.addEventListener('click', sendFeedback);
     confirmationCancelBtn.addEventListener('click', closeConfirmationModal);
     confirmationOverlay.addEventListener('click', closeConfirmationModal);
 
