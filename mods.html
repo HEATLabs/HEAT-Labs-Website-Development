@@ -386,9 +386,71 @@
           <p>Browse and install mods from our team and community</p>
         </div>
       </section>
-      <!-- Player Statistics Section -->
+      <!-- Mods Grid Section -->
       <section id="main" class="section">
-        <!-- PLACEHOLDER -->
+        <div class="container mx-auto px-4">
+          <h2 class="section-title">All Game Mods</h2>
+          <!-- Filters Section -->
+          <div class="mods-filters-section">
+            <div class="container mx-auto px-4">
+              <!-- Filter Buttons Grid -->
+              <div class="mods-filters-container">
+                <!-- Creator Filters -->
+                <div class="mods-filter-group">
+                  <h3 class="mods-filter-group-title">CREATOR</h3>
+                  <div class="mods-filter-buttons-grid">
+                    <button class="mods-filter-btn creator-filter" data-creator="HEAT Labs">
+                      <i class="fas fa-crown"></i> HEAT Labs </button>
+                  </div>
+                </div>
+                <!-- Category Filters -->
+                <div class="mods-filter-group">
+                  <h3 class="mods-filter-group-title">CATEGORY</h3>
+                  <div class="mods-filter-buttons-grid">
+                    <button class="mods-filter-btn category-filter" data-category="Gameplay">
+                      <i class="fas fa-gamepad"></i> Gameplay </button>
+                    <button class="mods-filter-btn category-filter" data-category="Interface">
+                      <i class="fas fa-desktop"></i> Interface </button>
+                    <button class="mods-filter-btn category-filter" data-category="Audio">
+                      <i class="fas fa-volume-up"></i> Audio </button>
+                    <button class="mods-filter-btn category-filter" data-category="Visual">
+                      <i class="fas fa-eye"></i> Visual </button>
+                    <button class="mods-filter-btn category-filter" data-category="Model">
+                      <i class="fas fa-eye"></i> Model </button>
+                    <button class="mods-filter-btn category-filter" data-category="Performance">
+                      <i class="fas fa-tachometer-alt"></i> Performance </button>
+                    <div class="mods-filter-btn" style="visibility: hidden;"></div>
+                    <div class="mods-filter-btn" style="visibility: hidden;"></div>
+                    <div class="mods-filter-btn" style="visibility: hidden;"></div>
+                  </div>
+                </div>
+                <!-- Status Filters -->
+                <div class="mods-filter-group">
+                  <h3 class="mods-filter-group-title">STATUS</h3>
+                  <div class="mods-status-filter-buttons-grid">
+                    <button class="mods-filter-btn status-filter" data-status="Available Now">
+                      <i class="fas fa-check-circle"></i> Available Now </button>
+                    <button class="mods-filter-btn status-filter" data-status="Work in Progress">
+                      <i class="fas fa-tools"></i> Work in Progress </button>
+                    <button class="mods-filter-btn status-filter" data-status="Beta Testing">
+                      <i class="fas fa-vial"></i> Beta Testing </button>
+                    <button class="mods-filter-btn status-filter" data-status="Discontinued">
+                      <i class="fas fa-ban"></i> Discontinued </button>
+                  </div>
+                </div>
+              </div>
+              <!-- Active Filters -->
+              <div class="mods-active-filters-container">
+                <div class="mods-active-filters">
+                  <div class="mods-no-filters-message">No filters selected</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="mods-grid text-center">
+            <!-- Mod cards will be dynamically inserted here -->
+          </div>
+        </div>
       </section>
       <!-- CTA Section -->
       <section class="cta-section">
