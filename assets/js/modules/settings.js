@@ -49,8 +49,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="settings-description">Show holiday themes and effects</div>
                     </div>
                     <select class="settings-select" id="seasonalContentSelect">
-                        <option value="true">Enabled</option>
                         <option value="false">Disabled</option>
+                        <option value="true">Enabled</option>
                     </select>
                 </div>
             </div>
@@ -256,7 +256,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Load saved settings
         const savedTheme = localStorage.getItem('themePreference') || 'system';
         const savedMotion = localStorage.getItem('reducedMotion') === 'true';
-        const savedSeasonalContent = localStorage.getItem('seasonalContent') !== 'false'; // Default to true
+        const savedSeasonalContent = localStorage.getItem('seasonalContent') === 'true'; // Default to false
         const savedRetention = localStorage.getItem('dataRetention') || '3';
 
         themeSelect.value = savedTheme;
@@ -521,7 +521,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Set default seasonal content preference if not set
         if (!localStorage.getItem('seasonalContent')) {
-            localStorage.setItem('seasonalContent', 'true');
+            localStorage.setItem('seasonalContent', 'false');
         }
 
         // Set default data retention if not set
