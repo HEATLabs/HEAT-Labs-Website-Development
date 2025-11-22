@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         card.innerHTML = `
             <div class="mod-img-container">
-                <img src="${mod.image}" alt="${mod.name} Preview" class="mod-img" onerror="this.src='https://cdn.jsdelivr.net/gh/HEATLabs/HEAT-Labs-Images@main/placeholder/imagefailedtoload.webp'">
+                <img src="${mod.image}" alt="${mod.name} Preview" class="mod-img" onerror="this.src='https://cdn5.heatlabs.net/placeholder/imagefailedtoload.webp'">
                 ${modStatusHTML}
             </div>
             <div class="mod-info">
