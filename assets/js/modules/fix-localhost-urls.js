@@ -16,6 +16,9 @@ function fixLocalLinks() {
                 !href.endsWith('.net') &&
                 !href.endsWith('.png') &&
                 !href.endsWith('.webp') &&
+
+                !href.includes('.tv') &&
+                !href.includes('discord') &&
                 !href.includes('.com')) {
 
                 link.setAttribute('href', href + '.html');
