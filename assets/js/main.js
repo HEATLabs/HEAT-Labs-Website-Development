@@ -138,19 +138,19 @@ function addVersionToFooter(update, isFallback = false) {
     const formattedDate = formatDate(update.date);
     const currentDate = formatDate(new Date().toISOString().split('T')[0]);
 
-    // Create version info element
-    const versionInfo = document.createElement('div');
-    versionInfo.className = 'version-info-item';
-    versionInfo.innerHTML = `
-        <span class="version-label">Version:</span>
+    // Create website version info element
+    const websiteVersionInfo = document.createElement('div');
+    websiteVersionInfo.className = 'version-info-item';
+    websiteVersionInfo.innerHTML = `
+        <span class="version-label">Website Version:</span>
         <span class="version-value">v${update.version}</span>
     `;
 
-    // Create last updated element
-    const updatedInfo = document.createElement('div');
-    updatedInfo.className = 'version-info-item';
-    updatedInfo.innerHTML = `
-        <span class="version-label">Last Updated:</span>
+    // Create website build element
+    const websiteBuildInfo = document.createElement('div');
+    websiteBuildInfo.className = 'version-info-item';
+    websiteBuildInfo.innerHTML = `
+        <span class="version-label">Website Build:</span>
         <span class="version-value">${isFallback ? currentDate : formattedDate}</span>
     `;
 
@@ -167,8 +167,8 @@ function addVersionToFooter(update, isFallback = false) {
     changelogLink.rel = 'noopener noreferrer';
 
     // Append all elements to container
-    versionContainer.appendChild(versionInfo);
-    versionContainer.appendChild(updatedInfo);
+    versionContainer.appendChild(websiteVersionInfo);
+    versionContainer.appendChild(websiteBuildInfo);
     versionContainer.appendChild(changelogLink);
 
     // Insert after disclaimer
