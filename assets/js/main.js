@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/maintenance.json')
         .then(response => {
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                throw new Error('Failed to fetch maintenance data');
             }
             return response.json();
         })
@@ -40,34 +40,116 @@ document.addEventListener('DOMContentLoaded', function() {
         // Initialize interactive elements
         initializeInteractiveElements();
 
-        // Fetch changelog data from GitHub
+        // Fetch website version data from GitHub
         fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/changelog.json')
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                    throw new Error('Failed to fetch changelog data');
                 }
                 return response.json();
             })
             .then(data => {
+                // Get website version data
+                let websiteVersionData = null;
                 if (data.updates && data.updates.length > 0) {
-                    // Get the latest update (first item in the array)
-                    const latestUpdate = data.updates[0];
-                    addVersionToFooter(latestUpdate);
-                    addVersionToBetaTag(latestUpdate);
+                    websiteVersionData = data.updates[0];
                 }
+
+                // Fetch game version data
+                fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/game_builds.json')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch game data');
+                        }
+                        return response.json();
+                    })
+                    .then(buildsData => {
+                        // Process game version data
+                        const gameVersionData = getLatestGameVersion(buildsData);
+
+                        // Add website and game version info to footer
+                        addVersionToFooter(websiteVersionData, gameVersionData);
+
+                        // Add beta tag with website version
+                        if (websiteVersionData) {
+                            addVersionToBetaTag(websiteVersionData, false);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching game version information:', error);
+
+                        // Use fallback for game data
+                        const fallbackGameData = {
+                            gameVersion: '0.0.0.0',
+                            gameBuildDate: new Date().toISOString()
+                        };
+
+                        // Add versions with fallback game data
+                        addVersionToFooter(websiteVersionData, fallbackGameData, true);
+
+                        if (websiteVersionData) {
+                            addVersionToBetaTag(websiteVersionData, false);
+                        }
+                    });
             })
             .catch(error => {
-                console.error('Error fetching version information:', error);
-                // Fallback version display if the fetch fails
-                const fallbackVersion = {
+                console.error('Error fetching website version information:', error);
+
+                // Fallback for both website and game
+                const fallbackWebsiteData = {
                     version: '1.0.0',
                     date: new Date().toISOString().split('T')[0]
                 };
-                addVersionToFooter(fallbackVersion, true);
-                addVersionToBetaTag(fallbackVersion, true);
+
+                const fallbackGameData = {
+                    gameVersion: '0.0.0.0',
+                    gameBuildDate: new Date().toISOString()
+                };
+
+                addVersionToFooter(fallbackWebsiteData, fallbackGameData, true);
+                addVersionToBetaTag(fallbackWebsiteData, true);
             });
     }
 });
+
+function getLatestGameVersion(buildsData) {
+    try {
+        // Extract builds from the data structure
+        const builds = buildsData.builds;
+        let latestBuild = null;
+        let latestDate = null;
+
+        // Iterate through all game builds to find the latest one
+        for (const gameName in builds) {
+            const gameBuilds = builds[gameName];
+
+            for (const buildHash in gameBuilds) {
+                const build = gameBuilds[buildHash];
+                const buildDate = new Date(build.build_info.build_date);
+
+                if (!latestDate || buildDate > latestDate) {
+                    latestDate = buildDate;
+                    latestBuild = build;
+                }
+            }
+        }
+
+        if (latestBuild) {
+            return {
+                gameVersion: latestBuild.build_info.version_name,
+                gameBuildDate: latestBuild.build_info.build_date
+            };
+        }
+    } catch (error) {
+        console.error('Error parsing game version data:', error);
+    }
+
+    // Return fallback if no valid data found
+    return {
+        gameVersion: '0.0.0.0',
+        gameBuildDate: new Date().toISOString()
+    };
+}
 
 function initializeInteractiveElements() {
     // Add animation to feature cards and tank cards when they come into view
@@ -121,7 +203,7 @@ function addVersionToBetaTag(update, isFallback = false) {
     betaTag.classList.add('version-tag');
 }
 
-function addVersionToFooter(update, isFallback = false) {
+function addVersionToFooter(websiteUpdate, gameUpdate, isFallback = false) {
     // Find the footer disclaimer div (the one that contains the copyright info)
     const disclaimerDiv = document.querySelector('.footer .text-center.text-sm.text-gray-500');
 
@@ -134,16 +216,60 @@ function addVersionToFooter(update, isFallback = false) {
     const versionContainer = document.createElement('div');
     versionContainer.className = 'version-info-container';
 
-    // Format the date
-    const formattedDate = formatDate(update.date);
+    // Format dates
+    const websiteFormattedDate = websiteUpdate ? formatDate(websiteUpdate.date) : formatDate(new Date().toISOString().split('T')[0]);
     const currentDate = formatDate(new Date().toISOString().split('T')[0]);
+
+    // Format game build date
+    let gameBuildFormatted = 'Unknown';
+    if (gameUpdate && gameUpdate.gameBuildDate) {
+        try {
+            // Parse the build_date string
+            const buildDateStr = gameUpdate.gameBuildDate;
+            const [datePart, timePart] = buildDateStr.split(' ');
+            const [year, month, day] = datePart.split('.');
+            const [hours, minutes, seconds] = timePart.split(':');
+
+            const buildDate = new Date(
+                parseInt(year),
+                parseInt(month) - 1,
+                parseInt(day),
+                parseInt(hours),
+                parseInt(minutes),
+                parseInt(seconds)
+            );
+
+            gameBuildFormatted = formatDate(buildDate.toISOString());
+        } catch (error) {
+            console.error('Error parsing game build date:', error);
+            gameBuildFormatted = formatDate(new Date().toISOString());
+        }
+    } else {
+        gameBuildFormatted = formatDate(new Date().toISOString());
+    }
+
+    // Create game version info element
+    const gameVersionInfo = document.createElement('div');
+    gameVersionInfo.className = 'version-info-item';
+    gameVersionInfo.innerHTML = `
+        <span class="version-label">Game Version:</span>
+        <span class="version-value">v${gameUpdate ? gameUpdate.gameVersion : '0.0.0.0'}</span>
+    `;
+
+    // Create game build element
+    const gameBuildInfo = document.createElement('div');
+    gameBuildInfo.className = 'version-info-item';
+    gameBuildInfo.innerHTML = `
+        <span class="version-label">Game Build:</span>
+        <span class="version-value">${gameBuildFormatted}</span>
+    `;
 
     // Create website version info element
     const websiteVersionInfo = document.createElement('div');
     websiteVersionInfo.className = 'version-info-item';
     websiteVersionInfo.innerHTML = `
         <span class="version-label">Website Version:</span>
-        <span class="version-value">v${update.version}</span>
+        <span class="version-value">v${websiteUpdate ? websiteUpdate.version : '1.0.0'}</span>
     `;
 
     // Create website build element
@@ -151,7 +277,7 @@ function addVersionToFooter(update, isFallback = false) {
     websiteBuildInfo.className = 'version-info-item';
     websiteBuildInfo.innerHTML = `
         <span class="version-label">Website Build:</span>
-        <span class="version-value">${isFallback ? currentDate : formattedDate}</span>
+        <span class="version-value">${isFallback ? currentDate : websiteFormattedDate}</span>
     `;
 
     // Create changelog link
@@ -167,6 +293,8 @@ function addVersionToFooter(update, isFallback = false) {
     changelogLink.rel = 'noopener noreferrer';
 
     // Append all elements to container
+    versionContainer.appendChild(gameVersionInfo);
+    versionContainer.appendChild(gameBuildInfo);
     versionContainer.appendChild(websiteVersionInfo);
     versionContainer.appendChild(websiteBuildInfo);
     versionContainer.appendChild(changelogLink);
@@ -181,5 +309,11 @@ function formatDate(dateString) {
         month: 'short',
         day: 'numeric'
     };
-    return new Date(dateString).toLocaleDateString(undefined, options);
+
+    try {
+        return new Date(dateString).toLocaleDateString(undefined, options);
+    } catch (error) {
+        console.error('Error formatting date:', error, dateString);
+        return 'Invalid Date';
+    }
 }
