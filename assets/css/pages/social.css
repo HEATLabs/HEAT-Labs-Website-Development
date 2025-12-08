@@ -155,6 +155,11 @@
 	border-color: rgba(145, 70, 255, 0.4);
 }
 
+.social-platform.reddit:hover {
+	background: rgba(255, 69, 0, 0.2);
+	border-color: rgba(255, 69, 0, 0.4);
+}
+
 .social-buttons {
 	display: flex;
 	justify-content: center;
