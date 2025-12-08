@@ -1,4 +1,4 @@
-(function () {
+(function() {
     fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/search-keywords.json')
         .then(res => res.json())
         .then(data => {
