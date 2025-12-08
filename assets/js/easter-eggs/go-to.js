@@ -2,6 +2,9 @@
 (() => {
     const secretCodes = {
         'youtube': 'https://www.youtube.com/@HEATLabs-Official',
+        'tiktok': 'https://www.tiktok.com/@heatlabs_official',
+        'twitch': 'https://www.twitch.tv/HEATLabs',
+        'reddit': 'https://www.reddit.com/r/HEATLabs',
         'twitter': 'https://x.com/HEAT_Labs',
         'github': 'https://github.com/HEATLabs',
         'discord': 'https://discord.heatlabs.net',
