@@ -183,6 +183,82 @@ h2::after {
 	line-height: 1.6;
 }
 
+/* Contributors List */
+.contributors-list {
+	background-color: var(--card-bg);
+	border-radius: 0.75rem;
+	box-shadow: var(--shadow);
+	border: 1px solid var(--border-color);
+	overflow: hidden;
+	margin-top: 2rem;
+}
+
+.contributor-item {
+	display: flex;
+	justify-content: space-between;
+	padding: 1rem 1.5rem;
+	border-bottom: 1px solid var(--border-color);
+	transition: background-color 0.3s ease;
+}
+
+.contributor-item:last-child {
+	border-bottom: none;
+}
+
+.contributor-item:hover {
+	background-color: var(--bg-tertiary);
+}
+
+.contributor-item .name {
+	font-weight: 500;
+	color: var(--text-primary);
+}
+
+.contributor-item .contribution {
+	color: var(--text-secondary);
+	font-size: 0.9rem;
+}
+
+/* Beta Testers */
+.beta-testers {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+	margin-top: 1rem;
+	justify-content: center;
+	align-items: center;
+	row-gap: 1rem;
+}
+
+.beta-testers span {
+	background-color: var(--card-bg);
+	padding: 0.5rem 1rem;
+	border-radius: 2rem;
+	font-size: 0.9rem;
+	color: var(--text-secondary);
+	border: 1px solid var(--border-color);
+}
+
+/* Content Creators */
+.content-creators {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-top: 1rem;
+	justify-content: center;
+	align-items: center;
+	row-gap: 1rem;
+}
+
+.content-creators span {
+	background-color: var(--card-bg);
+	padding: 0.5rem 1rem;
+	border-radius: 2rem;
+	font-size: 0.9rem;
+	color: var(--text-secondary);
+	border: 1px solid var(--border-color);
+}
+
 /* CTA Section */
 .about-cta {
 	background-color: var(--card-bg);
@@ -276,11 +352,16 @@ h2::after {
 
 @media (max-width: 768px) {
 	.action-boxes-grid {
-		grid-template-columns: repeat(2, 1fr));
+		grid-template-columns: repeat(2, 1fr);
 	}
 
 	.faq-categories {
-		grid-template-columns: repeat(2, 1fr));
+		grid-template-columns: repeat(2, 1fr);
+	}
+
+	.contributor-item {
+		flex-direction: column;
+		gap: 0.5rem;
 	}
 }
 
