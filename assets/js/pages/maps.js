@@ -62,6 +62,13 @@ function filterMaps() {
     mapCards.forEach(card => {
         const cardStatus = card.querySelector('.map-tag')?.textContent || 'Unknown';
         const cardSize = getMapSize(card);
+        const cardState = card.getAttribute('data-state');
+
+        // Skip hidden cards
+        if (cardState === 'hidden') {
+            card.style.display = 'none';
+            return;
+        }
 
         const statusMatch = filters.status.length === 0 ||
             (filters.status.includes('Available Now') && cardStatus === 'Available Now') ||

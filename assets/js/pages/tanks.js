@@ -6,18 +6,18 @@ document.addEventListener('DOMContentLoaded', function() {
         status: []
     };
 
-document.addEventListener('click', function(event) {
-    const sidebar = document.querySelector('.comparison-sidebar');
-    const trigger = document.querySelector('.comparison-trigger');
+    document.addEventListener('click', function(event) {
+        const sidebar = document.querySelector('.comparison-sidebar');
+        const trigger = document.querySelector('.comparison-trigger');
 
-    // If sidebar exists and is open, and click is outside of it
-    if (sidebar && sidebar.classList.contains('open') &&
-        !sidebar.contains(event.target) &&
-        event.target !== trigger &&
-        !trigger.contains(event.target)) {
-        toggleSidebar(event);
-    }
-});
+        // If sidebar exists and is open, and click is outside of it
+        if (sidebar && sidebar.classList.contains('open') &&
+            !sidebar.contains(event.target) &&
+            event.target !== trigger &&
+            !trigger.contains(event.target)) {
+            toggleSidebar(event);
+        }
+    });
 
     // DOM elements
     const activeFiltersContainer = document.querySelector('.active-filters');
@@ -84,7 +84,7 @@ document.addEventListener('click', function(event) {
         comparisonSidebar.querySelector('.comparison-sidebar-close').addEventListener('click', toggleSidebar);
         comparisonOverlay.addEventListener('click', toggleSidebar);
         comparisonSidebar.querySelector('.btn-clear').addEventListener('click', clearComparison);
-        comparisonSidebar.querySelector('.btn-add-all').addEventListener('click', function (){
+        comparisonSidebar.querySelector('.btn-add-all').addEventListener('click', function() {
             addAllTanks();
         });
         comparisonSidebar.querySelector('.btn-compare').addEventListener('click', function() {
@@ -249,6 +249,7 @@ document.addEventListener('click', function(event) {
         card.setAttribute('data-type', tank.type);
         card.setAttribute('data-status', tank.class);
         card.setAttribute('data-tank-id', tank.id);
+        card.setAttribute('data-state', tank.state);
 
         // Only show tank class (bubble) if it exists and isn't empty
         const tankClassHTML = tank.class && tank.class.trim() !== '' ?
@@ -302,10 +303,13 @@ document.addEventListener('click', function(event) {
             return;
         }
 
-        // Create and append cards for each tank
+        // Create and append cards for each tank that has state: "displayed"
         tanks.forEach(tank => {
-            const card = createTankCard(tank);
-            tanksGrid.appendChild(card);
+            // Only create cards for tanks with state: "displayed"
+            if (tank.state === "displayed") {
+                const card = createTankCard(tank);
+                tanksGrid.appendChild(card);
+            }
         });
 
         // Store references to all tank cards
@@ -457,6 +461,13 @@ document.addEventListener('click', function(event) {
             const cardType = card.getAttribute('data-type');
             const cardStatus = card.querySelector('.tank-class') ?
                 card.querySelector('.tank-class').textContent : 'Unknown';
+            const cardState = card.getAttribute('data-state');
+
+            // Skip hidden cards
+            if (cardState === 'hidden') {
+                card.style.display = 'none';
+                return;
+            }
 
             const nationMatch = filters.nation.length === 0 || filters.nation.includes(cardNation);
             const typeMatch = filters.type.length === 0 || filters.type.includes(cardType);
@@ -556,9 +567,9 @@ document.addEventListener('click', function(event) {
 
     // Add all tanks to comparison
     function addAllTanks() {
-        // Get all tank cards that are currently visible (after filtering)
+        // Get all tank cards that are currently visible (after filtering) and not hidden
         const visibleTankCards = Array.from(document.querySelectorAll('.tank-card[data-tank-id]'))
-            .filter(card => card.style.display !== 'none');
+            .filter(card => card.style.display !== 'none' && card.getAttribute('data-state') !== 'hidden');
 
         // Get their IDs
         const allTankIds = visibleTankCards.map(card => card.getAttribute('data-tank-id'));

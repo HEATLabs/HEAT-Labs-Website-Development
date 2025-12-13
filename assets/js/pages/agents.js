@@ -68,6 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
         card.className = 'agent-card';
         card.setAttribute('data-status', agent.status);
         card.setAttribute('data-agent-id', agent.id);
+        card.setAttribute('data-state', agent.state);
 
         // Get number of compatible tanks
         const tankCount = agent.compatibleTanks ? agent.compatibleTanks.length : 0;
@@ -122,10 +123,13 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Create and append cards for each agent
+        // Create and append cards for each agent that has state: "displayed"
         agents.forEach(agent => {
-            const card = createAgentCard(agent);
-            agentsGrid.appendChild(card);
+            // Only create cards for agents with state: "displayed"
+            if (agent.state === "displayed") {
+                const card = createAgentCard(agent);
+                agentsGrid.appendChild(card);
+            }
         });
 
         // Store references to all agent cards
@@ -237,6 +241,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         agentCards.forEach(card => {
             const cardStatus = card.getAttribute('data-status');
+            const cardState = card.getAttribute('data-state');
+
+            // Skip hidden cards
+            if (cardState === 'hidden') {
+                card.style.display = 'none';
+                return;
+            }
+
             const statusMatch = filters.status.length === 0 || filters.status.includes(cardStatus);
 
             if (statusMatch) {
