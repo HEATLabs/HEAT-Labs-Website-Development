@@ -35,6 +35,111 @@ async function updateMapViewCounters() {
     }
 }
 
+// Fetch map data from JSON file
+async function fetchMapData() {
+    try {
+        const response = await fetch('https://cdn1.heatlabs.net/maps.json');
+        if (!response.ok) {
+            throw new Error('Failed to load map data');
+        }
+        const data = await response.json();
+        return data.maps; // Return the maps array from the JSON
+    } catch (error) {
+        console.error('Error loading map data:', error);
+        return []; // Return empty array if there's an error
+    }
+}
+
+// Create map card HTML
+function createMapCard(map) {
+    const card = document.createElement('div');
+    card.className = 'map-card';
+    card.setAttribute('data-status', map.status);
+    card.setAttribute('data-map-id', map.id);
+    card.setAttribute('data-state', map.state);
+
+    // Calculate area for sorting if size is known
+    let area = 0;
+    if (map.size !== 'Unknown Size' && map.size.includes('x')) {
+        const dimensions = map.size.split('x').map(dim => parseInt(dim.trim().replace('m', '')));
+        if (dimensions.length === 2 && !isNaN(dimensions[0]) && !isNaN(dimensions[1])) {
+            area = dimensions[0] * dimensions[1];
+        }
+    }
+    card.setAttribute('data-area', area);
+
+    // Format size display - show "Unknown Size" if it's unknown
+    const sizeDisplay = map.size === 'Unknown Size' ? 'Unknown Size' : map.size;
+
+    card.innerHTML = `
+        <div class="map-img-container">
+            <div class="map-views-counter">
+                <i class="fas fa-eye"></i>
+                <span class="views-count">0</span>
+            </div>
+            <img src="${map.image}" alt="${map.name} Map" class="map-img" onerror="this.src='https://cdn5.heatlabs.net/placeholder/imagefailedtoload.webp'">
+            <div class="map-tag">${map.status}</div>
+        </div>
+        <div class="map-info">
+            <h3>${map.name}</h3>
+            <div class="map-meta items-center">
+                <span><i class="fas fa-ruler-combined"></i> ${sizeDisplay}</span>
+                <span><i class="fas fa-route"></i> ${map.type}</span>
+            </div>
+            <p class="map-desc">${map.description}</p>
+            <a href="maps/${map.slug}" class="btn-accent btn-map">
+                <i class="fas fa-map-marked-alt mr-2"></i>View Map
+            </a>
+        </div>
+    `;
+
+    return card;
+}
+
+// Animate map cards into view
+function animateMapCards() {
+    const mapCards = Array.from(document.querySelectorAll('.map-card'));
+    mapCards.forEach((card, index) => {
+        setTimeout(() => {
+            card.classList.add('animated');
+        }, index * 100); // Stagger the animations
+    });
+}
+
+// Render all map cards
+async function renderMapCards() {
+    const mapsGrid = document.querySelector('.maps-grid');
+
+    // Clear existing hardcoded cards
+    mapsGrid.innerHTML = '';
+
+    const maps = await fetchMapData();
+
+    if (!maps || maps.length === 0) {
+        mapsGrid.innerHTML = '<p class="text-center py-10">Failed to load map data. Please try again later.</p>';
+        return;
+    }
+
+    // Create and append cards for each map that has state: "displayed"
+    maps.forEach(map => {
+        // Only create cards for maps with state: "displayed"
+        if (map.state === "displayed") {
+            const card = createMapCard(map);
+            mapsGrid.appendChild(card);
+        }
+    });
+
+    // Animate the cards into view
+    animateMapCards();
+
+    // Update view counters
+    updateMapViewCounters();
+
+    // Re-initialize filter functionality with new cards
+    initFilterButtons();
+    filterMaps();
+}
+
 // Initialize filters
 const filters = {
     size: [],
@@ -45,23 +150,21 @@ const filters = {
 const activeFiltersContainer = document.querySelector('.active-filters');
 const noFiltersMessage = document.querySelector('.no-filters-message');
 const mapsGrid = document.querySelector('.maps-grid');
-let mapCards = Array.from(document.querySelectorAll('.map-card'));
+let mapCards = [];
 
-// Function to extract size from map meta
+// Function to extract size from map card
 function getMapSize(card) {
-    const sizeText = card.querySelector('.map-meta span:first-child').textContent;
-    const sizeMatch = sizeText.match(/(\d+)m x (\d+)m/);
-    if (sizeMatch) {
-        return parseInt(sizeMatch[1]) * parseInt(sizeMatch[2]); // Return area in m²
-    }
-    return 0; // For "Unknown Size"
+    const area = parseInt(card.getAttribute('data-area'));
+    return area;
 }
 
 // Filter maps based on active filters
 function filterMaps() {
+    // Get fresh list of map cards
+    mapCards = Array.from(document.querySelectorAll('.map-card'));
+
     mapCards.forEach(card => {
         const cardStatus = card.querySelector('.map-tag')?.textContent || 'Unknown';
-        const cardSize = getMapSize(card);
         const cardState = card.getAttribute('data-state');
 
         // Skip hidden cards
@@ -76,10 +179,7 @@ function filterMaps() {
 
         let sizeMatch = true;
         if (filters.size.length > 0) {
-            if (filters.size.includes('Biggest First')) {
-                // Sorting will handle this
-                sizeMatch = true;
-            } else if (filters.size.includes('Smallest First')) {
+            if (filters.size.includes('Biggest First') || filters.size.includes('Smallest First')) {
                 // Sorting will handle this
                 sizeMatch = true;
             }
@@ -95,7 +195,7 @@ function filterMaps() {
     // Apply sorting if size filter is active
     if (filters.size.length > 0) {
         const container = document.querySelector('.maps-grid');
-        const cards = Array.from(container.querySelectorAll('.map-card'));
+        const cards = Array.from(container.querySelectorAll('.map-card[style*="display: block"]'));
 
         cards.sort((a, b) => {
             const sizeA = getMapSize(a);
@@ -222,11 +322,12 @@ function initFilterButtons() {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    initFilterButtons();
-    updateMapViewCounters();
+    // Render dynamic map cards
+    renderMapCards();
 
     // Sets default map status filter to Available Now
     const availableNowBtn = document.querySelector('.status-filter[data-status="Available Now"]');
-    availableNowBtn.classList.add('active');
-    filterMaps();
+    if (availableNowBtn) {
+        availableNowBtn.classList.add('active');
+    }
 });
