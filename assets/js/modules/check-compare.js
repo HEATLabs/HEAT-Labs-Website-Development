@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             // First get the tank info from tanks.json
-            const tanksResponse = await fetch('https://cdn.jsdelivr.net/gh/HEATLabs/HEAT-Labs-Configs@main/tanks.json');
+            const tanksResponse = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images-Configs/refs/heads/main/tanks.json');
             const tanksData = await tanksResponse.json();
             const tankInfo = tanksData.find(tank => tank.id == tankId);
 

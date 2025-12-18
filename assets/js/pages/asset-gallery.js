@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Fetch data
     async function fetchassetGalleryData() {
         try {
-            const response = await fetch('https://cdn.jsdelivr.net/gh/HEATLabs/HEAT-Labs-Configs@main/asset-gallery.json');
+            const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images-Configs/refs/heads/main/asset-gallery.json');
 
             // Uncomment line below to check using local JSON
             // const response = await fetch('../HEAT-Labs-Configs/asset-gallery.json');

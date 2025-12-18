@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Load missions data
-    fetch('https://cdn.jsdelivr.net/gh/HEATLabs/HEAT-Labs-Database@main/game-data/missions.json')
+    fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images-Database/refs/heads/main/game-data/missions.json')
         .then(response => response.json())
         .then(data => displayMissions(data.entitlements))
         .catch(error => {
