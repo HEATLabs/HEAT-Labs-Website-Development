@@ -13,6 +13,31 @@ document.addEventListener('DOMContentLoaded', function() {
         // Apply the new background image to all hero elements
         heroes.forEach(hero => {
             hero.style.backgroundImage = newImageUrl;
+
+            // Find the <p> element within the hero-content
+            const heroContent = hero.querySelector('.hero-content');
+            if (heroContent) {
+                const paragraph = heroContent.querySelector('p');
+
+                // Hide paragraph on mobile
+                if (paragraph && window.innerWidth < 768) {
+                    paragraph.style.display = 'none';
+                }
+            }
         });
     }
+
+    // Resize listener to handle orientation changes
+    window.addEventListener('resize', function() {
+        heroes.forEach(hero => {
+            const heroContent = hero.querySelector('.hero-content');
+            if (heroContent) {
+                const paragraph = heroContent.querySelector('p');
+                if (paragraph) {
+                    // Show/hide based on current screen width
+                    paragraph.style.display = window.innerWidth < 768 ? 'none' : '';
+                }
+            }
+        });
+    });
 });
