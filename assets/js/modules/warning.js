@@ -1,4 +1,12 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Toggle warning modal
+    const WARNING_MODAL_ENABLED = true;
+
+    // If modal is disabled, exit early
+    if (!WARNING_MODAL_ENABLED) {
+        return;
+    }
+
     // Check if user has already acknowledged the warning
     if (!localStorage.getItem('warningAcknowledged')) {
         // Create modal elements
