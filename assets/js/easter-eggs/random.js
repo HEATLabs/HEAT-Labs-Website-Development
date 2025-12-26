@@ -12,6 +12,9 @@
         "Adjusting the timeline slightly.",
         "Why are you here?",
         "Remmy? is that you?",
+        "A long time ago… just kidding",
+        "Look, we don't know where you're going either.",
+        "Padding our view stats.",
         "Searching for the holy grail.",
         "And now for something completely different.",
         "Putting far too much effort into what this is for."
