@@ -17,7 +17,13 @@
         "Padding our view stats.",
         "Searching for the holy grail.",
         "And now for something completely different.",
-        "Putting far too much effort into what this is for."
+        "Putting far too much effort into what this is for.",
+        "I have no memory of this place.",
+        "One does not simply redirect.",
+        "Trying to find which castle the princess is actually in.",
+        "We checked. Twice. Still not here.",
+        "Current Objective: Survive.",
+        "Inserting disc two."
     ];
 
     // Update the h1 tag
