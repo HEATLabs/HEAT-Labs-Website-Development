@@ -158,11 +158,13 @@ function updatePaginationControls(totalPages) {
 function updateNewsDisplay() {
     const sortFilter = document.getElementById('sortFilter');
     const typeFilter = document.getElementById('typeFilter');
+    const patchFilter = document.getElementById('patchFilter');
     const postsPerPageFilter = document.getElementById('postsPerPage');
     const newsGrid = document.querySelector('.news-grid');
 
     const sortValue = sortFilter.value;
     const typeValue = typeFilter.value;
+    const patchValue = patchFilter.value;
     postsPerPage = postsPerPageFilter.value === 'all' ? originalCards.length : parseInt(postsPerPageFilter.value);
 
     // If originalCards is empty (first load), store the initial cards
@@ -175,7 +177,12 @@ function updateNewsDisplay() {
     // Filter cards by type
     let filteredCards = originalCards;
     if (typeValue !== 'all') {
-        filteredCards = originalCards.filter(card => card.dataset.type === typeValue);
+        filteredCards = filteredCards.filter(card => card.dataset.type === typeValue);
+    }
+
+    // Filter cards by patch
+    if (patchValue !== 'all') {
+        filteredCards = filteredCards.filter(card => card.dataset.patch === patchValue);
     }
 
     // Sort cards by date
@@ -224,6 +231,7 @@ function updateNewsDisplay() {
 document.addEventListener('DOMContentLoaded', function() {
     const sortFilter = document.getElementById('sortFilter');
     const typeFilter = document.getElementById('typeFilter');
+    const patchFilter = document.getElementById('patchFilter');
     const postsPerPageFilter = document.getElementById('postsPerPage');
 
     // Initialize with default sorting
@@ -235,6 +243,10 @@ document.addEventListener('DOMContentLoaded', function() {
         updateNewsDisplay();
     });
     typeFilter.addEventListener('change', () => {
+        currentPage = 1;
+        updateNewsDisplay();
+    });
+    patchFilter.addEventListener('change', () => {
         currentPage = 1;
         updateNewsDisplay();
     });
