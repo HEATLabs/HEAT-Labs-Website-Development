@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         const gameVersionData = getLatestGameVersion(buildsData);
 
                         // Add website and game version info to footer
-                        addVersionToFooter(websiteVersionData, gameVersionData);
+                        addVersionToFooter(websiteVersionData, gameVersionData, false, false);
 
                         // Add beta tag with website version
                         if (websiteVersionData) {
@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         };
 
                         // Add versions with fallback game data
-                        addVersionToFooter(websiteVersionData, fallbackGameData, true);
+                        addVersionToFooter(websiteVersionData, fallbackGameData, true, false);
 
                         if (websiteVersionData) {
                             addVersionToBetaTag(websiteVersionData, false);
@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     gameBuildDate: new Date().toISOString()
                 };
 
-                addVersionToFooter(fallbackWebsiteData, fallbackGameData, true);
+                addVersionToFooter(fallbackWebsiteData, fallbackGameData, true, true);
                 addVersionToBetaTag(fallbackWebsiteData, true);
             });
     }
@@ -203,7 +203,7 @@ function addVersionToBetaTag(update, isFallback = false) {
     betaTag.classList.add('version-tag');
 }
 
-function addVersionToFooter(websiteUpdate, gameUpdate, isFallback = false) {
+function addVersionToFooter(websiteUpdate, gameUpdate, isFallback = false, isWebsiteFallback = false) {
     // Find the footer disclaimer div (the one that contains the copyright info)
     const disclaimerDiv = document.querySelector('.footer .text-center.text-sm.text-gray-500');
 
@@ -217,7 +217,23 @@ function addVersionToFooter(websiteUpdate, gameUpdate, isFallback = false) {
     versionContainer.className = 'version-info-container';
 
     // Format dates
-    const websiteFormattedDate = websiteUpdate ? formatDate(websiteUpdate.date) : formatDate(new Date().toISOString().split('T')[0]);
+    let websiteBuildFormatted;
+    if (isWebsiteFallback) {
+        // Use current date for fallback
+        websiteBuildFormatted = formatDate(new Date().toISOString().split('T')[0]);
+    } else if (websiteUpdate && websiteUpdate.date) {
+        // Add 1 day to the changelog date
+        const websiteDate = new Date(websiteUpdate.date);
+        websiteDate.setDate(websiteDate.getDate() + 1);
+        websiteBuildFormatted = formatDate(websiteDate.toISOString());
+    } else {
+        // No website data available
+        const currentDate = new Date();
+        currentDate.setDate(currentDate.getDate() + 1);
+        websiteBuildFormatted = formatDate(currentDate.toISOString());
+    }
+
+    // Format current date for fallback scenarios
     const currentDate = formatDate(new Date().toISOString().split('T')[0]);
 
     // Format game build date
@@ -277,7 +293,7 @@ function addVersionToFooter(websiteUpdate, gameUpdate, isFallback = false) {
     websiteBuildInfo.className = 'version-info-item';
     websiteBuildInfo.innerHTML = `
         <span class="version-label">Website Build:</span>
-        <span class="version-value">${isFallback ? currentDate : websiteFormattedDate}</span>
+        <span class="version-value">${isFallback ? currentDate : websiteBuildFormatted}</span>
     `;
 
     // Create changelog link
