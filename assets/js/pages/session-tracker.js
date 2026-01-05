@@ -151,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
             row.innerHTML = `
                 <td>
                     <div class="tank-cell">
-                        <img src="${stat.tankImage}" alt="${stat.tankName}" class="tank-icon" onerror="this.src='https://cdn5.heatlabs.net/logo/logo.webp'">
+                        <img src="${stat.tankImage}" alt="${stat.tankName}" class="tank-icon" onerror="this.src='https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/logo/logo.webp'">
                         <span class="tank-name">${stat.tankName}</span>
                     </div>
                 </td>

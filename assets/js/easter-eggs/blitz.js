@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Create the GIF element
     const gif = document.createElement('img');
-    gif.src = 'https://cdn5.heatlabs.net/miscellaneous/blitz_whos_gonna_tell_him.gif';
+    gif.src = 'https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/miscellaneous/blitz_whos_gonna_tell_him.gif';
     gif.alt = 'Blitz Easter Egg';
     gif.style.maxWidth = '90%';
     gif.style.maxHeight = '90%';

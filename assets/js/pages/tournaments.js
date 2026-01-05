@@ -300,7 +300,7 @@ function createTournamentCard(tournament) {
                 <i class="fas fa-eye"></i>
                 <span class="views-count">0</span>
             </div>
-            <img src="${tournament.image}" alt="${tournament.name} Preview" class="tournament-img" onerror="this.src='https://cdn5.heatlabs.net/placeholder/imagefailedtoload.webp'">
+            <img src="${tournament.image}" alt="${tournament.name} Preview" class="tournament-img" onerror="this.src='https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/placeholder/imagefailedtoload.webp'">
             ${tournamentTypeHTML}
             <div class="glare-overlay" style="background-image: ${glareStyle}"></div>
         </div>

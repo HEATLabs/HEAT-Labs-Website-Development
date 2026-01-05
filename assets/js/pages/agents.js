@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-eye"></i>
                     <span class="views-count">0</span>
                 </div>
-                <img src="${agent.image}" alt="${agent.name} Preview" class="agent-img" onerror="this.src='https://cdn5.heatlabs.net/placeholder/imagefailedtoload.webp'">
+                <img src="${agent.image}" alt="${agent.name} Preview" class="agent-img" onerror="this.src='https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/placeholder/imagefailedtoload.webp'">
                 ${agentStatusHTML}
             </div>
             <div class="agent-info">

@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function() {
             item.setAttribute('data-is-special', tank.isSpecial || false);
 
             item.innerHTML = `
-                <img src="${tank.image}" alt="${tank.name}" onerror="this.src='https://cdn5.heatlabs.net/placeholder/imagefailedtoload.webp'">
+                <img src="${tank.image}" alt="${tank.name}" onerror="this.src='https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/placeholder/imagefailedtoload.webp'">
                 <h4>${tank.name}</h4>
             `;
 

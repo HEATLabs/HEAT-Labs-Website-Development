@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     class="meme-img"
                     loading="lazy"
                     decoding="async"
-                    onerror="this.src='https://cdn5.heatlabs.net/placeholder/imagefailedtoload.webp'"
+                    onerror="this.src='https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/placeholder/imagefailedtoload.webp'"
                 >
             </div>
             <div class="meme-info">

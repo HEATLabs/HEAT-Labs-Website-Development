@@ -2,7 +2,7 @@
 
 # HEAT Labs - Website Development
 
-<img src="https://cdn5.heatlabs.net/social-share/Development.png" alt="HEAT Labs Banner"/>
+<img src="https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/social-share/Development.png" alt="HEAT Labs Banner"/>
 
 > One-stop solution for comprehensive statistics and insights in World of Tanks: HEAT
 
