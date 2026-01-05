@@ -38,7 +38,7 @@ async function updateMapViewCounters() {
 // Fetch map data from JSON file
 async function fetchMapData() {
     try {
-        const response = await fetch('https://cdn1.heatlabs.net/maps.json');
+        const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/maps.json');
         if (!response.ok) {
             throw new Error('Failed to load map data');
         }
