@@ -78,6 +78,12 @@
 	transform: translateY(-1px);
 }
 
+.tank-game-btn.disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
 .tank-game-btn.secondary {
 	padding: 0.5rem 1rem;
 	background-color: var(--accent-color);
