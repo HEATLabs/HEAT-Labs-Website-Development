@@ -245,6 +245,20 @@
 	z-index: 5;
 }
 
+@keyframes fadeOut {
+	0% {
+		opacity: 1;
+	}
+
+	70% {
+		opacity: 1;
+	}
+
+	100% {
+		opacity: 0;
+	}
+}
+
 /* Responsive styles */
 @media (max-width: 768px) {
 	.tank-game-header {

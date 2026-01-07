@@ -1750,16 +1750,6 @@ class TankGame {
 // Initialize the game
 const tankGame = new TankGame();
 
-// CSS animation
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes fadeOut {
-        0% { opacity: 1; }
-        70% { opacity: 1; }
-        100% { opacity: 0; }
-    }
-`;
-
 // Polyfill for roundRect
 if (!CanvasRenderingContext2D.prototype.roundRect) {
     CanvasRenderingContext2D.prototype.roundRect = function(x, y, width, height, radius) {
