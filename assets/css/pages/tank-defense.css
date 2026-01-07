@@ -1,0 +1,276 @@
+/* Tank Game Styles */
+.tank-game-section {
+	position: relative;
+	min-height: 600px;
+	margin: 2rem 0;
+}
+
+.tank-game-container {
+	display: flex;
+	flex-direction: column;
+	gap: 2rem;
+}
+
+.tank-game-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 1rem;
+	padding: 1rem;
+	background-color: var(--card-bg);
+	border-radius: 0.75rem;
+	border: 1px solid var(--border-color);
+	box-shadow: var(--shadow);
+}
+
+.tank-game-title {
+	font-size: 1.5rem;
+	font-weight: 600;
+	color: var(--text-primary);
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.tank-game-stats {
+	display: flex;
+	gap: 1.5rem;
+}
+
+.stat-item {
+	text-align: center;
+}
+
+.stat-value {
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: var(--accent-color);
+}
+
+.stat-label {
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+	margin-top: 0.25rem;
+}
+
+.tank-game-controls {
+	display: flex;
+	gap: 0.5rem;
+}
+
+.tank-game-btn {
+	padding: 0.5rem 1rem;
+	background-color: var(--accent-color);
+	color: white;
+	border: none;
+	border-radius: 0.5rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all var(--transition-speed);
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.tank-game-btn:hover {
+	background-color: var(--accent-color-hover);
+	transform: translateY(-1px);
+}
+
+.tank-game-btn.secondary {
+	padding: 0.5rem 1rem;
+	background-color: var(--accent-color);
+	color: white;
+	border: none;
+	border-radius: 0.5rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all var(--transition-speed);
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.tank-game-btn.secondary:hover {
+	background-color: var(--accent-color-hover);
+	transform: translateY(-1px);
+}
+
+.tank-game-canvas-container {
+	position: relative;
+	background-color: var(--card-bg);
+	border-radius: 0.75rem;
+	overflow: hidden;
+	border: 1px solid var(--border-color);
+	box-shadow: var(--shadow);
+	aspect-ratio: 16/9;
+}
+
+#tankGameCanvas {
+	display: block;
+	width: 100%;
+	height: 100%;
+	cursor: crosshair;
+}
+
+.game-overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	background-color: rgba(0, 0, 0, 0.85);
+	color: white;
+	text-align: center;
+	padding: 2rem;
+	z-index: 10;
+}
+
+.game-overlay h2 {
+	font-size: 2.5rem;
+	margin-bottom: 1rem;
+	color: var(--accent-color);
+}
+
+.game-overlay p {
+	font-size: 1.125rem;
+	margin-bottom: 2rem;
+	max-width: 500px;
+}
+
+.overlay-stats {
+	display: flex;
+	gap: 2rem;
+	margin-bottom: 2rem;
+}
+
+.overlay-stat {
+	text-align: center;
+}
+
+.overlay-stat-value {
+	font-size: 2rem;
+	font-weight: 700;
+	color: var(--accent-color);
+}
+
+.overlay-stat-label {
+	font-size: 0.875rem;
+	color: rgba(255, 255, 255, 0.8);
+}
+
+.tank-game-instructions {
+	background-color: var(--card-bg);
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	border: 1px solid var(--border-color);
+	box-shadow: var(--shadow);
+}
+
+.instructions-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 1.5rem;
+	margin-top: 1rem;
+}
+
+.instruction-item {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	padding: 1rem;
+	background-color: rgba(var(--accent-color-rgb), 0.05);
+	border-radius: 0.5rem;
+	border: 1px solid var(--border-color);
+}
+
+.instruction-icon {
+	width: 48px;
+	height: 48px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: var(--accent-color);
+	color: white;
+	border-radius: 50%;
+	font-size: 1.25rem;
+	flex-shrink: 0;
+}
+
+.instruction-text {
+	flex-grow: 1;
+}
+
+.instruction-text h4 {
+	font-weight: 600;
+	color: var(--text-primary);
+	margin-bottom: 0.25rem;
+}
+
+.instruction-text p {
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+}
+
+.tank-debug-panel {
+	position: absolute;
+	bottom: 1rem;
+	left: 1rem;
+	background-color: rgba(0, 0, 0, 0.7);
+	color: #00ff00;
+	padding: 0.5rem;
+	border-radius: 0.25rem;
+	font-family: monospace;
+	font-size: 0.75rem;
+	z-index: 5;
+	pointer-events: none;
+	display: none;
+}
+
+/* Particle effects */
+.particle {
+	position: absolute;
+	pointer-events: none;
+	z-index: 5;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+	.tank-game-header {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.tank-game-stats {
+		justify-content: center;
+	}
+
+	.tank-game-controls {
+		justify-content: center;
+	}
+
+	.instructions-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.game-overlay h2 {
+		font-size: 2rem;
+	}
+}
+
+@media (max-width: 480px) {
+	.tank-game-stats {
+		flex-wrap: wrap;
+		justify-content: center;
+	}
+
+	.overlay-stats {
+		flex-direction: column;
+		gap: 1rem;
+	}
+}

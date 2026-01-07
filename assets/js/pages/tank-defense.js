@@ -1,0 +1,1768 @@
+// Tank Game JavaScript
+class TankGame {
+    constructor() {
+        this.canvas = null;
+        this.ctx = null;
+        this.gameRunning = false;
+        this.lastTime = 0;
+        this.enemies = [];
+        this.particles = [];
+        this.bullets = [];
+        this.enemyBullets = [];
+        this.enemySpawnTimer = 0;
+        this.wave = 1;
+        this.score = 0;
+        this.playerHealth = 100;
+        this.gameOver = false;
+        this.keys = {};
+
+        // Camera system for centering player
+        this.camera = {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            offsetX: 0,
+            offsetY: 0
+        };
+
+        // Game world dimensions
+        this.world = {
+            width: 5000,
+            height: 5000
+        };
+
+        // Rocks/obstacles configuration
+        this.rocks = [];
+        this.rockSettings = {
+            count: 50,
+            minSize: 30,
+            maxSize: 80,
+            minPoints: 5,
+            maxPoints: 12,
+            irregularity: 0.3,
+            spacing: 200,
+            color: '#6B7280',
+            colorVariation: 20
+        };
+
+        // Player tank configuration
+        this.playerTank = {
+            x: this.world.width / 2,
+            y: this.world.height / 2,
+            width: 80,
+            height: 60,
+            speed: 5,
+            rotation: 0,
+            turretRotation: 0,
+            lastShot: 0,
+            shootCooldown: 500,
+            color: '#4CAF50',
+            hullOffsetX: 0,
+            hullOffsetY: 0,
+            // Turret configuration
+            turretWidth: 50,
+            turretHeight: 40,
+            turretOffsetX: 0,
+            turretOffsetY: 0,
+            // Gun barrel configuration
+            barrelLength: 30,
+            barrelWidth: 6,
+            barrelOffsetX: 0,
+            barrelOffsetY: -15,
+
+            // Smooth movement properties
+            velocityX: 0,
+            velocityY: 0,
+            targetRotation: 0,
+            rotationSpeed: 0.08,
+            acceleration: 0.2,
+            deceleration: 0.15,
+            maxSpeed: 5,
+            currentSpeed: 0
+        };
+
+        // Enemy tank configuration
+        this.enemyConfig = {
+            width: 70,
+            height: 50,
+            speed: 2,
+            shootCooldown: 500,
+            color: '#F44336',
+            hullOffsetX: 0,
+            hullOffsetY: 0,
+            // Turret configuration
+            turretWidth: 45,
+            turretHeight: 35,
+            turretOffsetX: 0,
+            turretOffsetY: 0,
+            // Gun barrel configuration
+            barrelLength: 25,
+            barrelWidth: 5,
+            barrelOffsetX: 0,
+            barrelOffsetY: -12
+        };
+
+        // Game settings
+        this.settings = {
+            enemySpawnRate: 2000,
+            maxEnemies: 10,
+            bulletSpeed: 10,
+            enemyBulletSpeed: 7,
+            particleLifetime: 1000,
+            debugMode: false,
+            enemySpawnDistance: 400,
+            enemyDespawnDistance: 800,
+            enemyCollisionRepulsion: 0.5,
+            enemySeparationDistance: 80,
+            enemyObstacleDetectionRange: 150,
+            enemyPathfindingAttempts: 5,
+            enemySmoothMovement: true
+        };
+
+        this.init();
+    }
+
+    init() {
+        document.addEventListener('DOMContentLoaded', () => {
+            this.setupCanvas();
+            this.setupEventListeners();
+            this.calculateOffsets();
+            this.setupCamera();
+            this.generateRocks();
+        });
+    }
+
+    setupCanvas() {
+        this.canvas = document.getElementById('tankGameCanvas');
+        if (!this.canvas) {
+            console.error('Canvas element not found!');
+            return;
+        }
+
+        this.ctx = this.canvas.getContext('2d');
+        this.resizeCanvas();
+        window.addEventListener('resize', () => {
+            this.resizeCanvas();
+            this.setupCamera();
+        });
+    }
+
+    // Calculate proper offsets for player tank
+    calculateOffsets() {
+        // Hull centered on tank position
+        this.playerTank.hullOffsetX = -this.playerTank.width / 2;
+        this.playerTank.hullOffsetY = -this.playerTank.height / 2;
+
+        // Turret centered on hull
+        this.playerTank.turretOffsetX = -this.playerTank.turretWidth / 2;
+        this.playerTank.turretOffsetY = -this.playerTank.turretHeight / 2;
+
+        // Calculate enemy tank offsets
+        this.enemyConfig.hullOffsetX = -this.enemyConfig.width / 2;
+        this.enemyConfig.hullOffsetY = -this.enemyConfig.height / 2;
+
+        this.enemyConfig.turretOffsetX = -this.enemyConfig.turretWidth / 2;
+        this.enemyConfig.turretOffsetY = -this.enemyConfig.turretHeight / 2;
+    }
+
+    setupCamera() {
+        // Camera is centered on player
+        this.camera.width = this.canvas.width;
+        this.camera.height = this.canvas.height;
+        this.camera.offsetX = this.canvas.width / 2;
+        this.camera.offsetY = this.canvas.height / 2;
+
+        // Initialize camera position to player position
+        this.camera.x = this.playerTank.x - this.camera.offsetX;
+        this.camera.y = this.playerTank.y - this.camera.offsetY;
+
+        // Clamp camera to world bounds
+        this.clampCamera();
+    }
+
+    clampCamera() {
+        // Prevent camera from showing outside world bounds
+        const maxX = this.world.width - this.camera.width;
+        const maxY = this.world.height - this.camera.height;
+
+        this.camera.x = Math.max(0, Math.min(this.camera.x, maxX));
+        this.camera.y = Math.max(0, Math.min(this.camera.y, maxY));
+    }
+
+    updateCamera() {
+        // Calculate desired camera position
+        const targetX = this.playerTank.x - this.camera.offsetX;
+        const targetY = this.playerTank.y - this.camera.offsetY;
+
+        // Smooth camera movement
+        const lerpFactor = 0.1;
+        this.camera.x += (targetX - this.camera.x) * lerpFactor;
+        this.camera.y += (targetY - this.camera.y) * lerpFactor;
+
+        // Clamp camera to world bounds
+        this.clampCamera();
+    }
+
+    setupEventListeners() {
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (this.gameRunning || this.gameOver) {
+                this.keys[e.key.toLowerCase()] = true;
+
+                if (e.key === ' ') {
+                    e.preventDefault();
+                    this.shoot();
+                }
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            this.keys[e.key.toLowerCase()] = false;
+        });
+
+        // Mouse controls for turret
+        this.canvas.addEventListener('mousemove', (e) => {
+            if (!this.gameRunning && !this.gameOver) return;
+
+            const rect = this.canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left + this.camera.x;
+            const mouseY = e.clientY - rect.top + this.camera.y;
+
+            // Calculate angle from tank to mouse
+            const dx = mouseX - this.playerTank.x;
+            const dy = mouseY - this.playerTank.y;
+            this.playerTank.turretRotation = Math.atan2(dy, dx);
+        });
+
+        // Mouse click to shoot
+        this.canvas.addEventListener('click', (e) => {
+            if (this.gameRunning && !this.gameOver) {
+                e.preventDefault();
+                this.shoot();
+            }
+        });
+
+        // Game control buttons
+        const startBtn = document.getElementById('startGame');
+        const restartBtn = document.getElementById('restartGame');
+        const pauseBtn = document.getElementById('pauseGame');
+
+        if (startBtn) {
+            startBtn.addEventListener('click', () => this.startGame());
+        }
+
+        if (restartBtn) {
+            restartBtn.addEventListener('click', () => this.restartGame());
+        }
+
+        if (pauseBtn) {
+            pauseBtn.addEventListener('click', () => this.togglePause());
+        }
+
+        // Overlay buttons - NEW: Add these lines
+        const startOverlayBtn = document.getElementById('startGameFromOverlay');
+        const restartOverlayBtn = document.getElementById('restartFromOverlay');
+
+        if (startOverlayBtn) {
+            startOverlayBtn.addEventListener('click', () => this.startGame());
+        }
+
+        if (restartOverlayBtn) {
+            restartOverlayBtn.addEventListener('click', () => this.restartGame());
+        }
+
+        // Debug toggle (DEBUG)
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'd') {
+                e.preventDefault();
+                this.settings.debugMode = !this.settings.debugMode;
+                this.showMessage(`Debug mode: ${this.settings.debugMode ? 'ON' : 'OFF'}`);
+            }
+        });
+
+        // Regenerate rocks on R key (DEBUG)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'r' && e.ctrlKey) {
+                e.preventDefault();
+                this.generateRocks();
+                this.showMessage('Regenerated rocks');
+            }
+        });
+    }
+
+    resizeCanvas() {
+        const container = this.canvas.parentElement;
+        if (!container) return;
+
+        this.canvas.width = container.clientWidth;
+        this.canvas.height = container.clientHeight;
+
+        // Update camera when canvas resizes
+        this.setupCamera();
+    }
+
+    // Generate random rocks with irregular shapes
+    generateRocks() {
+        this.rocks = [];
+        const maxAttempts = this.rockSettings.count * 10;
+        let attempts = 0;
+        let rocksGenerated = 0;
+
+        while (rocksGenerated < this.rockSettings.count && attempts < maxAttempts) {
+            attempts++;
+
+            // Generate random position
+            const x = Math.random() * (this.world.width - 100) + 50;
+            const y = Math.random() * (this.world.height - 100) + 50;
+
+            // Avoid spawning rocks too close to player's starting position
+            const dx = x - this.playerTank.x;
+            const dy = y - this.playerTank.y;
+            const distanceToPlayer = Math.sqrt(dx * dx + dy * dy);
+
+            if (distanceToPlayer < 300) {
+                continue; // Too close to player start
+            }
+
+            // Check minimum spacing from other rocks
+            let tooClose = false;
+            for (const rock of this.rocks) {
+                const rockDx = x - rock.x;
+                const rockDy = y - rock.y;
+                const distance = Math.sqrt(rockDx * rockDx + rockDy * rockDy);
+
+                if (distance < this.rockSettings.spacing) {
+                    tooClose = true;
+                    break;
+                }
+            }
+
+            if (tooClose) {
+                continue;
+            }
+
+            // Generate rock size
+            const size = this.rockSettings.minSize + Math.random() *
+                (this.rockSettings.maxSize - this.rockSettings.minSize);
+
+            // Generate rock shape
+            const points = this.generateRockShape(size);
+
+            // Generate rock color with variation
+            const color = this.getRandomRockColor();
+
+            // Create rock
+            this.rocks.push({
+                x,
+                y,
+                size,
+                points,
+                color,
+                radius: size / 2 * 1.2,
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.01
+            });
+
+            rocksGenerated++;
+        }
+
+        console.log(`Generated ${this.rocks.length} rocks (${attempts} attempts)`);
+    }
+
+    // Generate irregular rock shape
+    generateRockShape(baseSize) {
+        const points = [];
+        const numPoints = Math.floor(
+            this.rockSettings.minPoints +
+            Math.random() * (this.rockSettings.maxPoints - this.rockSettings.minPoints)
+        );
+
+        for (let i = 0; i < numPoints; i++) {
+            const angle = (i / numPoints) * Math.PI * 2;
+
+            // Base radius with irregularity
+            const irregularity = 1 + (Math.random() - 0.5) * 2 * this.rockSettings.irregularity;
+            const radius = (baseSize / 2) * irregularity;
+
+            // Add some randomness to angle
+            const adjustedAngle = angle + (Math.random() - 0.5) * 0.5;
+
+            points.push({
+                x: Math.cos(adjustedAngle) * radius,
+                y: Math.sin(adjustedAngle) * radius
+            });
+        }
+
+        return points;
+    }
+
+    // Get random rock color with variation
+    getRandomRockColor() {
+        const baseColor = this.rockSettings.color;
+        const variation = this.rockSettings.colorVariation;
+
+        // Parse base color
+        let r, g, b;
+        if (baseColor.startsWith('#')) {
+            const hex = baseColor.substring(1);
+            r = parseInt(hex.substring(0, 2), 16);
+            g = parseInt(hex.substring(2, 4), 16);
+            b = parseInt(hex.substring(4, 6), 16);
+        } else {
+            // Default gray if parsing fails
+            r = g = b = 107;
+        }
+
+        // Apply random variation
+        const variationAmount = variation / 100;
+        r = Math.max(0, Math.min(255, r + (Math.random() - 0.5) * 255 * variationAmount));
+        g = Math.max(0, Math.min(255, g + (Math.random() - 0.5) * 255 * variationAmount));
+        b = Math.max(0, Math.min(255, b + (Math.random() - 0.5) * 255 * variationAmount));
+
+        return `rgb(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)})`;
+    }
+
+    startGame() {
+        if (this.gameRunning) return;
+
+        this.resetGame();
+        this.gameRunning = true;
+        this.gameOver = false;
+
+        // Position player in center of world
+        this.playerTank.x = this.world.width / 2;
+        this.playerTank.y = this.world.height / 2;
+
+        // Initialize camera
+        this.setupCamera();
+
+        // Hide start overlay
+        document.getElementById('startOverlay').style.display = 'none';
+        document.getElementById('gameOverOverlay').style.display = 'none';
+
+        // Start game loop
+        this.lastTime = performance.now();
+        requestAnimationFrame((time) => this.gameLoop(time));
+    }
+
+    restartGame() {
+        this.resetGame();
+        this.startGame();
+    }
+
+    togglePause() {
+        this.gameRunning = !this.gameRunning;
+        if (this.gameRunning) {
+            this.lastTime = performance.now();
+            requestAnimationFrame((time) => this.gameLoop(time));
+        }
+    }
+
+    resetGame() {
+        this.enemies = [];
+        this.particles = [];
+        this.bullets = [];
+        this.enemyBullets = [];
+        this.enemySpawnTimer = 0;
+        this.wave = 1;
+        this.score = 0;
+        this.playerHealth = 100;
+        this.gameOver = false;
+        this.keys = {};
+
+        this.playerTank.x = this.world.width / 2;
+        this.playerTank.y = this.world.height / 2;
+        this.playerTank.rotation = 0;
+        this.playerTank.turretRotation = 0;
+        this.playerTank.velocityX = 0;
+        this.playerTank.velocityY = 0;
+        this.playerTank.targetRotation = 0;
+        this.playerTank.currentSpeed = 0;
+
+        // Regenerate rocks
+        this.generateRocks();
+
+        this.setupCamera();
+        this.updateUI();
+    }
+
+    gameLoop(currentTime) {
+        if (!this.gameRunning) return;
+
+        const deltaTime = currentTime - this.lastTime;
+        this.lastTime = currentTime;
+
+        this.update(deltaTime);
+        this.render();
+
+        if (this.gameRunning && !this.gameOver) {
+            requestAnimationFrame((time) => this.gameLoop(time));
+        }
+    }
+
+    update(deltaTime) {
+        // Update player movement
+        this.updatePlayer(deltaTime);
+
+        // Update camera to follow player
+        this.updateCamera();
+
+        // Update enemies
+        this.updateEnemies(deltaTime);
+
+        // Update bullets
+        this.updateBullets(deltaTime);
+
+        // Update enemy bullets
+        this.updateEnemyBullets(deltaTime);
+
+        // Update particles
+        this.updateParticles(deltaTime);
+
+        // Update rocks
+        this.updateRocks(deltaTime);
+
+        // Spawn enemies
+        this.enemySpawnTimer += deltaTime;
+        if (this.enemySpawnTimer >= this.settings.enemySpawnRate &&
+            this.enemies.length < this.settings.maxEnemies) {
+            this.spawnEnemy();
+            this.enemySpawnTimer = 0;
+
+            // Increase difficulty
+            if (this.score % 1000 === 0) {
+                this.wave++;
+                this.settings.enemySpawnRate = Math.max(500, this.settings.enemySpawnRate - 100);
+            }
+        }
+
+        // Check collisions
+        this.checkCollisions();
+
+        // Update UI
+        this.updateUI();
+    }
+
+    updatePlayer(deltaTime) {
+        const deltaTimeNormalized = deltaTime / 16.67; // Normalize to 60fps, we gaming here
+
+        // Get input direction
+        let inputX = 0;
+        let inputY = 0;
+
+        if (this.keys['w'] || this.keys['arrowup']) inputY -= 1;
+        if (this.keys['s'] || this.keys['arrowdown']) inputY += 1;
+        if (this.keys['a'] || this.keys['arrowleft']) inputX -= 1;
+        if (this.keys['d'] || this.keys['arrowright']) inputX += 1;
+
+        // Calculate target rotation based on input
+        if (inputX !== 0 || inputY !== 0) {
+            this.playerTank.targetRotation = Math.atan2(inputY, inputX);
+        }
+
+        // Smoothly rotate towards target rotation
+        const angleDiff = this.normalizeAngle(this.playerTank.targetRotation - this.playerTank.rotation);
+        this.playerTank.rotation += angleDiff * this.playerTank.rotationSpeed * deltaTimeNormalized;
+
+        // Calculate movement direction based on current rotation
+        const moveX = Math.cos(this.playerTank.rotation);
+        const moveY = Math.sin(this.playerTank.rotation);
+
+        // Calculate speed based on input magnitude
+        const inputMagnitude = Math.sqrt(inputX * inputX + inputY * inputY);
+        const targetSpeed = inputMagnitude > 0 ? this.playerTank.maxSpeed : 0;
+
+        // Smoothly adjust current speed
+        if (targetSpeed > this.playerTank.currentSpeed) {
+            // Accelerate
+            this.playerTank.currentSpeed = Math.min(
+                targetSpeed,
+                this.playerTank.currentSpeed + this.playerTank.acceleration * deltaTimeNormalized
+            );
+        } else if (targetSpeed < this.playerTank.currentSpeed) {
+            // Decelerate
+            this.playerTank.currentSpeed = Math.max(
+                targetSpeed,
+                this.playerTank.currentSpeed - this.playerTank.deceleration * deltaTimeNormalized
+            );
+        }
+
+        // Calculate velocity based on current rotation and speed
+        if (this.playerTank.currentSpeed > 0.1) {
+            this.playerTank.velocityX = moveX * this.playerTank.currentSpeed;
+            this.playerTank.velocityY = moveY * this.playerTank.currentSpeed;
+        } else {
+            // Apply friction when no input
+            this.playerTank.velocityX *= 0.9;
+            this.playerTank.velocityY *= 0.9;
+
+            // Stop completely when velocity is very low
+            if (Math.abs(this.playerTank.velocityX) < 0.1) this.playerTank.velocityX = 0;
+            if (Math.abs(this.playerTank.velocityY) < 0.1) this.playerTank.velocityY = 0;
+        }
+
+        // Calculate new position
+        let newX = this.playerTank.x + this.playerTank.velocityX;
+        let newY = this.playerTank.y + this.playerTank.velocityY;
+
+        // Check collision with rocks
+        const playerRadius = this.playerTank.width / 2;
+        for (const rock of this.rocks) {
+            const dx = newX - rock.x;
+            const dy = newY - rock.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const minDistance = playerRadius + rock.radius;
+
+            if (distance < minDistance) {
+                // Collision detected - push player away
+                const angle = Math.atan2(dy, dx);
+                const overlap = minDistance - distance;
+
+                newX += Math.cos(angle) * overlap;
+                newY += Math.sin(angle) * overlap;
+
+                // Reduce velocity when colliding with rock
+                this.playerTank.velocityX *= 0.7;
+                this.playerTank.velocityY *= 0.7;
+            }
+        }
+
+        // Keep player in world bounds
+        const margin = 50;
+        if (newX > margin && newX < this.world.width - margin) {
+            this.playerTank.x = newX;
+        }
+        if (newY > margin && newY < this.world.height - margin) {
+            this.playerTank.y = newY;
+        }
+    }
+
+    // Helper function to normalize angles
+    normalizeAngle(angle) {
+        while (angle > Math.PI) angle -= Math.PI * 2;
+        while (angle < -Math.PI) angle += Math.PI * 2;
+        return angle;
+    }
+
+    updateRocks(deltaTime) {
+        // Just update rotation for visual effect
+        for (const rock of this.rocks) {
+            rock.rotation += rock.rotationSpeed * deltaTime / 16.67;
+        }
+    }
+
+    spawnEnemy() {
+        // Spawn enemies at a fixed distance from the player
+        const spawnDistance = this.settings.enemySpawnDistance;
+
+        // Try multiple spawn positions to avoid rocks
+        let bestX = null;
+        let bestY = null;
+        let bestScore = -Infinity;
+
+        for (let i = 0; i < this.settings.enemyPathfindingAttempts; i++) {
+            // Random angle around player
+            const angle = Math.random() * Math.PI * 2;
+
+            // Calculate spawn position at fixed distance from player
+            let x = this.playerTank.x + Math.cos(angle) * spawnDistance;
+            let y = this.playerTank.y + Math.sin(angle) * spawnDistance;
+
+            // Clamp to world bounds with margin
+            const margin = 50;
+            x = Math.max(margin, Math.min(x, this.world.width - margin));
+            y = Math.max(margin, Math.min(y, this.world.height - margin));
+
+            // Score this position based on distance from rocks
+            let score = 0;
+            for (const rock of this.rocks) {
+                const dx = x - rock.x;
+                const dy = y - rock.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                // Higher score for positions farther from rocks
+                const rockDistanceScore = Math.min(distance, rock.radius * 3);
+                score += rockDistanceScore;
+            }
+
+            // Also consider distance from other enemies
+            for (const enemy of this.enemies) {
+                const dx = x - enemy.x;
+                const dy = y - enemy.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < this.settings.enemySeparationDistance) {
+                    score -= (this.settings.enemySeparationDistance - distance) * 2;
+                }
+            }
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestX = x;
+                bestY = y;
+            }
+        }
+
+        // Use best position found
+        if (bestX === null || bestY === null) {
+            // Fallback to simple spawn if no good position found
+            const angle = Math.random() * Math.PI * 2;
+            bestX = this.playerTank.x + Math.cos(angle) * spawnDistance;
+            bestY = this.playerTank.y + Math.sin(angle) * spawnDistance;
+
+            const margin = 50;
+            bestX = Math.max(margin, Math.min(bestX, this.world.width - margin));
+            bestY = Math.max(margin, Math.min(bestY, this.world.height - margin));
+        }
+
+        this.enemies.push({
+            x: bestX,
+            y: bestY,
+            width: this.enemyConfig.width,
+            height: this.enemyConfig.height,
+            speed: this.enemyConfig.speed + Math.random() * 0.5,
+            rotation: 0,
+            turretRotation: 0,
+            health: 100,
+            lastShot: 0,
+            shootCooldown: this.enemyConfig.shootCooldown + Math.random() * 1000,
+            color: this.enemyConfig.color,
+            hullOffsetX: this.enemyConfig.hullOffsetX,
+            hullOffsetY: this.enemyConfig.hullOffsetY,
+            turretWidth: this.enemyConfig.turretWidth,
+            turretHeight: this.enemyConfig.turretHeight,
+            turretOffsetX: this.enemyConfig.turretOffsetX,
+            turretOffsetY: this.enemyConfig.turretOffsetY,
+            barrelLength: this.enemyConfig.barrelLength,
+            barrelWidth: this.enemyConfig.barrelWidth,
+            barrelOffsetX: this.enemyConfig.barrelOffsetX,
+            barrelOffsetY: this.enemyConfig.barrelOffsetY,
+            // For obstacle avoidance
+            avoidanceForceX: 0,
+            avoidanceForceY: 0
+        });
+    }
+
+    updateEnemies(deltaTime) {
+        const deltaTimeNormalized = deltaTime / 16.67; // Normalize to 60fps, ACTUAL GAMING
+
+        // Calculate enemy movement toward player with obstacle avoidance
+        for (let i = 0; i < this.enemies.length; i++) {
+            const enemy = this.enemies[i];
+
+            // Reset avoidance force
+            enemy.avoidanceForceX = 0;
+            enemy.avoidanceForceY = 0;
+
+            // Move toward player
+            const dx = this.playerTank.x - enemy.x;
+            const dy = this.playerTank.y - enemy.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            // Calculate basic movement toward player
+            let desiredX = enemy.x;
+            let desiredY = enemy.y;
+
+            if (distance > 0) {
+                desiredX = enemy.x + (dx / distance) * enemy.speed;
+                desiredY = enemy.y + (dy / distance) * enemy.speed;
+                enemy.rotation = Math.atan2(dy, dx);
+                enemy.turretRotation = enemy.rotation;
+            }
+
+            // Apply obstacle avoidance
+            this.applyObstacleAvoidance(enemy, desiredX, desiredY);
+
+            // Store desired movement with avoidance applied
+            const avoidanceInfluence = 0.3;
+            enemy.desiredX = desiredX * (1 - avoidanceInfluence) +
+                (desiredX + enemy.avoidanceForceX) * avoidanceInfluence;
+            enemy.desiredY = desiredY * (1 - avoidanceInfluence) +
+                (desiredY + enemy.avoidanceForceY) * avoidanceInfluence;
+
+            // Enemy shooting
+            if (distance < 400) {
+                enemy.lastShot += deltaTime;
+                if (enemy.lastShot >= enemy.shootCooldown) {
+                    this.enemyShoot(enemy);
+                    enemy.lastShot = 0;
+                }
+            }
+        }
+
+        // Handle enemy-to-enemy collisions
+        this.handleEnemyCollisions();
+
+        // Update positions and check bounds
+        for (let i = this.enemies.length - 1; i >= 0; i--) {
+            const enemy = this.enemies[i];
+
+            // Apply movement
+            enemy.x = enemy.desiredX;
+            enemy.y = enemy.desiredY;
+
+            // Remove enemies that are too far from player
+            const dx = this.playerTank.x - enemy.x;
+            const dy = this.playerTank.y - enemy.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            const despawnDistance = this.settings.enemyDespawnDistance;
+            if (distance > despawnDistance) {
+                this.enemies.splice(i, 1);
+                continue;
+            }
+
+            // Also remove enemies that go out of world bounds
+            const margin = 100;
+            if (enemy.x < -margin || enemy.x > this.world.width + margin ||
+                enemy.y < -margin || enemy.y > this.world.height + margin) {
+                this.enemies.splice(i, 1);
+            }
+        }
+    }
+
+    // Apply obstacle avoidance to enemy movement
+    applyObstacleAvoidance(enemy, desiredX, desiredY) {
+        const detectionRange = this.settings.enemyObstacleDetectionRange;
+        const enemyRadius = enemy.width / 2;
+        const maxAvoidanceForce = enemy.speed * 0.5;
+
+        // Check for nearby rocks
+        for (const rock of this.rocks) {
+            const dx = desiredX - rock.x;
+            const dy = desiredY - rock.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const minDistance = enemyRadius + rock.radius;
+
+            if (distance < minDistance * 1.5) {
+                // Calculate avoidance force based on proximity
+                const avoidanceStrength = Math.max(0, 1 - (distance / (minDistance * 1.5)));
+                const angle = Math.atan2(dy, dx);
+
+                // Push away from rock
+                const forceX = Math.cos(angle) * avoidanceStrength * maxAvoidanceForce;
+                const forceY = Math.sin(angle) * avoidanceStrength * maxAvoidanceForce;
+
+                enemy.avoidanceForceX += forceX;
+                enemy.avoidanceForceY += forceY;
+            }
+        }
+
+        // Limit total avoidance force to prevent enemies from getting stuck
+        const totalAvoidance = Math.sqrt(
+            enemy.avoidanceForceX * enemy.avoidanceForceX +
+            enemy.avoidanceForceY * enemy.avoidanceForceY
+        );
+
+        if (totalAvoidance > maxAvoidanceForce) {
+            const scale = maxAvoidanceForce / totalAvoidance;
+            enemy.avoidanceForceX *= scale;
+            enemy.avoidanceForceY *= scale;
+        }
+    }
+
+    handleEnemyCollisions() {
+        const repulsion = this.settings.enemyCollisionRepulsion;
+        const separationDistance = this.settings.enemySeparationDistance;
+
+        // Check each enemy against every other enemy
+        for (let i = 0; i < this.enemies.length; i++) {
+            const enemy1 = this.enemies[i];
+
+            for (let j = i + 1; j < this.enemies.length; j++) {
+                const enemy2 = this.enemies[j];
+
+                // Calculate distance between enemies
+                const dx = enemy2.x - enemy1.x;
+                const dy = enemy2.y - enemy1.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                // If enemies are too close, push them apart
+                if (distance < separationDistance && distance > 0) {
+                    // Calculate overlap amount
+                    const overlap = separationDistance - distance;
+
+                    // Normalize direction vector
+                    const nx = dx / distance;
+                    const ny = dy / distance;
+
+                    // Apply repulsion force to both enemies
+                    const force = overlap * repulsion * 0.5;
+
+                    // Move enemy1 away from enemy2
+                    enemy1.desiredX -= nx * force;
+                    enemy1.desiredY -= ny * force;
+
+                    // Move enemy2 away from enemy1
+                    enemy2.desiredX += nx * force;
+                    enemy2.desiredY += ny * force;
+                }
+            }
+        }
+
+        // Check enemy collisions with rocks
+        for (const enemy of this.enemies) {
+            const enemyRadius = enemy.width / 2;
+
+            for (const rock of this.rocks) {
+                const dx = enemy.desiredX - rock.x;
+                const dy = enemy.desiredY - rock.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const minDistance = enemyRadius + rock.radius;
+
+                if (distance < minDistance) {
+                    // Push enemy away from rock
+                    const angle = Math.atan2(dy, dx);
+                    const overlap = minDistance - distance;
+
+                    enemy.desiredX += Math.cos(angle) * overlap * 1.5;
+                    enemy.desiredY += Math.sin(angle) * overlap * 1.5;
+
+                    // Also reduce their desired speed if stuck
+                    const speedReduction = 0.7;
+                    const desiredMovementX = enemy.desiredX - enemy.x;
+                    const desiredMovementY = enemy.desiredY - enemy.y;
+
+                    enemy.desiredX = enemy.x + desiredMovementX * speedReduction;
+                    enemy.desiredY = enemy.y + desiredMovementY * speedReduction;
+                }
+            }
+        }
+    }
+
+    enemyShoot(enemy) {
+        // Calculate bullet spawn position at the end of the gun barrel
+        const barrelEndX = Math.cos(enemy.turretRotation) * enemy.barrelLength;
+        const barrelEndY = Math.sin(enemy.turretRotation) * enemy.barrelLength;
+
+        const bullet = {
+            x: enemy.x + barrelEndX,
+            y: enemy.y + barrelEndY,
+            rotation: enemy.turretRotation,
+            speed: this.settings.enemyBulletSpeed,
+            damage: 10
+        };
+
+        this.enemyBullets.push(bullet);
+
+        // Muzzle flash at barrel end
+        this.createParticles(bullet.x, bullet.y, 5, '#ff6b6b');
+    }
+
+    shoot() {
+        const currentTime = performance.now();
+        if (currentTime - this.playerTank.lastShot < this.playerTank.shootCooldown) {
+            return;
+        }
+
+        this.playerTank.lastShot = currentTime;
+
+        // Calculate bullet spawn position at the end of the gun barrel
+        const barrelEndX = Math.cos(this.playerTank.turretRotation) * this.playerTank.barrelLength;
+        const barrelEndY = Math.sin(this.playerTank.turretRotation) * this.playerTank.barrelLength;
+
+        const bullet = {
+            x: this.playerTank.x + barrelEndX,
+            y: this.playerTank.y + barrelEndY,
+            rotation: this.playerTank.turretRotation,
+            speed: this.settings.bulletSpeed,
+            damage: 50
+        };
+
+        this.bullets.push(bullet);
+
+        // Muzzle flash at barrel end
+        this.createParticles(bullet.x, bullet.y, 8, '#4CAF50');
+    }
+
+    updateBullets(deltaTime) {
+        for (let i = this.bullets.length - 1; i >= 0; i--) {
+            const bullet = this.bullets[i];
+
+            bullet.x += Math.cos(bullet.rotation) * bullet.speed;
+            bullet.y += Math.sin(bullet.rotation) * bullet.speed;
+
+            // Check collision with rocks
+            let hitRock = false;
+            for (const rock of this.rocks) {
+                const dx = bullet.x - rock.x;
+                const dy = bullet.y - rock.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < rock.radius) {
+                    // Hit rock
+                    this.createParticles(bullet.x, bullet.y, 10, rock.color);
+                    this.bullets.splice(i, 1);
+                    hitRock = true;
+                    break;
+                }
+            }
+
+            if (hitRock) continue;
+
+            // Remove bullets that are out of world bounds
+            if (bullet.x < 0 || bullet.x > this.world.width ||
+                bullet.y < 0 || bullet.y > this.world.height) {
+                this.bullets.splice(i, 1);
+            }
+        }
+    }
+
+    updateEnemyBullets(deltaTime) {
+        for (let i = this.enemyBullets.length - 1; i >= 0; i--) {
+            const bullet = this.enemyBullets[i];
+
+            bullet.x += Math.cos(bullet.rotation) * bullet.speed;
+            bullet.y += Math.sin(bullet.rotation) * bullet.speed;
+
+            // Check collision with rocks
+            let hitRock = false;
+            for (const rock of this.rocks) {
+                const dx = bullet.x - rock.x;
+                const dy = bullet.y - rock.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < rock.radius) {
+                    // Hit rock - create particles and remove bullet
+                    this.createParticles(bullet.x, bullet.y, 10, rock.color);
+                    this.enemyBullets.splice(i, 1);
+                    hitRock = true;
+                    break;
+                }
+            }
+
+            if (hitRock) continue;
+
+            // Remove bullets that are out of world bounds
+            if (bullet.x < 0 || bullet.x > this.world.width ||
+                bullet.y < 0 || bullet.y > this.world.height) {
+                this.enemyBullets.splice(i, 1);
+            }
+        }
+    }
+
+    updateParticles(deltaTime) {
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const particle = this.particles[i];
+            particle.life -= deltaTime;
+
+            if (particle.life <= 0) {
+                this.particles.splice(i, 1);
+                continue;
+            }
+
+            particle.x += particle.vx;
+            particle.y += particle.vy;
+            particle.alpha = particle.life / particle.maxLife;
+        }
+    }
+
+    checkCollisions() {
+        // Player bullets vs enemies
+        for (let i = this.bullets.length - 1; i >= 0; i--) {
+            const bullet = this.bullets[i];
+
+            for (let j = this.enemies.length - 1; j >= 0; j--) {
+                const enemy = this.enemies[j];
+
+                const dx = bullet.x - enemy.x;
+                const dy = bullet.y - enemy.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < enemy.width / 2) {
+                    // Hit!
+                    enemy.health -= bullet.damage;
+
+                    // Create hit particles
+                    this.createParticles(enemy.x, enemy.y, 15, enemy.color);
+
+                    // Remove bullet
+                    this.bullets.splice(i, 1);
+
+                    // Check if enemy is dead
+                    if (enemy.health <= 0) {
+                        this.enemies.splice(j, 1);
+                        this.score += 100;
+                        this.createParticles(enemy.x, enemy.y, 30, '#FFD700');
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        // Enemy bullets vs player
+        for (let i = this.enemyBullets.length - 1; i >= 0; i--) {
+            const bullet = this.enemyBullets[i];
+
+            const dx = bullet.x - this.playerTank.x;
+            const dy = bullet.y - this.playerTank.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < this.playerTank.width / 2) {
+                // Hit player!
+                this.playerHealth -= bullet.damage;
+
+                // Create hit particles
+                this.createParticles(this.playerTank.x, this.playerTank.y, 10, '#ff6b6b');
+
+                // Remove bullet
+                this.enemyBullets.splice(i, 1);
+
+                // Screen shake effect
+                this.screenShake(10);
+
+                // Check game over
+                if (this.playerHealth <= 0) {
+                    this.playerHealth = 0;
+                    this.gameOver = true;
+                    this.gameRunning = false;
+                    this.showGameOver();
+                }
+            }
+        }
+
+        // Enemy vs player collision
+        for (let i = this.enemies.length - 1; i >= 0; i--) {
+            const enemy = this.enemies[i];
+
+            const dx = enemy.x - this.playerTank.x;
+            const dy = enemy.y - this.playerTank.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < (enemy.width / 2 + this.playerTank.width / 2)) {
+                // RAM!
+                this.playerHealth -= 5;
+
+                // Push player away
+                const angle = Math.atan2(dy, dx);
+                this.playerTank.x -= Math.cos(angle) * 10;
+                this.playerTank.y -= Math.sin(angle) * 10;
+
+                // Reduce velocity when colliding
+                this.playerTank.velocityX *= 0.5;
+                this.playerTank.velocityY *= 0.5;
+
+                // Push enemy away to prevent sticking
+                enemy.x += Math.cos(angle) * 10;
+                enemy.y += Math.sin(angle) * 10;
+
+                // Screen shake
+                this.screenShake(5);
+
+                // Check game over
+                if (this.playerHealth <= 0) {
+                    this.playerHealth = 0;
+                    this.gameOver = true;
+                    this.gameRunning = false;
+                    this.showGameOver();
+                }
+            }
+        }
+    }
+
+    createParticles(x, y, count, color) {
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 3 + 1;
+
+            this.particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: Math.random() * 500 + 500,
+                maxLife: 1000,
+                color: color,
+                alpha: 1,
+                size: Math.random() * 3 + 1
+            });
+        }
+    }
+
+    screenShake(intensity) {
+        // PLACEHOLDER
+        this.createParticles(this.playerTank.x, this.playerTank.y, 20, '#ffffff');
+    }
+
+    render() {
+        // Clear canvas
+        this.ctx.fillStyle = '#1a1a1a';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Save context for camera transformation
+        this.ctx.save();
+
+        // Apply camera transformation
+        this.ctx.translate(-this.camera.x, -this.camera.y);
+
+        // Draw grid background
+        this.drawGrid();
+
+        // Draw rocks first
+        this.drawRocks();
+
+        // Draw all game objects
+        this.drawEnemies();
+        this.drawPlayer();
+        this.drawBullets();
+        this.drawEnemyBullets();
+        this.drawParticles();
+
+        // Restore context
+        this.ctx.restore();
+
+        // Draw debug info
+        if (this.settings.debugMode) {
+            this.drawDebugInfo();
+        }
+    }
+
+    drawGrid() {
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        this.ctx.lineWidth = 1;
+
+        const gridSize = 50;
+
+        // Calculate visible area for grid drawing
+        const startX = Math.floor(this.camera.x / gridSize) * gridSize;
+        const startY = Math.floor(this.camera.y / gridSize) * gridSize;
+        const endX = this.camera.x + this.canvas.width;
+        const endY = this.camera.y + this.canvas.height;
+
+        // Vertical lines
+        for (let x = startX; x <= endX; x += gridSize) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, Math.max(0, this.camera.y));
+            this.ctx.lineTo(x, Math.min(this.world.height, endY));
+            this.ctx.stroke();
+        }
+
+        // Horizontal lines
+        for (let y = startY; y <= endY; y += gridSize) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(Math.max(0, this.camera.x), y);
+            this.ctx.lineTo(Math.min(this.world.width, endX), y);
+            this.ctx.stroke();
+        }
+    }
+
+    // Draw rocks/obstacles
+    drawRocks() {
+        this.rocks.forEach(rock => {
+            this.ctx.save();
+            this.ctx.translate(rock.x, rock.y);
+            this.ctx.rotate(rock.rotation);
+
+            // Draw rock shape
+            this.ctx.fillStyle = rock.color;
+            this.ctx.beginPath();
+
+            // Move to first point
+            this.ctx.moveTo(rock.points[0].x, rock.points[0].y);
+
+            // Draw lines to all other points
+            for (let i = 1; i < rock.points.length; i++) {
+                this.ctx.lineTo(rock.points[i].x, rock.points[i].y);
+            }
+
+            // Close the shape
+            this.ctx.closePath();
+            this.ctx.fill();
+
+            // Add some shading for 3D effect
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            this.ctx.beginPath();
+
+            // Draw a shadow on one side
+            for (let i = 0; i < rock.points.length; i++) {
+                const point = rock.points[i];
+                const shadowX = point.x * 0.9;
+                const shadowY = point.y * 0.9;
+
+                if (i === 0) {
+                    this.ctx.moveTo(shadowX, shadowY);
+                } else {
+                    this.ctx.lineTo(shadowX, shadowY);
+                }
+            }
+
+            this.ctx.closePath();
+            this.ctx.fill();
+
+            // Add highlight for texture
+            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+            this.ctx.beginPath();
+
+            // Draw a highlight on opposite side
+            for (let i = 0; i < rock.points.length; i++) {
+                const point = rock.points[i];
+                const highlightX = point.x * 1.1;
+                const highlightY = point.y * 1.1;
+
+                if (i === 0) {
+                    this.ctx.moveTo(highlightX, highlightY);
+                } else {
+                    this.ctx.lineTo(highlightX, highlightY);
+                }
+            }
+
+            this.ctx.closePath();
+            this.ctx.fill();
+
+            // Draw debug bounding circle
+            if (this.settings.debugMode) {
+                this.ctx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, rock.radius, 0, Math.PI * 2);
+                this.ctx.stroke();
+            }
+
+            this.ctx.restore();
+        });
+    }
+
+    drawPlayer() {
+        // Save context
+        this.ctx.save();
+
+        // Move to player position
+        this.ctx.translate(this.playerTank.x, this.playerTank.y);
+
+        // Draw hull
+        this.ctx.save();
+        this.ctx.rotate(this.playerTank.rotation);
+        this.drawTankHull(
+            this.playerTank.hullOffsetX,
+            this.playerTank.hullOffsetY,
+            this.playerTank.width,
+            this.playerTank.height,
+            this.playerTank.color
+        );
+        this.ctx.restore();
+
+        // Draw turret
+        this.ctx.save();
+        this.ctx.rotate(this.playerTank.turretRotation);
+        this.drawTankTurret(this.playerTank);
+        this.ctx.restore();
+
+        // Draw tank details
+        this.drawTankDetails(this.playerTank);
+
+        // Draw movement direction indicator
+        if (this.settings.debugMode) {
+            this.drawMovementIndicator();
+        }
+
+        // Restore context
+        this.ctx.restore();
+    }
+
+    drawMovementIndicator() {
+        // Draw a line showing the movement direction
+        this.ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, 0);
+        this.ctx.lineTo(
+            Math.cos(this.playerTank.rotation) * 50,
+            Math.sin(this.playerTank.rotation) * 50
+        );
+        this.ctx.stroke();
+
+        // Draw a circle showing the current speed
+        this.ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, this.playerTank.currentSpeed * 5, 0, Math.PI * 2);
+        this.ctx.fill();
+    }
+
+    drawEnemies() {
+        this.enemies.forEach(enemy => {
+            this.ctx.save();
+            this.ctx.translate(enemy.x, enemy.y);
+
+            // Draw hull
+            this.ctx.save();
+            this.ctx.rotate(enemy.rotation);
+            this.drawTankHull(
+                enemy.hullOffsetX,
+                enemy.hullOffsetY,
+                enemy.width,
+                enemy.height,
+                enemy.color
+            );
+            this.ctx.restore();
+
+            // Draw turret
+            this.ctx.save();
+            this.ctx.rotate(enemy.turretRotation);
+            this.drawTankTurret(enemy);
+            this.ctx.restore();
+
+            // Draw health bar
+            this.drawHealthBar(enemy);
+
+            // Draw avoidance force indicator (DEBUG)
+            if (this.settings.debugMode && (enemy.avoidanceForceX !== 0 || enemy.avoidanceForceY !== 0)) {
+                this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, 0);
+                this.ctx.lineTo(enemy.avoidanceForceX * 10, enemy.avoidanceForceY * 10);
+                this.ctx.stroke();
+            }
+
+            this.ctx.restore();
+        });
+    }
+
+    drawTankHull(offsetX, offsetY, width, height, color) {
+        // Main hull body
+        this.ctx.fillStyle = color;
+        this.ctx.fillRect(offsetX, offsetY, width, height);
+
+        // Hull highlight
+        this.ctx.fillStyle = this.lightenColor(color, 20);
+        this.ctx.fillRect(offsetX + 5, offsetY + 5, width - 10, height / 3);
+
+        // Hull details
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        for (let i = 0; i < 3; i++) {
+            const y = offsetY + 10 + i * 15;
+            this.ctx.fillRect(offsetX + width - 20, y, 10, 10);
+        }
+
+        // Tracks
+        this.ctx.fillStyle = '#222';
+        this.ctx.fillRect(offsetX, offsetY - 5, width, 8);
+        this.ctx.fillRect(offsetX, offsetY + height - 3, width, 8);
+
+        // Track details
+        this.ctx.fillStyle = '#444';
+        for (let i = 0; i < 8; i++) {
+            const x = offsetX + 5 + i * (width / 7);
+            this.ctx.fillRect(x, offsetY - 3, 4, 5);
+            this.ctx.fillRect(x, offsetY + height - 1, 4, 5);
+        }
+    }
+
+    drawTankTurret(tank) {
+        // Draw turret body
+        this.ctx.fillStyle = tank.color;
+        this.ctx.fillRect(
+            tank.turretOffsetX,
+            tank.turretOffsetY,
+            tank.turretWidth,
+            tank.turretHeight
+        );
+
+        // Turret highlight
+        this.ctx.fillStyle = this.lightenColor(tank.color, 15);
+        this.ctx.beginPath();
+        this.ctx.roundRect(
+            tank.turretOffsetX + tank.turretWidth - 10,
+            tank.turretOffsetY + 2,
+            8,
+            tank.turretHeight - 4,
+            4
+        );
+        this.ctx.fill();
+
+        // Draw gun barrel
+        this.ctx.save();
+
+        // Position at front center of turret
+        this.ctx.translate(tank.turretWidth / 2 + tank.turretOffsetX, tank.turretOffsetY + tank.turretHeight / 2);
+
+        // Draw barrel extending forward from the front
+        this.ctx.fillStyle = '#333';
+
+        // Barrel extends forward
+        this.ctx.fillRect(
+            0,
+            -tank.barrelWidth / 2,
+            tank.barrelLength,
+            tank.barrelWidth
+        );
+
+        // Barrel tip
+        this.ctx.fillStyle = '#222';
+        this.ctx.fillRect(
+            tank.barrelLength,
+            -tank.barrelWidth / 2 - 1,
+            5,
+            tank.barrelWidth + 2
+        );
+
+        this.ctx.restore();
+
+        // Draw commander hatch
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        this.ctx.beginPath();
+        this.ctx.arc(
+            tank.turretOffsetX + tank.turretWidth / 2,
+            tank.turretOffsetY + 8,
+            6,
+            0,
+            Math.PI * 2
+        );
+        this.ctx.fill();
+    }
+
+    drawTankDetails(tank) {
+        // Draw player name
+        this.ctx.fillStyle = '#fff';
+        this.ctx.font = 'bold 12px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText('', 0, -tank.height / 2 - 15);
+    }
+
+    drawHealthBar(enemy) {
+        const barWidth = enemy.width;
+        const barHeight = 5;
+        const barX = -barWidth / 2;
+        const barY = -enemy.height / 2 - 15;
+
+        // Background
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        this.ctx.fillRect(barX, barY, barWidth, barHeight);
+
+        // Health
+        const healthWidth = (enemy.health / 100) * barWidth;
+        this.ctx.fillStyle = enemy.health > 50 ? '#4CAF50' : enemy.health > 25 ? '#FF9800' : '#F44336';
+        this.ctx.fillRect(barX, barY, healthWidth, barHeight);
+
+        // Border
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(barX, barY, barWidth, barHeight);
+    }
+
+    drawBullets() {
+        this.bullets.forEach(bullet => {
+            this.ctx.save();
+            this.ctx.translate(bullet.x, bullet.y);
+            this.ctx.rotate(bullet.rotation);
+
+            // Bullet body
+            this.ctx.fillStyle = '#FFD700';
+            this.ctx.fillRect(-3, -2, 10, 4);
+
+            // Bullet tip
+            this.ctx.fillStyle = '#FFA500';
+            this.ctx.beginPath();
+            this.ctx.moveTo(7, -2);
+            this.ctx.lineTo(12, 0);
+            this.ctx.lineTo(7, 2);
+            this.ctx.closePath();
+            this.ctx.fill();
+
+            // Glow effect
+            this.ctx.fillStyle = 'rgba(255, 215, 0, 0.2)';
+            this.ctx.fillRect(-4, -3, 14, 6);
+
+            this.ctx.restore();
+        });
+    }
+
+    drawEnemyBullets() {
+        this.enemyBullets.forEach(bullet => {
+            this.ctx.save();
+            this.ctx.translate(bullet.x, bullet.y);
+            this.ctx.rotate(bullet.rotation);
+
+            // Bullet body
+            this.ctx.fillStyle = '#FF6B6B';
+            this.ctx.fillRect(-2, -2, 8, 4);
+
+            // Bullet tip
+            this.ctx.fillStyle = '#FF4444';
+            this.ctx.beginPath();
+            this.ctx.moveTo(6, -2);
+            this.ctx.lineTo(10, 0);
+            this.ctx.lineTo(6, 2);
+            this.ctx.closePath();
+            this.ctx.fill();
+
+            // Glow effect
+            this.ctx.fillStyle = 'rgba(255, 107, 107, 0.2)';
+            this.ctx.fillRect(-3, -3, 12, 6);
+
+            this.ctx.restore();
+        });
+    }
+
+    drawParticles() {
+        this.particles.forEach(particle => {
+            this.ctx.save();
+            this.ctx.globalAlpha = particle.alpha;
+            this.ctx.fillStyle = particle.color;
+            this.ctx.beginPath();
+            this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.restore();
+        });
+    }
+
+    lightenColor(color, percent) {
+        // Helper function to lighten colors for highlights
+        const num = parseInt(color.replace("#", ""), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = (num >> 16) + amt;
+        const G = (num >> 8 & 0x00FF) + amt;
+        const B = (num & 0x0000FF) + amt;
+
+        return "#" + (
+            0x1000000 +
+            (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+            (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+            (B < 255 ? B < 1 ? 0 : B : 255)
+        ).toString(16).slice(1);
+    }
+
+    drawDebugInfo() {
+        this.ctx.fillStyle = '#00ff00';
+        this.ctx.font = '12px monospace';
+        this.ctx.textAlign = 'left';
+
+        // Draw in screen coordinates
+        this.ctx.save();
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+        this.ctx.fillText(`Player: ${this.playerTank.x.toFixed(1)}, ${this.playerTank.y.toFixed(1)}`, 10, 20);
+        this.ctx.fillText(`Velocity: ${this.playerTank.velocityX.toFixed(2)}, ${this.playerTank.velocityY.toFixed(2)}`, 10, 40);
+        this.ctx.fillText(`Speed: ${this.playerTank.currentSpeed.toFixed(2)}/${this.playerTank.maxSpeed}`, 10, 60);
+        this.ctx.fillText(`Rotation: ${(this.playerTank.rotation * 180 / Math.PI).toFixed(1)}°`, 10, 80);
+        this.ctx.fillText(`Target Rot: ${(this.playerTank.targetRotation * 180 / Math.PI).toFixed(1)}°`, 10, 100);
+        this.ctx.fillText(`Camera: ${this.camera.x.toFixed(1)}, ${this.camera.y.toFixed(1)}`, 10, 120);
+        this.ctx.fillText(`Enemies: ${this.enemies.length}`, 10, 140);
+        this.ctx.fillText(`Bullets: ${this.bullets.length}`, 10, 160);
+        this.ctx.fillText(`Wave: ${this.wave}`, 10, 180);
+        this.ctx.fillText(`Rocks: ${this.rocks.length}`, 10, 200);
+
+        this.ctx.restore();
+    }
+
+    updateUI() {
+        // Update score
+        const scoreElement = document.getElementById('gameScore');
+        if (scoreElement) {
+            scoreElement.textContent = this.score;
+        }
+
+        // Update wave
+        const waveElement = document.getElementById('gameWave');
+        if (waveElement) {
+            waveElement.textContent = this.wave;
+        }
+
+        // Update health
+        const healthElement = document.getElementById('gameHealth');
+        if (healthElement) {
+            healthElement.textContent = this.playerHealth;
+        }
+
+        // Update enemies count
+        const enemiesElement = document.getElementById('gameEnemies');
+        if (enemiesElement) {
+            enemiesElement.textContent = this.enemies.length;
+        }
+    }
+
+    showGameOver() {
+        const overlay = document.getElementById('gameOverOverlay');
+        if (!overlay) return;
+
+        overlay.style.display = 'flex';
+
+        // Update final stats
+        document.getElementById('finalScore').textContent = this.score;
+        document.getElementById('finalWave').textContent = this.wave;
+        document.getElementById('enemiesKilled').textContent = Math.floor(this.score / 100);
+    }
+
+    showMessage(text) {
+        // Create temporary message display
+        const message = document.createElement('div');
+        message.textContent = text;
+        message.style.cssText = `
+            position: fixed;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 1000;
+            font-weight: bold;
+            pointer-events: none;
+            animation: fadeOut 2s forwards;
+        `;
+
+        document.body.appendChild(message);
+
+        setTimeout(() => {
+            if (message.parentNode) {
+                message.parentNode.removeChild(message);
+            }
+        }, 2000);
+    }
+}
+
+// Initialize the game
+const tankGame = new TankGame();
+
+// CSS animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeOut {
+        0% { opacity: 1; }
+        70% { opacity: 1; }
+        100% { opacity: 0; }
+    }
+`;
+
+// Polyfill for roundRect
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, width, height, radius) {
+        if (typeof radius === 'number') {
+            radius = {
+                tl: radius,
+                tr: radius,
+                br: radius,
+                bl: radius
+            };
+        } else {
+            radius = {
+                ...{
+                    tl: 0,
+                    tr: 0,
+                    br: 0,
+                    bl: 0
+                },
+                ...radius
+            };
+        }
+
+        this.beginPath();
+        this.moveTo(x + radius.tl, y);
+        this.lineTo(x + width - radius.tr, y);
+        this.quadraticCurveTo(x + width, y, x + width, y + radius.tr);
+        this.lineTo(x + width, y + height - radius.br);
+        this.quadraticCurveTo(x + width, y + height, x + width - radius.br, y + height);
+        this.lineTo(x + radius.bl, y + height);
+        this.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
+        this.lineTo(x, y + radius.tl);
+        this.quadraticCurveTo(x, y, x + radius.tl, y);
+        this.closePath();
+        return this;
+    };
+}
+
+document.head.appendChild(style);
