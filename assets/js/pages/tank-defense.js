@@ -1331,6 +1331,9 @@ class TankGame {
         // Move to player position
         this.ctx.translate(this.playerTank.x, this.playerTank.y);
 
+        // Draw player health bar
+        this.drawPlayerHealthBar();
+
         // Draw hull
         this.ctx.save();
         this.ctx.rotate(this.playerTank.rotation);
@@ -1359,6 +1362,35 @@ class TankGame {
 
         // Restore context
         this.ctx.restore();
+    }
+
+    // Draw player health bar
+    drawPlayerHealthBar() {
+        const barWidth = this.playerTank.width;
+        const barHeight = 6;
+        const barX = -barWidth / 2;
+        const barY = -this.playerTank.height / 2 - 25;
+
+        // Background
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        this.ctx.fillRect(barX, barY, barWidth, barHeight);
+
+        // Health
+        const healthWidth = (this.playerHealth / 100) * barWidth;
+        this.ctx.fillStyle = this.playerHealth > 50 ? '#4CAF50' : this.playerHealth > 25 ? '#FF9800' : '#F44336';
+        this.ctx.fillRect(barX, barY, healthWidth, barHeight);
+
+        // Border
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+        // Health text
+        this.ctx.fillStyle = '#fff';
+        this.ctx.font = 'bold 10px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText(`${this.playerHealth}%`, 0, barY + barHeight / 2);
     }
 
     drawMovementIndicator() {
