@@ -4,6 +4,7 @@ class TankGame {
         this.canvas = null;
         this.ctx = null;
         this.gameRunning = false;
+        this.gamePaused = false;
         this.lastTime = 0;
         this.enemies = [];
         this.particles = [];
@@ -120,6 +121,14 @@ class TankGame {
             enemySmoothMovement: true
         };
 
+        // Button elements cache
+        this.buttonElements = {
+            pause: null,
+            restart: null,
+            startOverlay: null,
+            restartOverlay: null
+        };
+
         this.init();
     }
 
@@ -130,13 +139,96 @@ class TankGame {
             this.calculateOffsets();
             this.setupCamera();
             this.generateRocks();
+            this.updateButtonStates();
         });
+    }
+
+    updateButtonStates() {
+        // Get button elements (if not already cached)
+        if (!this.buttonElements.pause) {
+            this.buttonElements.pause = document.getElementById('pauseGame');
+        }
+        if (!this.buttonElements.restart) {
+            this.buttonElements.restart = document.getElementById('restartGame');
+        }
+        if (!this.buttonElements.startOverlay) {
+            this.buttonElements.startOverlay = document.getElementById('startGameFromOverlay');
+        }
+        if (!this.buttonElements.restartOverlay) {
+            this.buttonElements.restartOverlay = document.getElementById('restartFromOverlay');
+        }
+
+        const {
+            pause,
+            restart
+        } = this.buttonElements;
+
+        if (!pause || !restart) return;
+
+        // Reset all buttons first
+        pause.disabled = false;
+        restart.disabled = false;
+
+        pause.classList.remove('disabled');
+        restart.classList.remove('disabled');
+
+        // Update button states based on game state
+        if (this.gameOver) {
+            // Game over state
+            pause.disabled = true;
+            restart.disabled = false;
+
+            pause.classList.add('disabled');
+            restart.classList.remove('disabled');
+        } else if (!this.gameRunning) {
+            // Game not started state
+            pause.disabled = true;
+            restart.disabled = true;
+
+            pause.classList.add('disabled');
+            restart.classList.add('disabled');
+        } else if (this.gamePaused) {
+            // Game paused state
+            pause.disabled = false;
+            restart.disabled = false;
+
+            // Change pause button to resume
+            const pauseIcon = pause.querySelector('i');
+            const pauseText = pause.lastChild;
+            if (pauseIcon) pauseIcon.className = 'fas fa-play';
+            if (pauseText && pauseText.nodeType === 3) {
+                pauseText.textContent = ' Resume';
+            } else {
+                const span = pause.querySelector('span');
+                if (span) span.textContent = 'Resume';
+            }
+
+            pause.classList.remove('disabled');
+            restart.classList.remove('disabled');
+        } else {
+            // Game running state
+            pause.disabled = false;
+            restart.disabled = false;
+
+            // Ensure pause button shows pause icon
+            const pauseIcon = pause.querySelector('i');
+            const pauseText = pause.lastChild;
+            if (pauseIcon) pauseIcon.className = 'fas fa-pause';
+            if (pauseText && pauseText.nodeType === 3) {
+                pauseText.textContent = ' Pause';
+            } else {
+                const span = pause.querySelector('span');
+                if (span) span.textContent = 'Pause';
+            }
+
+            pause.classList.remove('disabled');
+            restart.classList.remove('disabled');
+        }
     }
 
     setupCanvas() {
         this.canvas = document.getElementById('tankGameCanvas');
         if (!this.canvas) {
-            console.error('Canvas element not found!');
             return;
         }
 
@@ -205,6 +297,12 @@ class TankGame {
     }
 
     setupEventListeners() {
+        // Get button elements
+        this.buttonElements.pause = document.getElementById('pauseGame');
+        this.buttonElements.restart = document.getElementById('restartGame');
+        this.buttonElements.startOverlay = document.getElementById('startGameFromOverlay');
+        this.buttonElements.restartOverlay = document.getElementById('restartFromOverlay');
+
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
             if (this.gameRunning || this.gameOver) {
@@ -237,39 +335,36 @@ class TankGame {
 
         // Mouse click to shoot
         this.canvas.addEventListener('click', (e) => {
-            if (this.gameRunning && !this.gameOver) {
+            if (this.gameRunning && !this.gameOver && !this.gamePaused) {
                 e.preventDefault();
                 this.shoot();
             }
         });
 
         // Game control buttons
-        const startBtn = document.getElementById('startGame');
-        const restartBtn = document.getElementById('restartGame');
-        const pauseBtn = document.getElementById('pauseGame');
-
-        if (startBtn) {
-            startBtn.addEventListener('click', () => this.startGame());
+        if (this.buttonElements.restart) {
+            this.buttonElements.restart.addEventListener('click', () => {
+                this.restartGame();
+            });
         }
 
-        if (restartBtn) {
-            restartBtn.addEventListener('click', () => this.restartGame());
+        if (this.buttonElements.pause) {
+            this.buttonElements.pause.addEventListener('click', () => {
+                this.togglePause();
+            });
         }
 
-        if (pauseBtn) {
-            pauseBtn.addEventListener('click', () => this.togglePause());
+        // Overlay buttons
+        if (this.buttonElements.startOverlay) {
+            this.buttonElements.startOverlay.addEventListener('click', () => {
+                this.startGame();
+            });
         }
 
-        // Overlay buttons - NEW: Add these lines
-        const startOverlayBtn = document.getElementById('startGameFromOverlay');
-        const restartOverlayBtn = document.getElementById('restartFromOverlay');
-
-        if (startOverlayBtn) {
-            startOverlayBtn.addEventListener('click', () => this.startGame());
-        }
-
-        if (restartOverlayBtn) {
-            restartOverlayBtn.addEventListener('click', () => this.restartGame());
+        if (this.buttonElements.restartOverlay) {
+            this.buttonElements.restartOverlay.addEventListener('click', () => {
+                this.restartGame();
+            });
         }
 
         // Debug toggle (DEBUG)
@@ -289,6 +384,17 @@ class TankGame {
                 this.showMessage('Regenerated rocks');
             }
         });
+
+        // Pause with ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.gameRunning && !this.gameOver) {
+                e.preventDefault();
+                this.togglePause();
+            }
+        });
+
+        // Initial button state
+        this.updateButtonStates();
     }
 
     resizeCanvas() {
@@ -366,8 +472,6 @@ class TankGame {
 
             rocksGenerated++;
         }
-
-        console.log(`Generated ${this.rocks.length} rocks (${attempts} attempts)`);
     }
 
     // Generate irregular rock shape
@@ -424,10 +528,15 @@ class TankGame {
     }
 
     startGame() {
-        if (this.gameRunning) return;
+        // If game is paused, resume it
+        if (this.gamePaused) {
+            this.togglePause();
+            return;
+        }
 
         this.resetGame();
         this.gameRunning = true;
+        this.gamePaused = false;
         this.gameOver = false;
 
         // Position player in center of world
@@ -438,8 +547,18 @@ class TankGame {
         this.setupCamera();
 
         // Hide start overlay
-        document.getElementById('startOverlay').style.display = 'none';
-        document.getElementById('gameOverOverlay').style.display = 'none';
+        const startOverlay = document.getElementById('startOverlay');
+        const gameOverOverlay = document.getElementById('gameOverOverlay');
+
+        if (startOverlay) {
+            startOverlay.style.display = 'none';
+        }
+        if (gameOverOverlay) {
+            gameOverOverlay.style.display = 'none';
+        }
+
+        // Update button states
+        this.updateButtonStates();
 
         // Start game loop
         this.lastTime = performance.now();
@@ -452,11 +571,17 @@ class TankGame {
     }
 
     togglePause() {
-        this.gameRunning = !this.gameRunning;
-        if (this.gameRunning) {
+        if (!this.gameRunning || this.gameOver) return;
+
+        this.gamePaused = !this.gamePaused;
+
+        if (!this.gamePaused) {
+            // Resume game
             this.lastTime = performance.now();
             requestAnimationFrame((time) => this.gameLoop(time));
         }
+
+        this.updateButtonStates();
     }
 
     resetGame() {
@@ -469,6 +594,7 @@ class TankGame {
         this.score = 0;
         this.playerHealth = 100;
         this.gameOver = false;
+        this.gamePaused = false;
         this.keys = {};
 
         this.playerTank.x = this.world.width / 2;
@@ -485,10 +611,13 @@ class TankGame {
 
         this.setupCamera();
         this.updateUI();
+        this.updateButtonStates();
     }
 
     gameLoop(currentTime) {
-        if (!this.gameRunning) return;
+        if (!this.gameRunning || this.gamePaused || this.gameOver) {
+            return;
+        }
 
         const deltaTime = currentTime - this.lastTime;
         this.lastTime = currentTime;
@@ -496,7 +625,7 @@ class TankGame {
         this.update(deltaTime);
         this.render();
 
-        if (this.gameRunning && !this.gameOver) {
+        if (this.gameRunning && !this.gamePaused && !this.gameOver) {
             requestAnimationFrame((time) => this.gameLoop(time));
         }
     }
@@ -1118,6 +1247,7 @@ class TankGame {
                     this.playerHealth = 0;
                     this.gameOver = true;
                     this.gameRunning = false;
+                    this.updateButtonStates();
                     this.showGameOver();
                 }
             }
@@ -1156,6 +1286,7 @@ class TankGame {
                     this.playerHealth = 0;
                     this.gameOver = true;
                     this.gameRunning = false;
+                    this.updateButtonStates();
                     this.showGameOver();
                 }
             }
