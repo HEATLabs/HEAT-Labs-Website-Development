@@ -3,7 +3,7 @@
     'use strict';
 
     // Toggle Snow Effects
-    const SNOW_ENABLED = true;
+    const SNOW_ENABLED = false;
 
     // Configuration
     const config = {
