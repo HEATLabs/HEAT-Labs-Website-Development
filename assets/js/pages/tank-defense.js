@@ -112,6 +112,7 @@ class TankGame {
             enemyBulletSpeed: 7,
             particleLifetime: 1000,
             debugMode: false,
+            rapidFire: false,
             enemySpawnDistance: 400,
             enemyDespawnDistance: 800,
             enemyCollisionRepulsion: 0.5,
@@ -393,6 +394,21 @@ class TankGame {
             }
         });
 
+        // Rapid Fire toggle (DEBUG CHEAT)
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'v') {
+                e.preventDefault();
+                this.settings.rapidFire = !this.settings.rapidFire;
+                this.showMessage(`Rapid Fire: ${this.settings.rapidFire ? 'Enabled' : 'Disabled'}`);
+                if (this.settings.rapidFire === true) {
+                    this.playerTank.shootCooldown = 0;
+                }
+                if (this.settings.rapidFire === false) {
+                    this.playerTank.shootCooldown = 500;
+                }
+            }
+        });
+        
         // Initial button state
         this.updateButtonStates();
     }
