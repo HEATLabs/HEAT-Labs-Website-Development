@@ -17,6 +17,22 @@ class TankGame {
         this.gameOver = false;
         this.keys = {};
 
+        // Wave system
+        this.waveSystem = {
+            currentWave: 1,
+            waveEnemiesTarget: 0,
+            waveEnemiesSpawned: 0,
+            waveTimeLimit: 60000,
+            waveTimer: 0,
+            waveActive: false,
+            waveStarting: false,
+            waveStartCountdown: 5,
+            waveStartTimer: 0,
+            waveEnemyCounts: [0, 1, 2, 4, 6, 8, 10],
+            nextWaveEnemyIncrement: 2,
+            maxEnemiesPerWave: 20
+        };
+
         // Camera system for centering player
         this.camera = {
             x: 0,
@@ -149,6 +165,9 @@ class TankGame {
             restartOverlay: null
         };
 
+        // Wave timer element
+        this.waveTimerElement = null;
+
         this.init();
     }
 
@@ -160,8 +179,53 @@ class TankGame {
             this.setupCamera();
             this.generateRocks();
             this.generateHealthPacks();
+            this.createWaveTimerElement();
             this.updateButtonStates();
         });
+    }
+
+    createWaveTimerElement() {
+        // Create wave timer element
+        this.waveTimerElement = document.createElement('div');
+        this.waveTimerElement.className = 'wave-timer';
+        this.waveTimerElement.style.cssText = `
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-family: 'Arial', sans-serif;
+            font-weight: bold;
+            font-size: 16px;
+            z-index: 100;
+            pointer-events: none;
+            border: 2px solid #4CAF50;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            display: none;
+        `;
+        this.canvas.parentElement.appendChild(this.waveTimerElement);
+    }
+
+    updateWaveTimerDisplay() {
+        if (!this.waveTimerElement || !this.gameRunning) return;
+
+        if (this.waveSystem.waveStarting) {
+            const countdown = Math.ceil(this.waveSystem.waveStartCountdown - this.waveSystem.waveStartTimer / 1000);
+            const formattedCountdown = countdown < 10 ? `0${countdown}` : countdown;
+            this.waveTimerElement.textContent = `Wave ${this.waveSystem.currentWave} starts in ${formattedCountdown} seconds!`;
+            this.waveTimerElement.style.display = 'block';
+            this.waveTimerElement.style.borderColor = '#FF9800'; // Orange for countdown
+        } else if (this.waveSystem.waveActive) {
+            const timeLeft = Math.ceil(this.waveSystem.waveTimer / 1000);
+            const formattedTimeLeft = timeLeft < 10 ? `0${timeLeft}` : timeLeft;
+            this.waveTimerElement.textContent = `Wave ${this.waveSystem.currentWave} - ${formattedTimeLeft}s remaining`;
+            this.waveTimerElement.style.display = 'block';
+            this.waveTimerElement.style.borderColor = timeLeft < 10 ? '#F44336' : '#4CAF50'; // Red when under 10s
+        } else {
+            this.waveTimerElement.style.display = 'none';
+        }
     }
 
     updateButtonStates() {
@@ -678,6 +742,9 @@ class TankGame {
             gameOverOverlay.style.display = 'none';
         }
 
+        // Start wave system
+        this.startNextWave();
+
         // Update button states
         this.updateButtonStates();
 
@@ -718,6 +785,15 @@ class TankGame {
         this.gamePaused = false;
         this.keys = {};
 
+        // Reset wave system
+        this.waveSystem.currentWave = 1;
+        this.waveSystem.waveEnemiesTarget = 0;
+        this.waveSystem.waveEnemiesSpawned = 0;
+        this.waveSystem.waveTimer = 0;
+        this.waveSystem.waveActive = false;
+        this.waveSystem.waveStarting = false;
+        this.waveSystem.waveStartTimer = 0;
+
         this.playerTank.x = this.world.width / 2;
         this.playerTank.y = this.world.height / 2;
         this.playerTank.rotation = 0;
@@ -734,9 +810,69 @@ class TankGame {
         // Clear respawn timers
         this.healthPackRespawnTimers = [];
 
+        // Hide wave timer
+        if (this.waveTimerElement) {
+            this.waveTimerElement.style.display = 'none';
+        }
+
         this.setupCamera();
         this.updateUI();
         this.updateButtonStates();
+    }
+
+    startNextWave() {
+        this.waveSystem.currentWave++;
+        this.waveSystem.waveEnemiesTarget = this.getEnemyCountForWave(this.waveSystem.currentWave);
+        this.waveSystem.waveEnemiesSpawned = 0;
+        this.waveSystem.waveTimer = this.waveSystem.waveTimeLimit;
+        this.waveSystem.waveActive = false;
+        this.waveSystem.waveStarting = true;
+        this.waveSystem.waveStartTimer = 0;
+
+        // Update UI
+        this.wave = this.waveSystem.currentWave;
+        this.updateUI();
+
+        // Show wave start message
+        this.showMessage(`Wave ${this.waveSystem.currentWave} - ${this.waveSystem.waveEnemiesTarget} enemies incoming!`);
+    }
+
+    getEnemyCountForWave(waveNumber) {
+        if (waveNumber < this.waveSystem.waveEnemyCounts.length) {
+            return this.waveSystem.waveEnemyCounts[waveNumber];
+        } else {
+            // After wave 7, add 2 more enemies each wave, up to max
+            const baseCount = this.waveSystem.waveEnemyCounts[6]; // Wave 7 has 10 enemies
+            const additionalWaves = waveNumber - 7;
+            const totalEnemies = baseCount + (additionalWaves * this.waveSystem.nextWaveEnemyIncrement);
+            return Math.min(totalEnemies, this.waveSystem.maxEnemiesPerWave);
+        }
+    }
+
+    startWave() {
+        this.waveSystem.waveActive = true;
+        this.waveSystem.waveStarting = false;
+        this.showMessage(`Wave ${this.waveSystem.currentWave} has begun!`);
+    }
+
+    endWave() {
+        this.waveSystem.waveActive = false;
+
+        // Check if player completed the wave
+        if (this.enemies.length === 0) {
+            this.score += 500 * this.waveSystem.currentWave; // Bonus for completing wave
+            this.showMessage(`Wave ${this.waveSystem.currentWave} completed! +${500 * this.waveSystem.currentWave} points!`);
+        } else {
+            // Keep current enemies for next wave
+            this.showMessage(`Wave ${this.waveSystem.currentWave} time's up! Enemies carry over to next wave.`);
+        }
+
+        // Start next wave after 3 seconds
+        setTimeout(() => {
+            if (this.gameRunning && !this.gameOver) {
+                this.startNextWave();
+            }
+        }, 3000);
     }
 
     gameLoop(currentTime) {
@@ -756,6 +892,9 @@ class TankGame {
     }
 
     update(deltaTime) {
+        // Update wave system
+        this.updateWaveSystem(deltaTime);
+
         // Update player movement
         this.updatePlayer(deltaTime);
 
@@ -783,17 +922,13 @@ class TankGame {
         // Update health pack respawn timers
         this.updateHealthPackRespawnTimers(deltaTime);
 
-        // Spawn enemies
-        this.enemySpawnTimer += deltaTime;
-        if (this.enemySpawnTimer >= this.settings.enemySpawnRate &&
-            this.enemies.length < this.settings.maxEnemies) {
-            this.spawnEnemy();
-            this.enemySpawnTimer = 0;
-
-            // Increase difficulty
-            if (this.score % 1000 === 0) {
-                this.wave++;
-                this.settings.enemySpawnRate = Math.max(500, this.settings.enemySpawnRate - 100);
+        // Spawn enemies during active wave
+        if (this.waveSystem.waveActive && this.waveSystem.waveEnemiesSpawned < this.waveSystem.waveEnemiesTarget) {
+            this.enemySpawnTimer += deltaTime;
+            if (this.enemySpawnTimer >= this.settings.enemySpawnRate) {
+                this.spawnEnemy();
+                this.waveSystem.waveEnemiesSpawned++;
+                this.enemySpawnTimer = 0;
             }
         }
 
@@ -805,6 +940,33 @@ class TankGame {
 
         // Update UI
         this.updateUI();
+
+        // Update wave timer display
+        this.updateWaveTimerDisplay();
+    }
+
+    updateWaveSystem(deltaTime) {
+        if (this.waveSystem.waveStarting) {
+            // Update wave start countdown
+            this.waveSystem.waveStartTimer += deltaTime;
+
+            if (this.waveSystem.waveStartTimer >= this.waveSystem.waveStartCountdown * 1000) {
+                this.startWave();
+            }
+        } else if (this.waveSystem.waveActive) {
+            // Update wave timer
+            this.waveSystem.waveTimer -= deltaTime;
+
+            // Check if wave time is up
+            if (this.waveSystem.waveTimer <= 0) {
+                this.endWave();
+            }
+
+            // Check if all enemies are killed
+            if (this.enemies.length === 0 && this.waveSystem.waveEnemiesSpawned >= this.waveSystem.waveEnemiesTarget) {
+                this.endWave();
+            }
+        }
     }
 
     updatePlayer(deltaTime) {
@@ -1055,7 +1217,9 @@ class TankGame {
             barrelOffsetY: this.enemyConfig.barrelOffsetY,
             // For obstacle avoidance
             avoidanceForceX: 0,
-            avoidanceForceY: 0
+            avoidanceForceY: 0,
+            // For wave system
+            wave: this.waveSystem.currentWave
         });
     }
 
@@ -1423,6 +1587,9 @@ class TankGame {
                         this.enemies.splice(j, 1);
                         this.score += 100;
                         this.createParticles(enemy.x, enemy.y, 30, '#FFD700');
+
+                        // Update wave completion check
+                        this.waveSystem.waveEnemiesTarget--;
                     }
 
                     break;
@@ -2177,9 +2344,11 @@ class TankGame {
         this.ctx.fillText(`Camera: ${this.camera.x.toFixed(1)}, ${this.camera.y.toFixed(1)}`, 10, 120);
         this.ctx.fillText(`Enemies: ${this.enemies.length}`, 10, 140);
         this.ctx.fillText(`Bullets: ${this.bullets.length}`, 10, 160);
-        this.ctx.fillText(`Wave: ${this.wave}`, 10, 180);
-        this.ctx.fillText(`Rocks: ${this.rocks.length}`, 10, 200);
-        this.ctx.fillText(`Health Packs: ${this.healthPacks.filter(p => !p.collected).length}/${this.healthPacks.length}`, 10, 220);
+        this.ctx.fillText(`Wave: ${this.waveSystem.currentWave}`, 10, 180);
+        this.ctx.fillText(`Wave Enemies: ${this.waveSystem.waveEnemiesSpawned}/${this.waveSystem.waveEnemiesTarget}`, 10, 200);
+        this.ctx.fillText(`Wave Time: ${Math.ceil(this.waveSystem.waveTimer / 1000)}s`, 10, 220);
+        this.ctx.fillText(`Rocks: ${this.rocks.length}`, 10, 240);
+        this.ctx.fillText(`Health Packs: ${this.healthPacks.filter(p => !p.collected).length}/${this.healthPacks.length}`, 10, 260);
 
         this.ctx.restore();
     }
@@ -2194,7 +2363,7 @@ class TankGame {
         // Update wave
         const waveElement = document.getElementById('gameWave');
         if (waveElement) {
-            waveElement.textContent = this.wave;
+            waveElement.textContent = this.waveSystem.currentWave;
         }
 
         // Update health
@@ -2218,8 +2387,13 @@ class TankGame {
 
         // Update final stats
         document.getElementById('finalScore').textContent = this.score;
-        document.getElementById('finalWave').textContent = this.wave;
+        document.getElementById('finalWave').textContent = this.waveSystem.currentWave;
         document.getElementById('enemiesKilled').textContent = Math.floor(this.score / 100);
+
+        // Hide wave timer
+        if (this.waveTimerElement) {
+            this.waveTimerElement.style.display = 'none';
+        }
     }
 
     showMessage(text) {
