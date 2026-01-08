@@ -894,26 +894,18 @@ class TankGame {
         this.waveSystem.waveActive = true;
         this.waveSystem.waveStarting = false;
 
-        // SPAWN ALL ENEMIES AT ONCE FOR THIS WAVE
-        this.spawnAllEnemiesForWave();
+        // Get the number of enemies for this wave
+        const enemiesThisWave = this.getEnemyCountForWave(this.waveSystem.currentWave);
 
-        this.showMessage(`Wave ${this.waveSystem.currentWave} has begun!`);
-    }
-
-    // Spawn all enemies for the current wave at once
-    spawnAllEnemiesForWave() {
-        const enemyCount = this.waveSystem.waveEnemiesTarget;
-
-        // Clear any existing enemies
-        this.enemies = [];
-
-        // Spawn all enemies randomly on the map
-        for (let i = 0; i < enemyCount; i++) {
+        // Spawn ALL enemies for this wave
+        for (let i = 0; i < enemiesThisWave; i++) {
             this.spawnEnemyRandomPosition();
         }
 
         // Update the spawned count
-        this.waveSystem.waveEnemiesSpawned = enemyCount;
+        this.waveSystem.waveEnemiesSpawned = enemiesThisWave;
+
+        this.showMessage(`Wave ${this.waveSystem.currentWave} has begun! ${enemiesThisWave} new enemies added!`);
     }
 
     // Spawn an enemy at a random position on the map
@@ -1069,7 +1061,8 @@ class TankGame {
             this.showMessage(`Wave ${this.waveSystem.currentWave} completed! +${500 * this.waveSystem.currentWave} points!`);
         } else {
             // Keep current enemies for next wave
-            this.showMessage(`Wave ${this.waveSystem.currentWave} time's up! Enemies carry over to next wave.`);
+            const existingEnemies = this.enemies.length;
+            this.showMessage(`Wave ${this.waveSystem.currentWave} time's up! ${existingEnemies} enemies carry over to next wave.`);
         }
 
         // Start next wave after 3 seconds
