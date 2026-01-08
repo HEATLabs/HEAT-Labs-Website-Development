@@ -551,13 +551,6 @@ class TankGame {
         if (this.fullscreenControlsTimeout) {
             clearTimeout(this.fullscreenControlsTimeout);
         }
-
-        // Hide controls after 3 seconds of inactivity
-        this.fullscreenControlsTimeout = setTimeout(() => {
-            if (this.isFullscreen && this.gameRunning && !this.gamePaused) {
-                controlsBar.classList.remove('visible');
-            }
-        }, 3000);
     }
 
     setupCanvas() {
