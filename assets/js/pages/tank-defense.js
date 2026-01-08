@@ -157,6 +157,15 @@ class TankGame {
             enemySmoothMovement: true
         };
 
+        // Score configuration
+        this.scoreSystem = {
+            enemyKill: 25,
+            healthPack: 10,
+            baseWaveComplete: 100,
+            waveBonusIncrement: 50,
+            waveBonusInterval: 10
+        };
+
         // Button elements cache
         this.buttonElements = {
             pause: null,
@@ -890,6 +899,15 @@ class TankGame {
         return baseEnemies * scalingFactor + additionalEnemies;
     }
 
+    // Calculate wave completion reward
+    getWaveReward(waveNumber) {
+        // Calculate how many sets of 10 waves have been completed
+        const waveSets = Math.floor((waveNumber - 1) / this.scoreSystem.waveBonusInterval);
+
+        // Calculate reward: base + (bonus increment * waveSets)
+        return this.scoreSystem.baseWaveComplete + (this.scoreSystem.waveBonusIncrement * waveSets);
+    }
+
     startWave() {
         this.waveSystem.waveActive = true;
         this.waveSystem.waveStarting = false;
@@ -1057,8 +1075,18 @@ class TankGame {
 
         // Check if player completed the wave
         if (this.enemies.length === 0) {
-            this.score += 500 * this.waveSystem.currentWave; // Bonus for completing wave
-            this.showMessage(`Wave ${this.waveSystem.currentWave} completed! +${500 * this.waveSystem.currentWave} points!`);
+            // Calculate wave reward based on the new system
+            const waveReward = this.getWaveReward(this.waveSystem.currentWave);
+            this.score += waveReward;
+
+            // Show reward message with details
+            this.showMessage(`Wave ${this.waveSystem.currentWave} completed! +${waveReward} points!`);
+
+            // Show floating text for wave reward
+            this.showFloatingText(`+${waveReward} Wave`,
+                this.playerTank.x,
+                this.playerTank.y - 50,
+                '#FFD700');
         } else {
             // Keep current enemies for next wave
             const existingEnemies = this.enemies.length;
@@ -1655,8 +1683,13 @@ class TankGame {
                     // Check if enemy is dead
                     if (enemy.health <= 0) {
                         this.enemies.splice(j, 1);
-                        this.score += 100;
+
+                        // Add enemy kill points
+                        this.score += this.scoreSystem.enemyKill;
+
+                        // Create particles and floating text for enemy kill
                         this.createParticles(enemy.x, enemy.y, 30, '#FFD700');
+                        this.showFloatingText(`+${this.scoreSystem.enemyKill} Kill`, enemy.x, enemy.y, '#FFD700');
                     }
 
                     break;
@@ -1770,14 +1803,18 @@ class TankGame {
         this.playerHealth = Math.min(100, this.playerHealth + this.healthPackSettings.healthAmount);
         const healthGained = this.playerHealth - oldHealth;
 
+        // Add health pack points
+        this.score += this.scoreSystem.healthPack;
+
         // Create healing particles
         this.createParticles(pack.x, pack.y, 20, this.healthPackSettings.color);
 
-        // Add a floating text showing health gained
-        this.showFloatingText(`+${healthGained} HP`, pack.x, pack.y, this.healthPackSettings.color);
+        // Add floating text showing health gained AND points
+        this.showFloatingText(`+${this.scoreSystem.healthPack} HP`, pack.x, pack.y, this.healthPackSettings.color);
+        this.showFloatingText(`+${healthGained} HP`, pack.x, pack.y - 20, '#10B981');
 
         // Show message in UI
-        this.showMessage(`Health restored: +${healthGained} HP`);
+        this.showMessage(`Health restored: +${healthGained} HP (+${this.scoreSystem.healthPack} points)`);
 
         // Start respawn timer
         this.healthPackRespawnTimers.push({
@@ -2417,6 +2454,7 @@ class TankGame {
         this.ctx.fillText(`Rocks: ${this.rocks.length}`, 10, 240);
         this.ctx.fillText(`Health Packs: ${this.healthPacks.filter(p => !p.collected).length}/${this.healthPacks.length}`, 10, 260);
         this.ctx.fillText(`Scaling Factor: ${this.waveSystem.scalingFactor}`, 10, 280);
+        this.ctx.fillText(`Score: ${this.score}`, 10, 300);
 
         this.ctx.restore();
     }
