@@ -893,7 +893,171 @@ class TankGame {
     startWave() {
         this.waveSystem.waveActive = true;
         this.waveSystem.waveStarting = false;
+
+        // SPAWN ALL ENEMIES AT ONCE FOR THIS WAVE
+        this.spawnAllEnemiesForWave();
+
         this.showMessage(`Wave ${this.waveSystem.currentWave} has begun!`);
+    }
+
+    // Spawn all enemies for the current wave at once
+    spawnAllEnemiesForWave() {
+        const enemyCount = this.waveSystem.waveEnemiesTarget;
+
+        // Clear any existing enemies
+        this.enemies = [];
+
+        // Spawn all enemies randomly on the map
+        for (let i = 0; i < enemyCount; i++) {
+            this.spawnEnemyRandomPosition();
+        }
+
+        // Update the spawned count
+        this.waveSystem.waveEnemiesSpawned = enemyCount;
+    }
+
+    // Spawn an enemy at a random position on the map
+    spawnEnemyRandomPosition() {
+        let attempts = 0;
+        const maxAttempts = 50; // Limit attempts to prevent infinite loop
+
+        while (attempts < maxAttempts) {
+            attempts++;
+
+            // Generate random position anywhere on the map
+            const x = Math.random() * (this.world.width - 100) + 50;
+            const y = Math.random() * (this.world.height - 100) + 50;
+
+            // Don't spawn too close to player
+            const dx = x - this.playerTank.x;
+            const dy = y - this.playerTank.y;
+            const distanceToPlayer = Math.sqrt(dx * dx + dy * dy);
+
+            if (distanceToPlayer < 400) {
+                continue; // Too close to player
+            }
+
+            // Don't spawn inside rocks
+            let insideRock = false;
+            for (const rock of this.rocks) {
+                const rockDx = x - rock.x;
+                const rockDy = y - rock.y;
+                const distance = Math.sqrt(rockDx * rockDx + rockDy * rockDy);
+
+                if (distance < rock.radius + this.enemyConfig.width / 2) {
+                    insideRock = true;
+                    break;
+                }
+            }
+
+            if (insideRock) {
+                continue; // Inside a rock
+            }
+
+            // Don't spawn too close to other enemies
+            let tooCloseToEnemy = false;
+            for (const enemy of this.enemies) {
+                const enemyDx = x - enemy.x;
+                const enemyDy = y - enemy.y;
+                const distance = Math.sqrt(enemyDx * enemyDx + enemyDy * enemyDy);
+
+                if (distance < 150) {
+                    tooCloseToEnemy = true;
+                    break;
+                }
+            }
+
+            if (tooCloseToEnemy) {
+                continue; // Too close to another enemy
+            }
+
+            // Don't spawn inside health packs
+            let insideHealthPack = false;
+            for (const pack of this.healthPacks) {
+                if (!pack.collected) {
+                    const packDx = x - pack.x;
+                    const packDy = y - pack.y;
+                    const distance = Math.sqrt(packDx * packDx + packDy * packDy);
+
+                    if (distance < pack.size) {
+                        insideHealthPack = true;
+                        break;
+                    }
+                }
+            }
+
+            if (insideHealthPack) {
+                continue; // Inside a health pack
+            }
+
+            // Found a good position, spawn enemy
+            this.enemies.push({
+                x: x,
+                y: y,
+                width: this.enemyConfig.width,
+                height: this.enemyConfig.height,
+                speed: this.enemyConfig.speed + Math.random() * 0.5,
+                rotation: Math.random() * Math.PI * 2,
+                turretRotation: Math.random() * Math.PI * 2,
+                health: 100,
+                lastShot: 0,
+                shootCooldown: this.enemyConfig.shootCooldown + Math.random() * 1000,
+                color: this.enemyConfig.color,
+                hullOffsetX: this.enemyConfig.hullOffsetX,
+                hullOffsetY: this.enemyConfig.hullOffsetY,
+                turretWidth: this.enemyConfig.turretWidth,
+                turretHeight: this.enemyConfig.turretHeight,
+                turretOffsetX: this.enemyConfig.turretOffsetX,
+                turretOffsetY: this.enemyConfig.turretOffsetY,
+                barrelLength: this.enemyConfig.barrelLength,
+                barrelWidth: this.enemyConfig.barrelWidth,
+                barrelOffsetX: this.enemyConfig.barrelOffsetX,
+                barrelOffsetY: this.enemyConfig.barrelOffsetY,
+                // For obstacle avoidance
+                avoidanceForceX: 0,
+                avoidanceForceY: 0,
+                // For movement
+                desiredX: x,
+                desiredY: y,
+                // For wave system
+                wave: this.waveSystem.currentWave
+            });
+
+            return; // Successfully spawned
+        }
+
+        // If we couldn't find a good position after max attempts, spawn anyway
+        const fallbackX = Math.random() * (this.world.width - 100) + 50;
+        const fallbackY = Math.random() * (this.world.height - 100) + 50;
+
+        this.enemies.push({
+            x: fallbackX,
+            y: fallbackY,
+            width: this.enemyConfig.width,
+            height: this.enemyConfig.height,
+            speed: this.enemyConfig.speed + Math.random() * 0.5,
+            rotation: Math.random() * Math.PI * 2,
+            turretRotation: Math.random() * Math.PI * 2,
+            health: 100,
+            lastShot: 0,
+            shootCooldown: this.enemyConfig.shootCooldown + Math.random() * 1000,
+            color: this.enemyConfig.color,
+            hullOffsetX: this.enemyConfig.hullOffsetX,
+            hullOffsetY: this.enemyConfig.hullOffsetY,
+            turretWidth: this.enemyConfig.turretWidth,
+            turretHeight: this.enemyConfig.turretHeight,
+            turretOffsetX: this.enemyConfig.turretOffsetX,
+            turretOffsetY: this.enemyConfig.turretOffsetY,
+            barrelLength: this.enemyConfig.barrelLength,
+            barrelWidth: this.enemyConfig.barrelWidth,
+            barrelOffsetX: this.enemyConfig.barrelOffsetX,
+            barrelOffsetY: this.enemyConfig.barrelOffsetY,
+            avoidanceForceX: 0,
+            avoidanceForceY: 0,
+            desiredX: fallbackX,
+            desiredY: fallbackY,
+            wave: this.waveSystem.currentWave
+        });
     }
 
     endWave() {
@@ -963,16 +1127,6 @@ class TankGame {
         // Update health pack respawn timers
         this.updateHealthPackRespawnTimers(deltaTime);
 
-        // Spawn enemies during active wave
-        if (this.waveSystem.waveActive && this.waveSystem.waveEnemiesSpawned < this.waveSystem.waveEnemiesTarget) {
-            this.enemySpawnTimer += deltaTime;
-            if (this.enemySpawnTimer >= this.settings.enemySpawnRate) {
-                this.spawnEnemy();
-                this.waveSystem.waveEnemiesSpawned++;
-                this.enemySpawnTimer = 0;
-            }
-        }
-
         // Check collisions
         this.checkCollisions();
 
@@ -1004,7 +1158,7 @@ class TankGame {
             }
 
             // Check if all enemies are killed
-            if (this.enemies.length === 0 && this.waveSystem.waveEnemiesSpawned >= this.waveSystem.waveEnemiesTarget) {
+            if (this.enemies.length === 0) {
                 this.endWave();
             }
         }
@@ -1155,113 +1309,6 @@ class TankGame {
                 this.healthPackRespawnTimers.splice(i, 1);
             }
         }
-    }
-
-    spawnEnemy() {
-        // Spawn enemies at a fixed distance from the player
-        const spawnDistance = this.settings.enemySpawnDistance;
-
-        // Try multiple spawn positions to avoid rocks
-        let bestX = null;
-        let bestY = null;
-        let bestScore = -Infinity;
-
-        for (let i = 0; i < this.settings.enemyPathfindingAttempts; i++) {
-            // Random angle around player
-            const angle = Math.random() * Math.PI * 2;
-
-            // Calculate spawn position at fixed distance from player
-            let x = this.playerTank.x + Math.cos(angle) * spawnDistance;
-            let y = this.playerTank.y + Math.sin(angle) * spawnDistance;
-
-            // Clamp to world bounds with margin
-            const margin = 50;
-            x = Math.max(margin, Math.min(x, this.world.width - margin));
-            y = Math.max(margin, Math.min(y, this.world.height - margin));
-
-            // Score this position based on distance from rocks
-            let score = 0;
-            for (const rock of this.rocks) {
-                const dx = x - rock.x;
-                const dy = y - rock.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                // Higher score for positions farther from rocks
-                const rockDistanceScore = Math.min(distance, rock.radius * 3);
-                score += rockDistanceScore;
-            }
-
-            // Also consider distance from other enemies
-            for (const enemy of this.enemies) {
-                const dx = x - enemy.x;
-                const dy = y - enemy.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                if (distance < this.settings.enemySeparationDistance) {
-                    score -= (this.settings.enemySeparationDistance - distance) * 2;
-                }
-            }
-
-            // Avoid health packs
-            for (const pack of this.healthPacks) {
-                if (!pack.collected) {
-                    const dx = x - pack.x;
-                    const dy = y - pack.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-
-                    if (distance < pack.size * 2) {
-                        score -= 100;
-                    }
-                }
-            }
-
-            if (score > bestScore) {
-                bestScore = score;
-                bestX = x;
-                bestY = y;
-            }
-        }
-
-        // Use best position found
-        if (bestX === null || bestY === null) {
-            // Fallback to simple spawn if no good position found
-            const angle = Math.random() * Math.PI * 2;
-            bestX = this.playerTank.x + Math.cos(angle) * spawnDistance;
-            bestY = this.playerTank.y + Math.sin(angle) * spawnDistance;
-
-            const margin = 50;
-            bestX = Math.max(margin, Math.min(bestX, this.world.width - margin));
-            bestY = Math.max(margin, Math.min(bestY, this.world.height - margin));
-        }
-
-        this.enemies.push({
-            x: bestX,
-            y: bestY,
-            width: this.enemyConfig.width,
-            height: this.enemyConfig.height,
-            speed: this.enemyConfig.speed + Math.random() * 0.5,
-            rotation: 0,
-            turretRotation: 0,
-            health: 100,
-            lastShot: 0,
-            shootCooldown: this.enemyConfig.shootCooldown + Math.random() * 1000,
-            color: this.enemyConfig.color,
-            hullOffsetX: this.enemyConfig.hullOffsetX,
-            hullOffsetY: this.enemyConfig.hullOffsetY,
-            turretWidth: this.enemyConfig.turretWidth,
-            turretHeight: this.enemyConfig.turretHeight,
-            turretOffsetX: this.enemyConfig.turretOffsetX,
-            turretOffsetY: this.enemyConfig.turretOffsetY,
-            barrelLength: this.enemyConfig.barrelLength,
-            barrelWidth: this.enemyConfig.barrelWidth,
-            barrelOffsetX: this.enemyConfig.barrelOffsetX,
-            barrelOffsetY: this.enemyConfig.barrelOffsetY,
-            // For obstacle avoidance
-            avoidanceForceX: 0,
-            avoidanceForceY: 0,
-            // For wave system
-            wave: this.waveSystem.currentWave
-        });
     }
 
     updateEnemies(deltaTime) {
@@ -1617,9 +1664,6 @@ class TankGame {
                         this.enemies.splice(j, 1);
                         this.score += 100;
                         this.createParticles(enemy.x, enemy.y, 30, '#FFD700');
-
-                        // Update wave completion check
-                        this.waveSystem.waveEnemiesTarget--;
                     }
 
                     break;
@@ -2495,5 +2539,3 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
         return this;
     };
 }
-
-document.head.appendChild(style);
