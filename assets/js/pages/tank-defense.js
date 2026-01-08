@@ -56,7 +56,7 @@ class TankGame {
         this.rockSettings = {
             count: 60,
             minSize: 30,
-            maxSize: 80,
+            maxSize: 100,
             minPoints: 5,
             maxPoints: 12,
             irregularity: 0.3,
