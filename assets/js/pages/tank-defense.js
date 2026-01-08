@@ -54,7 +54,7 @@ class TankGame {
         // Rocks/obstacles configuration
         this.rocks = [];
         this.rockSettings = {
-            count: 50,
+            count: 60,
             minSize: 30,
             maxSize: 80,
             minPoints: 5,
