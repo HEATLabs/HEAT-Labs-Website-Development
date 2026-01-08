@@ -16,6 +16,8 @@ class TankGame {
         this.playerHealth = 100;
         this.gameOver = false;
         this.keys = {};
+        this.totalKills = 0;
+        this.healthPacksCollected = 0;
 
         // Wave system
         this.waveSystem = {
@@ -793,6 +795,8 @@ class TankGame {
         this.gameOver = false;
         this.gamePaused = false;
         this.keys = {};
+        this.totalKills = 0;
+        this.healthPacksCollected = 0;
 
         // Reset wave system
         this.waveSystem.currentWave = 1;
@@ -1687,6 +1691,9 @@ class TankGame {
                         // Add enemy kill points
                         this.score += this.scoreSystem.enemyKill;
 
+                        // Increment total kills counter
+                        this.totalKills++;
+
                         // Create particles and floating text for enemy kill
                         this.createParticles(enemy.x, enemy.y, 30, '#FFD700');
                         this.showFloatingText(`+${this.scoreSystem.enemyKill} Kill`, enemy.x, enemy.y, '#FFD700');
@@ -1805,6 +1812,9 @@ class TankGame {
 
         // Add health pack points
         this.score += this.scoreSystem.healthPack;
+
+        // Increment health packs collected counter
+        this.healthPacksCollected++;
 
         // Create healing particles
         this.createParticles(pack.x, pack.y, 20, this.healthPackSettings.color);
@@ -2455,6 +2465,8 @@ class TankGame {
         this.ctx.fillText(`Health Packs: ${this.healthPacks.filter(p => !p.collected).length}/${this.healthPacks.length}`, 10, 260);
         this.ctx.fillText(`Scaling Factor: ${this.waveSystem.scalingFactor}`, 10, 280);
         this.ctx.fillText(`Score: ${this.score}`, 10, 300);
+        this.ctx.fillText(`Total Kills: ${this.totalKills}`, 10, 320);
+        this.ctx.fillText(`Health Packs Collected: ${this.healthPacksCollected}`, 10, 340);
 
         this.ctx.restore();
     }
@@ -2483,6 +2495,18 @@ class TankGame {
         if (enemiesElement) {
             enemiesElement.textContent = this.enemies.length;
         }
+
+        // Update total kills
+        const totalKillsElement = document.getElementById('totalKills');
+        if (totalKillsElement) {
+            totalKillsElement.textContent = this.totalKills;
+        }
+
+        // Update health packs collected
+        const healthPacksElement = document.getElementById('healthPacksCollected');
+        if (healthPacksElement) {
+            healthPacksElement.textContent = this.healthPacksCollected;
+        }
     }
 
     showGameOver() {
@@ -2494,7 +2518,7 @@ class TankGame {
         // Update final stats
         document.getElementById('finalScore').textContent = this.score;
         document.getElementById('finalWave').textContent = this.waveSystem.currentWave;
-        document.getElementById('enemiesKilled').textContent = Math.floor(this.score / 100);
+        document.getElementById('enemiesKilled').textContent = this.totalKills;
 
         // Hide wave timer
         if (this.waveTimerElement) {
