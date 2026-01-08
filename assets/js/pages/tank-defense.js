@@ -585,9 +585,7 @@ class TankGame {
                 size,
                 points,
                 color,
-                radius: size / 2 * 1.2,
-                rotation: Math.random() * Math.PI * 2,
-                rotationSpeed: (Math.random() - 0.5) * 0.01
+                radius: size / 2 * 1.2
             });
 
             rocksGenerated++;
@@ -662,8 +660,7 @@ class TankGame {
                 y,
                 size,
                 collected: false,
-                pulsePhase: Math.random() * Math.PI * 2,
-                rotation: Math.random() * Math.PI * 2
+                pulsePhase: Math.random() * Math.PI * 2
             });
 
             packsGenerated++;
@@ -1143,9 +1140,6 @@ class TankGame {
         // Update particles
         this.updateParticles(deltaTime);
 
-        // Update rocks
-        this.updateRocks(deltaTime);
-
         // Update health packs
         this.updateHealthPacks(deltaTime);
 
@@ -1290,13 +1284,6 @@ class TankGame {
         return angle;
     }
 
-    updateRocks(deltaTime) {
-        // Just update rotation for visual effect
-        for (const rock of this.rocks) {
-            rock.rotation += rock.rotationSpeed * deltaTime / 16.67;
-        }
-    }
-
     updateHealthPacks(deltaTime) {
         // Update animation for visible health packs
         for (const pack of this.healthPacks) {
@@ -1305,12 +1292,6 @@ class TankGame {
                 pack.pulsePhase += this.healthPackSettings.pulseSpeed * deltaTime / 16.67;
                 if (pack.pulsePhase > Math.PI * 2) {
                     pack.pulsePhase -= Math.PI * 2;
-                }
-
-                // Update rotation
-                pack.rotation += this.healthPackSettings.rotationSpeed * deltaTime / 16.67;
-                if (pack.rotation > Math.PI * 2) {
-                    pack.rotation -= Math.PI * 2;
                 }
             }
         }
@@ -1943,7 +1924,6 @@ class TankGame {
         this.rocks.forEach(rock => {
             this.ctx.save();
             this.ctx.translate(rock.x, rock.y);
-            this.ctx.rotate(rock.rotation);
 
             // Draw rock shape
             this.ctx.fillStyle = rock.color;
@@ -2020,7 +2000,6 @@ class TankGame {
             if (!pack.collected) {
                 this.ctx.save();
                 this.ctx.translate(pack.x, pack.y);
-                this.ctx.rotate(pack.rotation);
 
                 // Calculate pulsing effect
                 const pulseScale = 0.8 + Math.sin(pack.pulsePhase) * 0.2;
