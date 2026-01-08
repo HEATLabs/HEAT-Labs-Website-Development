@@ -174,13 +174,11 @@ class TankGame {
         // Button elements cache
         this.buttonElements = {
             pause: null,
-            restart: null,
             startOverlay: null,
             restartOverlay: null,
             fullscreen: null,
             exitFullscreen: null,
-            fullscreenPause: null,
-            fullscreenRestart: null
+            fullscreenPause: null
         };
 
         // Wave timer element
@@ -286,15 +284,8 @@ class TankGame {
         pauseBtn.id = 'fullscreenPause';
         pauseBtn.innerHTML = '<i class="fas fa-pause"></i> Pause';
 
-        // Restart button
-        const restartBtn = document.createElement('button');
-        restartBtn.className = 'tank-game-btn secondary';
-        restartBtn.id = 'fullscreenRestart';
-        restartBtn.innerHTML = '<i class="fas fa-redo"></i> Restart';
-
         buttonsContainer.appendChild(exitFullscreenBtn);
         buttonsContainer.appendChild(pauseBtn);
-        buttonsContainer.appendChild(restartBtn);
 
         fullscreenBar.appendChild(statsContainer);
         fullscreenBar.appendChild(buttonsContainer);
@@ -305,12 +296,10 @@ class TankGame {
         // Cache button elements
         this.buttonElements.exitFullscreen = exitFullscreenBtn;
         this.buttonElements.fullscreenPause = pauseBtn;
-        this.buttonElements.fullscreenRestart = restartBtn;
 
         // Add event listeners
         exitFullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
         pauseBtn.addEventListener('click', () => this.togglePause());
-        restartBtn.addEventListener('click', () => this.restartGame());
     }
 
     createWaveTimerElement() {
@@ -382,9 +371,6 @@ class TankGame {
         if (!this.buttonElements.pause) {
             this.buttonElements.pause = document.getElementById('pauseGame');
         }
-        if (!this.buttonElements.restart) {
-            this.buttonElements.restart = document.getElementById('restartGame');
-        }
         if (!this.buttonElements.startOverlay) {
             this.buttonElements.startOverlay = document.getElementById('startGameFromOverlay');
         }
@@ -397,11 +383,10 @@ class TankGame {
 
         const {
             pause,
-            restart,
             fullscreen
         } = this.buttonElements;
 
-        if (!pause || !restart || !fullscreen) return;
+        if (!pause || !fullscreen) return;
 
         // Update fullscreen button icon and state
         if (this.isFullscreen) {
@@ -417,24 +402,15 @@ class TankGame {
         if (this.gameOver) {
             // Game over state
             pause.disabled = true;
-            restart.disabled = false;
-
             pause.classList.add('disabled');
-            restart.classList.remove('disabled');
         } else if (!this.gameRunning) {
             // Game not started state
             pause.disabled = true;
-            restart.disabled = true;
-
             pause.classList.add('disabled');
-            restart.classList.add('disabled');
         } else if (this.gamePaused) {
             // Game paused state
             pause.disabled = false;
-            restart.disabled = false;
-
             pause.classList.remove('disabled');
-            restart.classList.remove('disabled');
 
             // Change pause button to resume
             const pauseIcon = pause.querySelector('i');
@@ -449,10 +425,7 @@ class TankGame {
         } else {
             // Game running state
             pause.disabled = false;
-            restart.disabled = false;
-
             pause.classList.remove('disabled');
-            restart.classList.remove('disabled');
 
             // Ensure pause button shows pause icon
             const pauseIcon = pause.querySelector('i');
@@ -642,7 +615,6 @@ class TankGame {
     setupEventListeners() {
         // Get button elements
         this.buttonElements.pause = document.getElementById('pauseGame');
-        this.buttonElements.restart = document.getElementById('restartGame');
         this.buttonElements.startOverlay = document.getElementById('startGameFromOverlay');
         this.buttonElements.restartOverlay = document.getElementById('restartFromOverlay');
         this.buttonElements.fullscreen = document.getElementById('fullscreenGame');
@@ -686,12 +658,6 @@ class TankGame {
         });
 
         // Game control buttons
-        if (this.buttonElements.restart) {
-            this.buttonElements.restart.addEventListener('click', () => {
-                this.restartGame();
-            });
-        }
-
         if (this.buttonElements.pause) {
             this.buttonElements.pause.addEventListener('click', () => {
                 this.togglePause();
@@ -714,7 +680,7 @@ class TankGame {
 
         if (this.buttonElements.restartOverlay) {
             this.buttonElements.restartOverlay.addEventListener('click', () => {
-                this.restartGame();
+                this.startGame();
             });
         }
 
@@ -1003,11 +969,6 @@ class TankGame {
         // Start game loop
         this.lastTime = performance.now();
         requestAnimationFrame((time) => this.gameLoop(time));
-    }
-
-    restartGame() {
-        this.resetGame();
-        this.startGame();
     }
 
     togglePause() {
