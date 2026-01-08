@@ -18,6 +18,9 @@ class TankGame {
         this.keys = {};
         this.totalKills = 0;
         this.healthPacksCollected = 0;
+        this.isFullscreen = false;
+        this.fullscreenControlsVisible = true;
+        this.fullscreenControlsTimeout = null;
 
         // Wave system
         this.waveSystem = {
@@ -173,7 +176,11 @@ class TankGame {
             pause: null,
             restart: null,
             startOverlay: null,
-            restartOverlay: null
+            restartOverlay: null,
+            fullscreen: null,
+            exitFullscreen: null,
+            fullscreenPause: null,
+            fullscreenRestart: null
         };
 
         // Wave timer element
@@ -191,8 +198,119 @@ class TankGame {
             this.generateRocks();
             this.generateHealthPacks();
             this.createWaveTimerElement();
+            this.createFullscreenControls();
             this.updateButtonStates();
+
+            // Show start overlay by default
+            const startOverlay = document.getElementById('startOverlay');
+            if (startOverlay) {
+                startOverlay.style.display = 'flex';
+            }
         });
+    }
+
+    createFullscreenControls() {
+        // Create fullscreen control bar
+        const fullscreenBar = document.createElement('div');
+        fullscreenBar.className = 'fullscreen-controls-bar';
+        fullscreenBar.id = 'fullscreenControlsBar';
+
+        // Create stats container
+        const statsContainer = document.createElement('div');
+        statsContainer.className = 'fullscreen-stats';
+
+        // Create all stat items
+        const statItems = [{
+                id: 'fullscreenScore',
+                label: 'Score',
+                value: '0'
+            },
+            {
+                id: 'fullscreenWave',
+                label: 'Wave',
+                value: '1'
+            },
+            {
+                id: 'fullscreenHealth',
+                label: 'Health',
+                value: '100'
+            },
+            {
+                id: 'fullscreenEnemies',
+                label: 'Enemies',
+                value: '0'
+            },
+            {
+                id: 'fullscreenKills',
+                label: 'Kills',
+                value: '0'
+            },
+            {
+                id: 'fullscreenHealthPacks',
+                label: 'Health Packs',
+                value: '0'
+            }
+        ];
+
+        statItems.forEach(stat => {
+            const statItem = document.createElement('div');
+            statItem.className = 'fullscreen-stat-item';
+
+            const statValue = document.createElement('div');
+            statValue.className = 'fullscreen-stat-value';
+            statValue.id = stat.id;
+            statValue.textContent = stat.value;
+
+            const statLabel = document.createElement('div');
+            statLabel.className = 'fullscreen-stat-label';
+            statLabel.textContent = stat.label;
+
+            statItem.appendChild(statValue);
+            statItem.appendChild(statLabel);
+            statsContainer.appendChild(statItem);
+        });
+
+        // Create buttons container
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.className = 'fullscreen-buttons';
+
+        // Exit Fullscreen button
+        const exitFullscreenBtn = document.createElement('button');
+        exitFullscreenBtn.className = 'tank-game-btn secondary';
+        exitFullscreenBtn.id = 'exitFullscreen';
+        exitFullscreenBtn.innerHTML = '<i class="fas fa-compress"></i> Exit Fullscreen';
+
+        // Pause button
+        const pauseBtn = document.createElement('button');
+        pauseBtn.className = 'tank-game-btn secondary';
+        pauseBtn.id = 'fullscreenPause';
+        pauseBtn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+
+        // Restart button
+        const restartBtn = document.createElement('button');
+        restartBtn.className = 'tank-game-btn secondary';
+        restartBtn.id = 'fullscreenRestart';
+        restartBtn.innerHTML = '<i class="fas fa-redo"></i> Restart';
+
+        buttonsContainer.appendChild(exitFullscreenBtn);
+        buttonsContainer.appendChild(pauseBtn);
+        buttonsContainer.appendChild(restartBtn);
+
+        fullscreenBar.appendChild(statsContainer);
+        fullscreenBar.appendChild(buttonsContainer);
+
+        // Add to body
+        document.body.appendChild(fullscreenBar);
+
+        // Cache button elements
+        this.buttonElements.exitFullscreen = exitFullscreenBtn;
+        this.buttonElements.fullscreenPause = pauseBtn;
+        this.buttonElements.fullscreenRestart = restartBtn;
+
+        // Add event listeners
+        exitFullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+        pauseBtn.addEventListener('click', () => this.togglePause());
+        restartBtn.addEventListener('click', () => this.restartGame());
     }
 
     createWaveTimerElement() {
@@ -239,6 +357,26 @@ class TankGame {
         }
     }
 
+    updateFullscreenStats() {
+        if (!this.isFullscreen) return;
+
+        const stats = {
+            fullscreenScore: this.score,
+            fullscreenWave: this.waveSystem.currentWave,
+            fullscreenHealth: this.playerHealth,
+            fullscreenEnemies: this.enemies.length,
+            fullscreenKills: this.totalKills,
+            fullscreenHealthPacks: this.healthPacksCollected
+        };
+
+        for (const [id, value] of Object.entries(stats)) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            }
+        }
+    }
+
     updateButtonStates() {
         // Get button elements (if not already cached)
         if (!this.buttonElements.pause) {
@@ -253,20 +391,27 @@ class TankGame {
         if (!this.buttonElements.restartOverlay) {
             this.buttonElements.restartOverlay = document.getElementById('restartFromOverlay');
         }
+        if (!this.buttonElements.fullscreen) {
+            this.buttonElements.fullscreen = document.getElementById('fullscreenGame');
+        }
 
         const {
             pause,
-            restart
+            restart,
+            fullscreen
         } = this.buttonElements;
 
-        if (!pause || !restart) return;
+        if (!pause || !restart || !fullscreen) return;
 
-        // Reset all buttons first
-        pause.disabled = false;
-        restart.disabled = false;
+        // Update fullscreen button icon and state
+        if (this.isFullscreen) {
+            fullscreen.innerHTML = '<i class="fas fa-compress"></i> Exit Fullscreen';
+        } else {
+            fullscreen.innerHTML = '<i class="fas fa-expand"></i> Fullscreen';
+        }
 
-        pause.classList.remove('disabled');
-        restart.classList.remove('disabled');
+        fullscreen.disabled = false;
+        fullscreen.classList.remove('disabled');
 
         // Update button states based on game state
         if (this.gameOver) {
@@ -288,6 +433,9 @@ class TankGame {
             pause.disabled = false;
             restart.disabled = false;
 
+            pause.classList.remove('disabled');
+            restart.classList.remove('disabled');
+
             // Change pause button to resume
             const pauseIcon = pause.querySelector('i');
             const pauseText = pause.lastChild;
@@ -298,13 +446,13 @@ class TankGame {
                 const span = pause.querySelector('span');
                 if (span) span.textContent = 'Resume';
             }
-
-            pause.classList.remove('disabled');
-            restart.classList.remove('disabled');
         } else {
             // Game running state
             pause.disabled = false;
             restart.disabled = false;
+
+            pause.classList.remove('disabled');
+            restart.classList.remove('disabled');
 
             // Ensure pause button shows pause icon
             const pauseIcon = pause.querySelector('i');
@@ -316,10 +464,100 @@ class TankGame {
                 const span = pause.querySelector('span');
                 if (span) span.textContent = 'Pause';
             }
-
-            pause.classList.remove('disabled');
-            restart.classList.remove('disabled');
         }
+
+        // Update fullscreen controls
+        this.updateFullscreenControls();
+    }
+
+    updateFullscreenControls() {
+        if (!this.isFullscreen) return;
+
+        const fullscreenPauseBtn = this.buttonElements.fullscreenPause;
+        if (fullscreenPauseBtn) {
+            if (this.gamePaused) {
+                fullscreenPauseBtn.innerHTML = '<i class="fas fa-play"></i> Resume';
+            } else {
+                fullscreenPauseBtn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+            }
+        }
+    }
+
+    toggleFullscreen() {
+        this.isFullscreen = !this.isFullscreen;
+
+        if (this.isFullscreen) {
+            this.enterFullscreen();
+        } else {
+            this.exitFullscreen();
+        }
+
+        this.updateButtonStates();
+        this.setupCamera();
+        this.resizeCanvas();
+    }
+
+    enterFullscreen() {
+        const container = document.querySelector('.tank-game-section');
+        const canvasContainer = document.querySelector('.tank-game-canvas-container');
+
+        if (container && canvasContainer) {
+            container.classList.add('tank-game-fullscreen');
+
+            // Show fullscreen controls
+            const controlsBar = document.getElementById('fullscreenControlsBar');
+            if (controlsBar) {
+                controlsBar.classList.add('visible');
+                this.showFullscreenControls();
+            }
+
+            // Hide wave timer
+            if (this.waveTimerElement) {
+                this.waveTimerElement.style.display = 'none';
+            }
+
+            // Update stats
+            this.updateFullscreenStats();
+        }
+    }
+
+    exitFullscreen() {
+        const container = document.querySelector('.tank-game-section');
+        const canvasContainer = document.querySelector('.tank-game-canvas-container');
+
+        if (container && canvasContainer) {
+            container.classList.remove('tank-game-fullscreen');
+
+            // Hide fullscreen controls
+            const controlsBar = document.getElementById('fullscreenControlsBar');
+            if (controlsBar) {
+                controlsBar.classList.remove('visible');
+            }
+
+            // Show wave timer if game is running
+            if (this.gameRunning && !this.gameOver) {
+                this.updateWaveTimerDisplay();
+            }
+        }
+    }
+
+    showFullscreenControls() {
+        const controlsBar = document.getElementById('fullscreenControlsBar');
+        if (!controlsBar) return;
+
+        controlsBar.classList.add('visible');
+
+        // Clear previous timeout
+        if (this.fullscreenControlsTimeout) {
+            clearTimeout(this.fullscreenControlsTimeout);
+        }
+
+        // Hide controls after 3 seconds of inactivity
+        this.fullscreenControlsTimeout = setTimeout(() => {
+            if (this.isFullscreen && this.gameRunning && !this.gamePaused) {
+                controlsBar.classList.remove('visible');
+            }
+        }, 3000);
     }
 
     setupCanvas() {
@@ -334,6 +572,22 @@ class TankGame {
             this.resizeCanvas();
             this.setupCamera();
         });
+    }
+
+    resizeCanvas() {
+        const container = this.canvas.parentElement;
+        if (!container) return;
+
+        if (this.isFullscreen) {
+            this.canvas.width = window.innerWidth;
+            this.canvas.height = window.innerHeight;
+        } else {
+            this.canvas.width = container.clientWidth;
+            this.canvas.height = container.clientHeight;
+        }
+
+        // Update camera when canvas resizes
+        this.setupCamera();
     }
 
     // Calculate proper offsets for player tank
@@ -398,6 +652,7 @@ class TankGame {
         this.buttonElements.restart = document.getElementById('restartGame');
         this.buttonElements.startOverlay = document.getElementById('startGameFromOverlay');
         this.buttonElements.restartOverlay = document.getElementById('restartFromOverlay');
+        this.buttonElements.fullscreen = document.getElementById('fullscreenGame');
 
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
@@ -447,6 +702,13 @@ class TankGame {
         if (this.buttonElements.pause) {
             this.buttonElements.pause.addEventListener('click', () => {
                 this.togglePause();
+            });
+        }
+
+        // Fullscreen button
+        if (this.buttonElements.fullscreen) {
+            this.buttonElements.fullscreen.addEventListener('click', () => {
+                this.toggleFullscreen();
             });
         }
 
@@ -515,17 +777,6 @@ class TankGame {
 
         // Initial button state
         this.updateButtonStates();
-    }
-
-    resizeCanvas() {
-        const container = this.canvas.parentElement;
-        if (!container) return;
-
-        this.canvas.width = container.clientWidth;
-        this.canvas.height = container.clientHeight;
-
-        // Update camera when canvas resizes
-        this.setupCamera();
     }
 
     // Generate random rocks with irregular shapes
@@ -826,6 +1077,7 @@ class TankGame {
             this.waveTimerElement.style.display = 'none';
         }
 
+        // Don't exit fullscreen
         this.setupCamera();
         this.updateUI();
         this.updateButtonStates();
@@ -1154,6 +1406,9 @@ class TankGame {
 
         // Update UI
         this.updateUI();
+
+        // Update fullscreen stats
+        this.updateFullscreenStats();
 
         // Update wave timer display
         this.updateWaveTimerDisplay();
