@@ -22,6 +22,11 @@ class TankGame {
         this.fullscreenControlsVisible = true;
         this.fullscreenControlsTimeout = null;
 
+        // Auto-fire properties
+        this.isMouseDown = false;
+        this.autoFireTimer = 0;
+        this.autoFireInterval = 0;
+
         // Wave system
         this.waveSystem = {
             currentWave: 1,
@@ -626,7 +631,9 @@ class TankGame {
 
                 if (e.key === ' ') {
                     e.preventDefault();
-                    this.shoot();
+                    if (!this.keys[' ']) {
+                        this.shoot();
+                    }
                 }
             }
         });
@@ -650,10 +657,33 @@ class TankGame {
         });
 
         // Mouse click to shoot
+        this.canvas.addEventListener('mousedown', (e) => {
+            if (this.gameRunning && !this.gameOver && !this.gamePaused) {
+                e.preventDefault();
+                this.isMouseDown = true;
+                this.autoFireTimer = 0;
+                // Fire immediately on click
+                this.shoot();
+            }
+        });
+
+        // Mouse up to stop auto-fire
+        this.canvas.addEventListener('mouseup', (e) => {
+            if (this.gameRunning && !this.gameOver && !this.gamePaused) {
+                e.preventDefault();
+                this.isMouseDown = false;
+            }
+        });
+
+        // Mouse leave canvas, stop auto-fire
+        this.canvas.addEventListener('mouseleave', (e) => {
+            this.isMouseDown = false;
+        });
+
+        // Mouse click to shoot
         this.canvas.addEventListener('click', (e) => {
             if (this.gameRunning && !this.gameOver && !this.gamePaused) {
                 e.preventDefault();
-                this.shoot();
             }
         });
 
@@ -999,6 +1029,8 @@ class TankGame {
         this.keys = {};
         this.totalKills = 0;
         this.healthPacksCollected = 0;
+        this.isMouseDown = false;
+        this.autoFireTimer = 0;
 
         // Reset wave system
         this.waveSystem.currentWave = 1;
@@ -1366,6 +1398,36 @@ class TankGame {
 
         // Update wave timer display
         this.updateWaveTimerDisplay();
+
+        // Handle auto-fire
+        this.handleAutoFire(deltaTime);
+    }
+
+    // Handle auto-fire when mouse is held down
+    handleAutoFire(deltaTime) {
+        if (!this.gameRunning || this.gamePaused || this.gameOver) return;
+
+        // Check if mouse button is held down
+        if (this.isMouseDown) {
+            this.autoFireTimer += deltaTime;
+
+            // Check if it's time to fire again
+            if (this.autoFireTimer >= this.autoFireInterval) {
+                this.shoot();
+                this.autoFireTimer = 0; // Reset timer
+            }
+        }
+
+        // Check if space key is held down
+        if (this.keys[' ']) {
+            this.autoFireTimer += deltaTime;
+
+            // Check if it's time to fire again
+            if (this.autoFireTimer >= this.autoFireInterval) {
+                this.shoot();
+                this.autoFireTimer = 0; // Reset timer
+            }
+        }
     }
 
     updateWaveSystem(deltaTime) {
@@ -2655,6 +2717,8 @@ class TankGame {
         this.ctx.fillText(`Score: ${this.score}`, 10, 300);
         this.ctx.fillText(`Total Kills: ${this.totalKills}`, 10, 320);
         this.ctx.fillText(`Health Packs Collected: ${this.healthPacksCollected}`, 10, 340);
+        this.ctx.fillText(`Auto-fire: ${this.isMouseDown ? 'ACTIVE' : 'INACTIVE'}`, 10, 360);
+        this.ctx.fillText(`Auto-fire Timer: ${this.autoFireTimer.toFixed(0)}ms`, 10, 380);
 
         this.ctx.restore();
     }
