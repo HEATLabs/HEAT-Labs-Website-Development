@@ -102,6 +102,10 @@ function initializeCounters(data) {
         let target = null;
         let isLinesOfCode = false;
         let isTotalFiles = false;
+        let isTotalRequests = false;
+        let isTotalVisitors = false;
+        let isDataServed = false;
+        let isDataCached = false;
 
         // Determine which counter we are dealing with
         if (label.includes('Team Members')) {
@@ -124,6 +128,18 @@ function initializeCounters(data) {
         } else if (label.includes('Days Since Creation')) {
             // Skip days counter
             return;
+        } else if (label.includes('Total Visitors')) {
+            target = data.stats.totalVisitors;
+            isTotalVisitors = true;
+        } else if (label.includes('Total Requests')) {
+            target = data.stats.totalRequests;
+            isTotalRequests = true;
+        } else if (label.includes('Data Cached')) {
+            target = data.stats.dataCached;
+            isDataCached = true;
+        } else if (label.includes('Data Served')) {
+            target = data.stats.dataServed;
+            isDataServed = true;
         } else {
             return; // Skip unknown counters
         }
@@ -165,6 +181,12 @@ function initializeCounters(data) {
             } else if (isLinesOfCode) {
                 // For lines of code, we show raw numbers during animation
                 counter.innerText = Math.floor(newCount).toLocaleString();
+            } else if (isTotalRequests || isTotalVisitors) {
+                // For requests and visitors, show raw numbers during animation
+                counter.innerText = Math.floor(newCount).toLocaleString();
+            } else if (isDataServed || isDataCached) {
+                // For data served and cached, show GB with 2 decimal places during animation
+                counter.innerText = newCount.toFixed(2) + 'GB';
             } else {
                 counter.innerText = Math.floor(newCount);
             }
@@ -177,6 +199,27 @@ function initializeCounters(data) {
                 counter.innerText = target.toLocaleString();
             } else if (label.includes('Project Size')) {
                 counter.innerText = target.toFixed(2) + 'GB';
+            } else if (isDataServed || isDataCached) {
+                // For data served and cached, show GB with 2 decimal places
+                counter.innerText = target.toFixed(2) + 'GB';
+            } else if (isTotalRequests) {
+                // Format total requests: show with 'k' suffix
+                if (target >= 1000000) {
+                    counter.innerText = (target / 1000000).toFixed(2) + 'M';
+                } else if (target >= 1000) {
+                    counter.innerText = (target / 1000).toFixed(2) + 'k';
+                } else {
+                    counter.innerText = target.toLocaleString();
+                }
+            } else if (isTotalVisitors) {
+                // Format total visitors: show with 'k' suffix
+                if (target >= 1000000) {
+                    counter.innerText = (target / 1000000).toFixed(2) + 'M';
+                } else if (target >= 1000) {
+                    counter.innerText = (target / 1000).toFixed(2) + 'k';
+                } else {
+                    counter.innerText = target.toLocaleString();
+                }
             } else {
                 counter.innerText = target.toLocaleString();
             }
