@@ -47,6 +47,25 @@ class TankGame {
             colorVariation: 20
         };
 
+        // Health packs configuration
+        this.healthPacks = [];
+        this.healthPackSettings = {
+            count: 20,
+            minSize: 50,
+            maxSize: 55,
+            healthAmount: 25,
+            respawnTime: 30000,
+            color: '#10B981',
+            glowColor: '#34D399',
+            spacing: 300,
+            minDistanceFromPlayer: 400,
+            pulseSpeed: 0.05,
+            rotationSpeed: 0.02
+        };
+
+        // Track health pack respawn timers
+        this.healthPackRespawnTimers = [];
+
         // Player tank configuration
         this.playerTank = {
             x: this.world.width / 2,
@@ -140,6 +159,7 @@ class TankGame {
             this.calculateOffsets();
             this.setupCamera();
             this.generateRocks();
+            this.generateHealthPacks();
             this.updateButtonStates();
         });
     }
@@ -386,6 +406,15 @@ class TankGame {
             }
         });
 
+        // Regenerate health packs on H key (DEBUG)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'h' && e.ctrlKey) {
+                e.preventDefault();
+                this.generateHealthPacks();
+                this.showMessage('Regenerated health packs');
+            }
+        });
+
         // Pause with ESC key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.gameRunning && !this.gameOver) {
@@ -408,7 +437,7 @@ class TankGame {
                 }
             }
         });
-        
+
         // Initial button state
         this.updateButtonStates();
     }
@@ -487,6 +516,82 @@ class TankGame {
             });
 
             rocksGenerated++;
+        }
+    }
+
+    // Generate random health packs around the map
+    generateHealthPacks() {
+        this.healthPacks = [];
+        this.healthPackRespawnTimers = [];
+
+        const maxAttempts = this.healthPackSettings.count * 10;
+        let attempts = 0;
+        let packsGenerated = 0;
+
+        while (packsGenerated < this.healthPackSettings.count && attempts < maxAttempts) {
+            attempts++;
+
+            // Generate random position
+            const x = Math.random() * (this.world.width - 100) + 50;
+            const y = Math.random() * (this.world.height - 100) + 50;
+
+            // Avoid spawning health packs too close to player's starting position
+            const dx = x - this.playerTank.x;
+            const dy = y - this.playerTank.y;
+            const distanceToPlayer = Math.sqrt(dx * dx + dy * dy);
+
+            if (distanceToPlayer < this.healthPackSettings.minDistanceFromPlayer) {
+                continue; // Too close to player start
+            }
+
+            // Check minimum spacing from other health packs
+            let tooClose = false;
+            for (const pack of this.healthPacks) {
+                const packDx = x - pack.x;
+                const packDy = y - pack.y;
+                const distance = Math.sqrt(packDx * packDx + packDy * packDy);
+
+                if (distance < this.healthPackSettings.spacing) {
+                    tooClose = true;
+                    break;
+                }
+            }
+
+            if (tooClose) {
+                continue;
+            }
+
+            // Check minimum spacing from rocks
+            for (const rock of this.rocks) {
+                const rockDx = x - rock.x;
+                const rockDy = y - rock.y;
+                const distance = Math.sqrt(rockDx * rockDx + rockDy * rockDy);
+
+                if (distance < rock.radius + 50) {
+                    tooClose = true;
+                    break;
+                }
+            }
+
+            if (tooClose) {
+                continue;
+            }
+
+            // Generate health pack size
+            const size = this.healthPackSettings.minSize + Math.random() *
+                (this.healthPackSettings.maxSize - this.healthPackSettings.minSize);
+
+            // Create health pack
+            this.healthPacks.push({
+                x,
+                y,
+                size,
+                collected: false,
+                pulsePhase: Math.random() * Math.PI * 2,
+                rotation: Math.random() * Math.PI * 2
+            });
+
+            packsGenerated++;
         }
     }
 
@@ -622,8 +727,12 @@ class TankGame {
         this.playerTank.targetRotation = 0;
         this.playerTank.currentSpeed = 0;
 
-        // Regenerate rocks
+        // Regenerate rocks and health packs
         this.generateRocks();
+        this.generateHealthPacks();
+
+        // Clear respawn timers
+        this.healthPackRespawnTimers = [];
 
         this.setupCamera();
         this.updateUI();
@@ -668,6 +777,12 @@ class TankGame {
         // Update rocks
         this.updateRocks(deltaTime);
 
+        // Update health packs
+        this.updateHealthPacks(deltaTime);
+
+        // Update health pack respawn timers
+        this.updateHealthPackRespawnTimers(deltaTime);
+
         // Spawn enemies
         this.enemySpawnTimer += deltaTime;
         if (this.enemySpawnTimer >= this.settings.enemySpawnRate &&
@@ -684,6 +799,9 @@ class TankGame {
 
         // Check collisions
         this.checkCollisions();
+
+        // Check health pack collection
+        this.checkHealthPackCollection();
 
         // Update UI
         this.updateUI();
@@ -797,6 +915,45 @@ class TankGame {
         }
     }
 
+    updateHealthPacks(deltaTime) {
+        // Update animation for visible health packs
+        for (const pack of this.healthPacks) {
+            if (!pack.collected) {
+                // Update pulsing animation
+                pack.pulsePhase += this.healthPackSettings.pulseSpeed * deltaTime / 16.67;
+                if (pack.pulsePhase > Math.PI * 2) {
+                    pack.pulsePhase -= Math.PI * 2;
+                }
+
+                // Update rotation
+                pack.rotation += this.healthPackSettings.rotationSpeed * deltaTime / 16.67;
+                if (pack.rotation > Math.PI * 2) {
+                    pack.rotation -= Math.PI * 2;
+                }
+            }
+        }
+    }
+
+    updateHealthPackRespawnTimers(deltaTime) {
+        // Update respawn timers for collected health packs
+        for (let i = this.healthPackRespawnTimers.length - 1; i >= 0; i--) {
+            const timer = this.healthPackRespawnTimers[i];
+            timer.timeRemaining -= deltaTime;
+
+            if (timer.timeRemaining <= 0) {
+                // Respawn the health pack
+                const packIndex = this.healthPacks.findIndex(p => p === timer.healthPack);
+                if (packIndex !== -1) {
+                    this.healthPacks[packIndex].collected = false;
+                    this.healthPacks[packIndex].pulsePhase = Math.random() * Math.PI * 2;
+                }
+
+                // Remove the timer
+                this.healthPackRespawnTimers.splice(i, 1);
+            }
+        }
+    }
+
     spawnEnemy() {
         // Spawn enemies at a fixed distance from the player
         const spawnDistance = this.settings.enemySpawnDistance;
@@ -839,6 +996,19 @@ class TankGame {
 
                 if (distance < this.settings.enemySeparationDistance) {
                     score -= (this.settings.enemySeparationDistance - distance) * 2;
+                }
+            }
+
+            // Avoid health packs
+            for (const pack of this.healthPacks) {
+                if (!pack.collected) {
+                    const dx = x - pack.x;
+                    const dy = y - pack.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < pack.size * 2) {
+                        score -= 100;
+                    }
                 }
             }
 
@@ -991,6 +1161,29 @@ class TankGame {
 
                 enemy.avoidanceForceX += forceX;
                 enemy.avoidanceForceY += forceY;
+            }
+        }
+
+        // Check for nearby health packs (enemies should avoid them too)
+        for (const pack of this.healthPacks) {
+            if (!pack.collected) {
+                const dx = desiredX - pack.x;
+                const dy = desiredY - pack.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const minDistance = enemyRadius + pack.size / 2;
+
+                if (distance < minDistance * 2) {
+                    // Calculate avoidance force based on proximity
+                    const avoidanceStrength = Math.max(0, 1 - (distance / (minDistance * 2)));
+                    const angle = Math.atan2(dy, dx);
+
+                    // Push away from health pack
+                    const forceX = Math.cos(angle) * avoidanceStrength * maxAvoidanceForce * 0.5;
+                    const forceY = Math.sin(angle) * avoidanceStrength * maxAvoidanceForce * 0.5;
+
+                    enemy.avoidanceForceX += forceX;
+                    enemy.avoidanceForceY += forceY;
+                }
             }
         }
 
@@ -1309,6 +1502,72 @@ class TankGame {
         }
     }
 
+    // Check if player collects health packs
+    checkHealthPackCollection() {
+        const playerRadius = this.playerTank.width / 2;
+
+        for (const pack of this.healthPacks) {
+            if (!pack.collected) {
+                // Calculate distance from player to health pack
+                const dx = this.playerTank.x - pack.x;
+                const dy = this.playerTank.y - pack.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const minDistance = playerRadius + pack.size / 1;
+
+                if (distance < minDistance) {
+                    // Player is touching the health pack
+                    if (this.playerHealth < 100) {
+                        // Player needs health, collect the pack
+                        this.collectHealthPack(pack);
+                    }
+                    // If player is at full health, do nothing, pack remains on ground
+                }
+            }
+        }
+    }
+
+    // Collect a health pack
+    collectHealthPack(pack) {
+        // Mark pack as collected
+        pack.collected = true;
+
+        // Heal the player
+        const oldHealth = this.playerHealth;
+        this.playerHealth = Math.min(100, this.playerHealth + this.healthPackSettings.healthAmount);
+        const healthGained = this.playerHealth - oldHealth;
+
+        // Create healing particles
+        this.createParticles(pack.x, pack.y, 20, this.healthPackSettings.color);
+
+        // Add a floating text showing health gained
+        this.showFloatingText(`+${healthGained} HP`, pack.x, pack.y, this.healthPackSettings.color);
+
+        // Show message in UI
+        this.showMessage(`Health restored: +${healthGained} HP`);
+
+        // Start respawn timer
+        this.healthPackRespawnTimers.push({
+            healthPack: pack,
+            timeRemaining: this.healthPackSettings.respawnTime
+        });
+    }
+
+    // Show floating text at a position
+    showFloatingText(text, x, y, color) {
+        const floatingText = {
+            text: text,
+            x: x,
+            y: y,
+            color: color,
+            life: 1000,
+            maxLife: 1000,
+            velocityY: -0.5
+        };
+
+        // Add to particles array for rendering
+        this.particles.push(floatingText);
+    }
+
     createParticles(x, y, count, color) {
         for (let i = 0; i < count; i++) {
             const angle = Math.random() * Math.PI * 2;
@@ -1349,6 +1608,9 @@ class TankGame {
 
         // Draw rocks first
         this.drawRocks();
+
+        // Draw health packs
+        this.drawHealthPacks();
 
         // Draw all game objects
         this.drawEnemies();
@@ -1468,6 +1730,87 @@ class TankGame {
             }
 
             this.ctx.restore();
+        });
+    }
+
+    // Draw health packs
+    drawHealthPacks() {
+        this.healthPacks.forEach(pack => {
+            if (!pack.collected) {
+                this.ctx.save();
+                this.ctx.translate(pack.x, pack.y);
+                this.ctx.rotate(pack.rotation);
+
+                // Calculate pulsing effect
+                const pulseScale = 0.8 + Math.sin(pack.pulsePhase) * 0.2;
+                const currentSize = pack.size * pulseScale;
+
+                // Draw outer glow
+                this.ctx.fillStyle = this.healthPackSettings.glowColor;
+                this.ctx.globalAlpha = 0.3 + Math.sin(pack.pulsePhase) * 0.2;
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, currentSize * 1.2, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Reset alpha
+                this.ctx.globalAlpha = 1;
+
+                // Draw main health pack
+                this.ctx.fillStyle = this.healthPackSettings.color;
+
+                // Draw vertical part of cross
+                this.ctx.fillRect(
+                    -currentSize * 0.15,
+                    -currentSize * 0.5,
+                    currentSize * 0.3,
+                    currentSize
+                );
+
+                // Draw horizontal part of cross
+                this.ctx.fillRect(
+                    -currentSize * 0.5,
+                    -currentSize * 0.15,
+                    currentSize,
+                    currentSize * 0.3
+                );
+
+                // Draw inner highlight
+                this.ctx.fillStyle = this.lightenColor(this.healthPackSettings.color, 30);
+
+                // Vertical highlight
+                this.ctx.fillRect(
+                    -currentSize * 0.1,
+                    -currentSize * 0.4,
+                    currentSize * 0.2,
+                    currentSize * 0.8
+                );
+
+                // Horizontal highlight
+                this.ctx.fillRect(
+                    -currentSize * 0.4,
+                    -currentSize * 0.1,
+                    currentSize * 0.8,
+                    currentSize * 0.2
+                );
+
+                // Draw plus symbol in the center
+                this.ctx.fillStyle = '#FFFFFF';
+                this.ctx.font = `bold ${currentSize * 0.4}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText('+', 0, 0);
+
+                // Draw debug bounding circle
+                if (this.settings.debugMode) {
+                    this.ctx.strokeStyle = 'rgba(0, 255, 0, 0.3)';
+                    this.ctx.lineWidth = 1;
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, 0, pack.size / 2, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                }
+
+                this.ctx.restore();
+            }
         });
     }
 
@@ -1778,13 +2121,26 @@ class TankGame {
 
     drawParticles() {
         this.particles.forEach(particle => {
-            this.ctx.save();
-            this.ctx.globalAlpha = particle.alpha;
-            this.ctx.fillStyle = particle.color;
-            this.ctx.beginPath();
-            this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-            this.ctx.fill();
-            this.ctx.restore();
+            // Check if this is a floating text particle
+            if (particle.text) {
+                this.ctx.save();
+                this.ctx.globalAlpha = particle.life / particle.maxLife;
+                this.ctx.fillStyle = particle.color;
+                this.ctx.font = 'bold 16px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText(particle.text, particle.x, particle.y);
+                this.ctx.restore();
+            } else {
+                // Regular particle
+                this.ctx.save();
+                this.ctx.globalAlpha = particle.alpha;
+                this.ctx.fillStyle = particle.color;
+                this.ctx.beginPath();
+                this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.restore();
+            }
         });
     }
 
@@ -1823,6 +2179,7 @@ class TankGame {
         this.ctx.fillText(`Bullets: ${this.bullets.length}`, 10, 160);
         this.ctx.fillText(`Wave: ${this.wave}`, 10, 180);
         this.ctx.fillText(`Rocks: ${this.rocks.length}`, 10, 200);
+        this.ctx.fillText(`Health Packs: ${this.healthPacks.filter(p => !p.collected).length}/${this.healthPacks.length}`, 10, 220);
 
         this.ctx.restore();
     }
