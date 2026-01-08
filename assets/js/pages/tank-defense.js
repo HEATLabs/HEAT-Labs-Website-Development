@@ -29,8 +29,8 @@ class TankGame {
             waveStartCountdown: 5,
             waveStartTimer: 0,
             waveEnemyCounts: [0, 1, 2, 4, 6, 8, 10],
-            nextWaveEnemyIncrement: 2,
-            maxEnemiesPerWave: 20
+            baseEnemyIncrement: 2,
+            scalingFactor: 1
         };
 
         // Camera system for centering player
@@ -142,7 +142,7 @@ class TankGame {
         // Game settings
         this.settings = {
             enemySpawnRate: 2000,
-            maxEnemies: 10,
+            maxEnemies: 100,
             bulletSpeed: 10,
             enemyBulletSpeed: 7,
             particleLifetime: 1000,
@@ -793,6 +793,7 @@ class TankGame {
         this.waveSystem.waveActive = false;
         this.waveSystem.waveStarting = false;
         this.waveSystem.waveStartTimer = 0;
+        this.waveSystem.scalingFactor = 1;
 
         this.playerTank.x = this.world.width / 2;
         this.playerTank.y = this.world.height / 2;
@@ -824,6 +825,7 @@ class TankGame {
     startFirstWave() {
         // Set wave 1 without incrementing
         this.waveSystem.currentWave = 1;
+        this.waveSystem.scalingFactor = 1;
         this.waveSystem.waveEnemiesTarget = this.getEnemyCountForWave(this.waveSystem.currentWave);
         this.waveSystem.waveEnemiesSpawned = 0;
         this.waveSystem.waveTimer = this.waveSystem.waveTimeLimit;
@@ -841,6 +843,12 @@ class TankGame {
 
     startNextWave() {
         this.waveSystem.currentWave++;
+        const newScalingFactor = Math.pow(2, Math.floor((this.waveSystem.currentWave - 1) / 10));
+        if (newScalingFactor !== this.waveSystem.scalingFactor) {
+            this.waveSystem.scalingFactor = newScalingFactor;
+            this.showMessage(`Wave ${this.waveSystem.currentWave}! Enemy count scaling doubled!`);
+        }
+
         this.waveSystem.waveEnemiesTarget = this.getEnemyCountForWave(this.waveSystem.currentWave);
         this.waveSystem.waveEnemiesSpawned = 0;
         this.waveSystem.waveTimer = this.waveSystem.waveTimeLimit;
@@ -856,16 +864,30 @@ class TankGame {
         this.showMessage(`Wave ${this.waveSystem.currentWave} - ${this.waveSystem.waveEnemiesTarget} enemies incoming!`);
     }
 
+    // Wave scaling system
     getEnemyCountForWave(waveNumber) {
+        // Handle early waves (1-6) using the predefined array
         if (waveNumber < this.waveSystem.waveEnemyCounts.length) {
             return this.waveSystem.waveEnemyCounts[waveNumber];
-        } else {
-            // After wave 7, add 2 more enemies each wave, up to max
-            const baseCount = this.waveSystem.waveEnemyCounts[6]; // Wave 7 has 10 enemies
-            const additionalWaves = waveNumber - 7;
-            const totalEnemies = baseCount + (additionalWaves * this.waveSystem.nextWaveEnemyIncrement);
-            return Math.min(totalEnemies, this.waveSystem.maxEnemiesPerWave);
         }
+
+        // For wave 7 and beyond, calculate using scaling system
+        let baseWave = 7;
+        let baseEnemies = 10;
+
+        // Calculate which 10-wave block we're in
+        const blockNumber = Math.floor((waveNumber - baseWave) / 10);
+
+        // Calculate wave within current block (0-9)
+        const waveInBlock = (waveNumber - baseWave) % 10;
+
+        // Calculate scaling factor: doubles every 10 waves starting from wave 7
+        const scalingFactor = Math.pow(2, blockNumber);
+
+        // Calculate enemy count: base enemies + (2 * waveInBlock * scalingFactor)
+        const additionalEnemies = this.waveSystem.baseEnemyIncrement * waveInBlock * scalingFactor;
+
+        return baseEnemies * scalingFactor + additionalEnemies;
     }
 
     startWave() {
@@ -2357,6 +2379,7 @@ class TankGame {
         this.ctx.fillText(`Wave Time: ${Math.ceil(this.waveSystem.waveTimer / 1000)}s`, 10, 220);
         this.ctx.fillText(`Rocks: ${this.rocks.length}`, 10, 240);
         this.ctx.fillText(`Health Packs: ${this.healthPacks.filter(p => !p.collected).length}/${this.healthPacks.length}`, 10, 260);
+        this.ctx.fillText(`Scaling Factor: ${this.waveSystem.scalingFactor}`, 10, 280);
 
         this.ctx.restore();
     }
