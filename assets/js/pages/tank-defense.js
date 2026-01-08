@@ -743,7 +743,7 @@ class TankGame {
         }
 
         // Start wave system
-        this.startNextWave();
+        this.startFirstWave();
 
         // Update button states
         this.updateButtonStates();
@@ -818,6 +818,25 @@ class TankGame {
         this.setupCamera();
         this.updateUI();
         this.updateButtonStates();
+    }
+
+    // Start first wave
+    startFirstWave() {
+        // Set wave 1 without incrementing
+        this.waveSystem.currentWave = 1;
+        this.waveSystem.waveEnemiesTarget = this.getEnemyCountForWave(this.waveSystem.currentWave);
+        this.waveSystem.waveEnemiesSpawned = 0;
+        this.waveSystem.waveTimer = this.waveSystem.waveTimeLimit;
+        this.waveSystem.waveActive = false;
+        this.waveSystem.waveStarting = true;
+        this.waveSystem.waveStartTimer = 0;
+
+        // Update UI
+        this.wave = this.waveSystem.currentWave;
+        this.updateUI();
+
+        // Show wave start message
+        this.showMessage(`Wave ${this.waveSystem.currentWave} - ${this.waveSystem.waveEnemiesTarget} enemies incoming!`);
     }
 
     startNextWave() {
@@ -1281,18 +1300,7 @@ class TankGame {
             enemy.x = enemy.desiredX;
             enemy.y = enemy.desiredY;
 
-            // Remove enemies that are too far from player
-            const dx = this.playerTank.x - enemy.x;
-            const dy = this.playerTank.y - enemy.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            const despawnDistance = this.settings.enemyDespawnDistance;
-            if (distance > despawnDistance) {
-                this.enemies.splice(i, 1);
-                continue;
-            }
-
-            // Also remove enemies that go out of world bounds
+            // Remove enemies that are out of world bounds
             const margin = 100;
             if (enemy.x < -margin || enemy.x > this.world.width + margin ||
                 enemy.y < -margin || enemy.y > this.world.height + margin) {
