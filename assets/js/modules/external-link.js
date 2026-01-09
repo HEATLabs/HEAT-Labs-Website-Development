@@ -43,6 +43,37 @@ document.addEventListener('DOMContentLoaded', function() {
     // Remembered choices cache
     let rememberedChoices = {};
 
+    // Check if we're in a mobile app or Electron app
+    function isInApp() {
+        // Check for mobile app
+        if (window.cordova || window.Capacitor || window.PhoneGap) {
+            return true;
+        }
+
+        // Check for Electron
+        if (window.electron || window.require && window.require('electron')) {
+            return true;
+        }
+
+        // Check for custom user agent patterns
+        const userAgent = navigator.userAgent.toLowerCase();
+        if (userAgent.includes('heatlabs-app') ||
+            userAgent.includes('heatlabs-mobile') ||
+            userAgent.includes('electron') ||
+            userAgent.includes('cordova') ||
+            userAgent.includes('capacitor') ||
+            userAgent.includes('phonegap')) {
+            return true;
+        }
+
+        // Check for custom window properties
+        if (window.HEATLabsApp || window.isHEATLabsApp) {
+            return true;
+        }
+
+        return false;
+    }
+
     // Initialize the system
     function init() {
         createModal();
@@ -53,6 +84,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Create modal HTML
     function createModal() {
+        const inApp = isInApp();
+        const externalText = inApp ? 'external browser' : 'new tab';
+
         const modalHTML = `
             <div class="external-warning-overlay" id="externalWarningOverlay">
                 <div class="external-warning-modal" id="externalWarningModal">
@@ -67,6 +101,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <p class="external-warning-message" id="externalWarningMessage">
                         HEAT Labs is not responsible for external websites.
+                        <br><br>
+                        <i class="fas fa-external-link-alt"></i> This link will open in a ${externalText}.
                     </p>
                     <div class="external-warning-buttons" id="externalWarningButtons">
                         <button class="external-warning-button external-warning-button-secondary" id="externalWarningCancel">
@@ -75,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </button>
                         <button class="external-warning-button external-warning-button-primary" id="externalWarningProceed">
                             <i class="fas fa-external-link-alt"></i>
-                            Continue
+                            Continue to External Site
                         </button>
                     </div>
                     <div class="external-warning-remember">
@@ -235,6 +271,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update modal content
         document.getElementById('externalWarningDomainText').textContent = domain;
 
+        // Update message based on app context
+        const inApp = isInApp();
+        const externalText = inApp ? 'external browser' : 'new tab';
+        const messageElement = document.getElementById('externalWarningMessage');
+        messageElement.innerHTML = `
+            HEAT Labs is not responsible for external websites.
+            <br><br>
+            <i class="fas fa-external-link-alt"></i> This link will open in a ${externalText}.
+        `;
+
         // Check if user already made a choice for this domain
         const remembered = rememberedChoices[domain];
         if (remembered && remembered.choice === 'allow') {
@@ -288,16 +334,15 @@ document.addEventListener('DOMContentLoaded', function() {
             saveRememberedChoices();
         }
 
-        // Navigate to the link
-        const domain = extractDomain(currentLink);
+        // Always open external links in a new tab/window
+        const inApp = isInApp();
 
-        // Special handling for Discord links
-        if (domain.includes('discord.gg') || domain.includes('discord.com')) {
-            // Open Discord links in a new tab
-            window.open(currentLink, '_blank', 'noopener,noreferrer');
+        if (inApp) {
+            // For mobile/Electron apps, open in system browser with special handling
+            openInSystemBrowser(currentLink);
         } else {
-            // Navigate normally
-            window.location.href = currentLink;
+            // For regular web, open in new tab
+            openInNewTab(currentLink);
         }
 
         // Clean up
@@ -305,6 +350,68 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.style.overflow = '';
         currentLink = null;
         currentEvent = null;
+    }
+
+    // Open URL in new tab with proper security attributes
+    function openInNewTab(url) {
+        const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+
+        // Ensure noopener is set for security
+        if (newWindow) {
+            newWindow.opener = null;
+        }
+    }
+
+    // Open URL in system browser (for mobile/Electron apps)
+    function openInSystemBrowser(url) {
+        // Check for Cordova/PhoneGap InAppBrowser
+        if (window.cordova && cordova.InAppBrowser) {
+            cordova.InAppBrowser.open(url, '_system', 'location=yes');
+            return;
+        }
+
+        // Check for Capacitor Browser
+        if (window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.Browser) {
+            Capacitor.Plugins.Browser.open({
+                url: url
+            });
+            return;
+        }
+
+        // Check for Electron shell
+        if (window.electron) {
+            window.electron.openExternal(url);
+            return;
+        }
+
+        // Check for require('electron') in renderer process
+        if (window.require) {
+            try {
+                const {
+                    shell
+                } = window.require('electron');
+                shell.openExternal(url);
+                return;
+            } catch (e) {
+                // Not in Electron or require not available
+            }
+        }
+
+        // Fallback for mobile web views
+        if (navigator.userAgent.includes('iPhone') ||
+            navigator.userAgent.includes('iPad') ||
+            navigator.userAgent.includes('Android')) {
+            // Try to use standard window.open for mobile web views
+            const newWindow = window.open(url, '_system');
+            if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+                // Fallback to regular new tab
+                window.open(url, '_blank', 'noopener,noreferrer');
+            }
+            return;
+        }
+
+        // Ultimate fallback - open in new tab
+        openInNewTab(url);
     }
 
     // Handle link clicks
@@ -401,6 +508,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.HEATLabsExternalWarning = {
         showWarning: showWarning,
         isExternalUrl: isExternalUrl,
+        isInApp: isInApp,
         disable: function() {
             CONFIG.enabled = false;
         },
