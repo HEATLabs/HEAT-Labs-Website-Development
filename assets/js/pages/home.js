@@ -22,13 +22,10 @@ async function initializeHeroCounters() {
         const mapsCount = mapsData.maps.filter(map => map.state === "displayed").length;
         const tanksCount = tanksData.filter(tank => tank.state === "displayed").length;
 
-        // Speed factor: higher = faster, lower = slower
-        const speedFactor = 2;
-
-        // Animate counters with speed factor
-        animateHeroCounter('agents-count', agentsCount, 1500, speedFactor);
-        animateHeroCounter('maps-count', mapsCount, 1500, speedFactor);
-        animateHeroCounter('tanks-count', tanksCount, 1500, speedFactor);
+        // Set values
+        document.getElementById('agents-count').textContent = agentsCount.toLocaleString();
+        document.getElementById('maps-count').textContent = mapsCount.toLocaleString();
+        document.getElementById('tanks-count').textContent = tanksCount.toLocaleString();
 
     } catch (error) {
         console.error('Error loading hero counters data:', error);
@@ -37,33 +34,6 @@ async function initializeHeroCounters() {
         document.getElementById('maps-count').textContent = 'N/A';
         document.getElementById('tanks-count').textContent = 'N/A';
     }
-}
-
-function animateHeroCounter(elementId, targetValue, duration, speedFactor = 1) {
-    const element = document.getElementById(elementId);
-    if (!element) return;
-
-    let startValue = 0;
-    const startTime = performance.now();
-
-    function updateCounter(currentTime) {
-        const elapsedTime = currentTime - startTime;
-        const progress = Math.min(elapsedTime / duration, 1);
-
-        // Apply speed factor
-        const adjustedProgress = Math.min(progress * speedFactor, 1);
-        const currentValue = Math.floor(startValue + (targetValue - startValue) * adjustedProgress);
-
-        element.textContent = currentValue.toLocaleString();
-
-        if (progress < 1) {
-            requestAnimationFrame(updateCounter);
-        } else {
-            element.textContent = targetValue.toLocaleString();
-        }
-    }
-
-    requestAnimationFrame(updateCounter);
 }
 
 async function fetchFunFactsData() {
@@ -93,8 +63,6 @@ function showNAForAllCounters() {
 
 function initializeCounters(data) {
     const counters = document.querySelectorAll('.fun-fact-number');
-    const speed = 200; // The lower the faster
-    let animationComplete = true;
 
     counters.forEach(counter => {
         const parentItem = counter.closest('.fun-fact-item');
@@ -150,85 +118,39 @@ function initializeCounters(data) {
             return;
         }
 
-        const currentText = counter.innerText;
-        let currentCount = 0;
-
-        // Parse current count based on format
-        if (currentText.includes('k')) {
-            currentCount = parseFloat(currentText) * 1000;
-        } else if (currentText.includes('M')) {
-            currentCount = parseFloat(currentText) * 1000000;
-        } else if (currentText.includes('GB')) {
-            currentCount = parseFloat(currentText);
-        } else if (currentText === 'N/A') {
-            currentCount = 0;
-        } else {
-            currentCount = parseFloat(currentText.replace(/[^0-9.]/g, '')) || 0;
-        }
-
-        // If animation is not complete, continue animating
-        if (currentCount < target) {
-            animationComplete = false;
-            const increment = Math.max(1, target / speed);
-            let newCount = Math.min(currentCount + increment, target);
-
-            if (isTotalFiles) {
-                // For total files, show raw number during animation
-                counter.innerText = Math.floor(newCount).toLocaleString();
-            } else if (label.includes('Project Size')) {
-                // For project size, show GB with 2 decimal places
-                counter.innerText = newCount.toFixed(2) + 'GB';
-            } else if (isLinesOfCode) {
-                // For lines of code, we show raw numbers during animation
-                counter.innerText = Math.floor(newCount).toLocaleString();
-            } else if (isTotalRequests || isTotalVisitors) {
-                // For requests and visitors, show raw numbers during animation
-                counter.innerText = Math.floor(newCount).toLocaleString();
-            } else if (isDataServed || isDataCached) {
-                // For data served and cached, show GB with 2 decimal places during animation
-                counter.innerText = newCount.toFixed(2) + 'GB';
-            } else {
-                counter.innerText = Math.floor(newCount);
-            }
-        } else {
-            // Animation complete, set final formatted values
-            if (isLinesOfCode) {
+        // Set the final formatted values directly
+        if (isLinesOfCode) {
+            counter.innerText = (target / 1000000).toFixed(2) + 'M';
+        } else if (isTotalFiles) {
+            // For total files, show the full number with commas
+            counter.innerText = target.toLocaleString();
+        } else if (label.includes('Project Size')) {
+            counter.innerText = target.toFixed(2) + 'GB';
+        } else if (isDataServed || isDataCached) {
+            // For data served and cached, show GB with 2 decimal places
+            counter.innerText = target.toFixed(2) + 'GB';
+        } else if (isTotalRequests) {
+            // Format total requests: show with 'k' suffix
+            if (target >= 1000000) {
                 counter.innerText = (target / 1000000).toFixed(2) + 'M';
-            } else if (isTotalFiles) {
-                // For total files, show the full number with commas
-                counter.innerText = target.toLocaleString();
-            } else if (label.includes('Project Size')) {
-                counter.innerText = target.toFixed(2) + 'GB';
-            } else if (isDataServed || isDataCached) {
-                // For data served and cached, show GB with 2 decimal places
-                counter.innerText = target.toFixed(2) + 'GB';
-            } else if (isTotalRequests) {
-                // Format total requests: show with 'k' suffix
-                if (target >= 1000000) {
-                    counter.innerText = (target / 1000000).toFixed(2) + 'M';
-                } else if (target >= 1000) {
-                    counter.innerText = (target / 1000).toFixed(2) + 'k';
-                } else {
-                    counter.innerText = target.toLocaleString();
-                }
-            } else if (isTotalVisitors) {
-                // Format total visitors: show with 'k' suffix
-                if (target >= 1000000) {
-                    counter.innerText = (target / 1000000).toFixed(2) + 'M';
-                } else if (target >= 1000) {
-                    counter.innerText = (target / 1000).toFixed(2) + 'k';
-                } else {
-                    counter.innerText = target.toLocaleString();
-                }
+            } else if (target >= 1000) {
+                counter.innerText = (target / 1000).toFixed(2) + 'k';
             } else {
                 counter.innerText = target.toLocaleString();
             }
+        } else if (isTotalVisitors) {
+            // Format total visitors: show with 'k' suffix
+            if (target >= 1000000) {
+                counter.innerText = (target / 1000000).toFixed(2) + 'M';
+            } else if (target >= 1000) {
+                counter.innerText = (target / 1000).toFixed(2) + 'k';
+            } else {
+                counter.innerText = target.toLocaleString();
+            }
+        } else {
+            counter.innerText = target.toLocaleString();
         }
     });
-
-    if (!animationComplete) {
-        requestAnimationFrame(() => initializeCounters(data));
-    }
 }
 
 function calculateDaysAndCoffee(data) {
@@ -239,19 +161,19 @@ function calculateDaysAndCoffee(data) {
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         const coffeeCups = diffDays * data.coffeePerDay;
 
-        // Animate the days counter
+        // Set the days counter
         const daysCounter = document.getElementById('days-since-creation');
         if (daysCounter) {
-            animateValue(daysCounter, 0, diffDays, 2000);
+            daysCounter.innerText = diffDays.toLocaleString();
         }
 
-        // Find and animate the coffee cups counter
+        // Find and set the coffee cups counter
         const coffeeCupsElements = document.querySelectorAll('.fun-fact-item');
         coffeeCupsElements.forEach(item => {
             if (item.querySelector('.fun-fact-label').textContent.includes('Coffee Cups')) {
                 const coffeeCounter = item.querySelector('.fun-fact-number');
                 if (coffeeCounter) {
-                    animateValue(coffeeCounter, 0, coffeeCups, 2000);
+                    coffeeCounter.innerText = coffeeCups.toLocaleString();
                 }
             }
         });
@@ -273,17 +195,4 @@ function calculateDaysAndCoffee(data) {
             }
         });
     }
-}
-
-function animateValue(element, start, end, duration) {
-    let startTimestamp = null;
-    const step = (timestamp) => {
-        if (!startTimestamp) startTimestamp = timestamp;
-        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-        element.innerHTML = Math.floor(progress * (end - start) + start);
-        if (progress < 1) {
-            window.requestAnimationFrame(step);
-        }
-    };
-    window.requestAnimationFrame(step);
 }
