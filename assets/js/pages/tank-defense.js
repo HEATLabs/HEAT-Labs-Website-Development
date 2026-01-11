@@ -210,7 +210,11 @@ class TankGame {
             enemyTurretTrackingSpeed: 0.1,
             enemyMemorySize: 10,
             enemyStuckThreshold: 60,
-            enemyStuckEscapeForce: 2.0
+            enemyStuckEscapeForce: 2.0,
+            enemyShootingRange: 600,
+            enemyShootingCooldown: 1000,
+            enemyShootingAccuracy: 0.95,
+            enemyShootingRandomness: 0.1
         };
 
         // Score configuration
@@ -452,10 +456,7 @@ class TankGame {
             this.buttonElements.fullscreen = document.getElementById('fullscreenGame');
         }
 
-        const {
-            pause,
-            fullscreen
-        } = this.buttonElements;
+        const { pause, fullscreen } = this.buttonElements;
 
         if (!pause || !fullscreen) return;
 
@@ -1854,6 +1855,9 @@ class TankGame {
                 enemy.turretRotation += angleDiff * this.settings.enemyTurretTrackingSpeed * deltaTimeNormalized;
             }
 
+            // Check if enemy can shoot at player
+            this.updateEnemyShooting(enemy, deltaTime);
+
             // Calculate pursuit force
             let pursuitX = 0;
             let pursuitY = 0;
@@ -1978,15 +1982,92 @@ class TankGame {
         }
     }
 
+    // Update enemy shooting logic
+    updateEnemyShooting(enemy, deltaTime) {
+        // Check if enemy can shoot
+        const currentTime = performance.now();
+
+        // Check if enemy is ready to shoot
+        if (currentTime - enemy.lastShot < enemy.shootCooldown) {
+            return;
+        }
+
+        // Calculate distance to player
+        const dx = this.playerTank.x - enemy.x;
+        const dy = this.playerTank.y - enemy.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Check if player is within shooting range
+        if (distance > this.settings.enemyShootingRange) {
+            return;
+        }
+
+        // Check line of sight to player
+        if (!this.hasLineOfSight(enemy.x, enemy.y, this.playerTank.x, this.playerTank.y)) {
+            return;
+        }
+
+        // Calculate angle to player
+        const angleToPlayer = Math.atan2(dy, dx);
+
+        // Calculate angle difference between turret and player
+        const angleDiff = Math.abs(this.normalizeAngle(angleToPlayer - enemy.turretRotation));
+
+        // Only shoot if turret is pointing roughly at player
+        if (angleDiff > 0.2) {
+            return;
+        }
+
+        // Add some randomness to shooting timing
+        if (Math.random() > this.settings.enemyShootingAccuracy) {
+            return;
+        }
+
+        // Enemy can shoot!
+        this.enemyShoot(enemy);
+        enemy.lastShot = currentTime;
+
+        // Add some randomness to next shot time
+        enemy.shootCooldown = this.settings.enemyShootingCooldown + Math.random() * 500;
+    }
+
+    // Check if there's a clear line of sight between two points
+    hasLineOfSight(x1, y1, x2, y2) {
+        const segmentCount = 10;
+
+        for (let i = 0; i <= segmentCount; i++) {
+            const t = i / segmentCount;
+            const checkX = x1 + (x2 - x1) * t;
+            const checkY = y1 + (y2 - y1) * t;
+
+            // Check if this point is inside any rock
+            for (const rock of this.rocks) {
+                const dx = checkX - rock.x;
+                const dy = checkY - rock.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < rock.radius) {
+                    return false; // Rock is in the way
+                }
+            }
+        }
+
+        return true; // Clear line of sight
+    }
+
     enemyShoot(enemy) {
         // Calculate bullet spawn position at the end of the gun barrel
         const barrelEndX = Math.cos(enemy.turretRotation) * enemy.barrelLength;
         const barrelEndY = Math.sin(enemy.turretRotation) * enemy.barrelLength;
 
+        // Randomness to bullet direction for more realistic shooting
+        const randomAngle = (Math.random() - 0.5) * this.settings.enemyShootingRandomness;
+        const finalRotation = enemy.turretRotation + randomAngle;
+
         const bullet = {
             x: enemy.x + barrelEndX,
             y: enemy.y + barrelEndY,
-            rotation: enemy.turretRotation,
+            rotation: finalRotation,
             speed: this.settings.enemyBulletSpeed,
             damage: 10
         };
@@ -3284,6 +3365,9 @@ class TankGame {
         this.ctx.fillText(`Min Passage Width: ${this.rockSettings.minPassageWidth}px`, 10, 560);
         this.ctx.fillText(`Border Thickness: ${this.borderSettings.thickness}px`, 10, 580);
         this.ctx.fillText(`Warning Distance: ${this.borderSettings.warningDistance}px`, 10, 600);
+        this.ctx.fillText(`Enemy Shooting Range: ${this.settings.enemyShootingRange}px`, 10, 620);
+        this.ctx.fillText(`Enemy Shooting Accuracy: ${this.settings.enemyShootingAccuracy}`, 10, 640);
+        this.ctx.fillText(`Enemy Bullets: ${this.enemyBullets.length}`, 10, 660);
 
         this.ctx.restore();
     }
