@@ -61,6 +61,19 @@ class TankGame {
             height: 5000
         };
 
+        // Map border configuration
+        this.borderSettings = {
+            thickness: 40,
+            mainColor: '#2C3E50',
+            edgeColor: '#34495E',
+            innerGlowColor: 'rgba(52, 152, 219, 0.3)',
+            warningThickness: 20,
+            warningColor: 'rgba(231, 76, 60, 0.4)',
+            warningDistance: 200,
+            cornerSize: 100,
+            cornerColor: '#2C3E50'
+        };
+
         // Rocks/obstacles configuration
         this.rocks = [];
         this.rockSettings = {
@@ -906,10 +919,10 @@ class TankGame {
             const bottomDistance = this.world.height - (y + maxRockSize / 2);
 
             // Ensure at least one direction has enough clearance for 2 tanks
-            const hasClearPath = 
-                leftDistance >= minPassageWidth || 
-                rightDistance >= minPassageWidth || 
-                topDistance >= minPassageWidth || 
+            const hasClearPath =
+                leftDistance >= minPassageWidth ||
+                rightDistance >= minPassageWidth ||
+                topDistance >= minPassageWidth ||
                 bottomDistance >= minPassageWidth;
 
             if (!hasClearPath) {
@@ -1912,39 +1925,6 @@ class TankGame {
                 enemy.desiredX = enemy.x + Math.cos(enemy.rotation) * enemy.speed;
                 enemy.desiredY = enemy.y + Math.sin(enemy.rotation) * enemy.speed;
             }
-
-            // Check if enemy is stuck
-            if (enemy.lastPositions.length >= 5) {
-                const recentPos = enemy.lastPositions[enemy.lastPositions.length - 1];
-                const oldPos = enemy.lastPositions[0];
-                const movedDistance = Math.sqrt(
-                    Math.pow(recentPos.x - oldPos.x, 2) +
-                    Math.pow(recentPos.y - oldPos.y, 2)
-                );
-
-                if (movedDistance < 10) {
-                    enemy.stuckTimer++;
-                    if (enemy.stuckTimer > this.settings.enemyStuckThreshold) {
-                        // Apply escape force in random direction
-                        const escapeAngle = Math.random() * Math.PI * 2;
-                        enemy.desiredX = enemy.x + Math.cos(escapeAngle) * this.settings.enemyStuckEscapeForce;
-                        enemy.desiredY = enemy.y + Math.sin(escapeAngle) * this.settings.enemyStuckEscapeForce;
-                        enemy.stuckTimer = 0;
-                        enemy.lastPositions = []; // Clear position history
-                    }
-                } else {
-                    enemy.stuckTimer = Math.max(0, enemy.stuckTimer - 2);
-                }
-            }
-
-            // Enemy shooting
-            if (distance < 400) {
-                enemy.lastShot += deltaTime;
-                if (enemy.lastShot >= enemy.shootCooldown) {
-                    this.enemyShoot(enemy);
-                    enemy.lastShot = 0;
-                }
-            }
         }
 
         // Handle collisions with rocks after movement
@@ -2350,7 +2330,10 @@ class TankGame {
         // Draw grid background
         this.drawGrid();
 
-        // Draw rocks first
+        // Draw map borders
+        this.drawMapBorders();
+
+        // Draw rocks
         this.drawRocks();
 
         // Draw health packs
@@ -2375,6 +2358,145 @@ class TankGame {
         if (this.settings.debugMode) {
             this.drawDebugInfo();
         }
+    }
+
+    // Draw visible map borders
+    drawMapBorders() {
+        const border = this.borderSettings.thickness;
+        const warningDistance = this.borderSettings.warningDistance;
+        const worldWidth = this.world.width;
+        const worldHeight = this.world.height;
+
+        // Save context
+        this.ctx.save();
+
+        // Left border
+        const leftGradient = this.ctx.createLinearGradient(0, border, border, border);
+        leftGradient.addColorStop(0, this.borderSettings.edgeColor);
+        leftGradient.addColorStop(1, this.borderSettings.mainColor);
+
+        this.ctx.fillStyle = leftGradient;
+        this.ctx.fillRect(0, border, border, worldHeight - border * 2);
+
+        // Right border
+        const rightGradient = this.ctx.createLinearGradient(worldWidth - border, border, worldWidth, border);
+        rightGradient.addColorStop(0, this.borderSettings.mainColor);
+        rightGradient.addColorStop(1, this.borderSettings.edgeColor);
+
+        this.ctx.fillStyle = rightGradient;
+        this.ctx.fillRect(worldWidth - border, border, border, worldHeight - border * 2);
+
+        // Top border
+        const topGradient = this.ctx.createLinearGradient(border, 0, border, border);
+        topGradient.addColorStop(0, this.borderSettings.edgeColor);
+        topGradient.addColorStop(1, this.borderSettings.mainColor);
+
+        this.ctx.fillStyle = topGradient;
+        this.ctx.fillRect(border, 0, worldWidth - border * 2, border);
+
+        // Bottom border
+        const bottomGradient = this.ctx.createLinearGradient(border, worldHeight - border, border, worldHeight);
+        bottomGradient.addColorStop(0, this.borderSettings.mainColor);
+        bottomGradient.addColorStop(1, this.borderSettings.edgeColor);
+
+        this.ctx.fillStyle = bottomGradient;
+        this.ctx.fillRect(border, worldHeight - border, worldWidth - border * 2, border);
+
+        // Draw corners
+        // Top-left corner
+        const tlCorner = this.ctx.createLinearGradient(0, 0, border, border);
+        tlCorner.addColorStop(0, this.borderSettings.edgeColor);
+        tlCorner.addColorStop(0.5, this.borderSettings.mainColor);
+
+        this.ctx.fillStyle = tlCorner;
+        this.ctx.fillRect(0, 0, border, border);
+
+        // Top-right corner
+        const trCorner = this.ctx.createLinearGradient(worldWidth - border, 0, worldWidth, border);
+        trCorner.addColorStop(0, this.borderSettings.mainColor);
+        trCorner.addColorStop(0.5, this.borderSettings.edgeColor);
+
+        this.ctx.fillStyle = trCorner;
+        this.ctx.fillRect(worldWidth - border, 0, border, border);
+
+        // Bottom-left corner
+        const blCorner = this.ctx.createLinearGradient(0, worldHeight - border, border, worldHeight);
+        blCorner.addColorStop(0, this.borderSettings.edgeColor);
+        blCorner.addColorStop(0.5, this.borderSettings.mainColor);
+
+        this.ctx.fillStyle = blCorner;
+        this.ctx.fillRect(0, worldHeight - border, border, border);
+
+        // Bottom-right corner
+        const brCorner = this.ctx.createLinearGradient(worldWidth - border, worldHeight - border, worldWidth, worldHeight);
+        brCorner.addColorStop(0, this.borderSettings.mainColor);
+        brCorner.addColorStop(0.5, this.borderSettings.edgeColor);
+
+        this.ctx.fillStyle = brCorner;
+        this.ctx.fillRect(worldWidth - border, worldHeight - border, border, border);
+
+        // Draw inner glow effect for better visibility
+        this.ctx.strokeStyle = this.borderSettings.innerGlowColor;
+        this.ctx.lineWidth = 3;
+
+        // Inner rectangle showing playable area
+        this.ctx.strokeRect(border, border, worldWidth - border * 2, worldHeight - border * 2);
+
+        // Draw warning zone near edges
+        // Left warning zone
+        this.ctx.fillStyle = this.borderSettings.warningColor;
+        this.ctx.fillRect(border, border, warningDistance, worldHeight - border * 2);
+
+        // Right warning zone
+        this.ctx.fillRect(worldWidth - border - warningDistance, border, warningDistance, worldHeight - border * 2);
+
+        // Top warning zone
+        this.ctx.fillRect(border, border, worldWidth - border * 2, warningDistance);
+
+        // Bottom warning zone
+        this.ctx.fillRect(border, worldHeight - border - warningDistance, worldWidth - border * 2, warningDistance);
+
+        // Draw pattern on borders
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+        const patternSize = 20;
+
+        // Left border pattern
+        for (let y = border; y < worldHeight - border; y += patternSize * 2) {
+            for (let x = 0; x < border; x += patternSize) {
+                if ((x + y) % (patternSize * 2) === 0) {
+                    this.ctx.fillRect(x, y, patternSize, patternSize);
+                }
+            }
+        }
+
+        // Right border pattern
+        for (let y = border; y < worldHeight - border; y += patternSize * 2) {
+            for (let x = worldWidth - border; x < worldWidth; x += patternSize) {
+                if ((x + y) % (patternSize * 2) === 0) {
+                    this.ctx.fillRect(x, y, patternSize, patternSize);
+                }
+            }
+        }
+
+        // Top border pattern
+        for (let x = border; x < worldWidth - border; x += patternSize * 2) {
+            for (let y = 0; y < border; y += patternSize) {
+                if ((x + y) % (patternSize * 2) === 0) {
+                    this.ctx.fillRect(x, y, patternSize, patternSize);
+                }
+            }
+        }
+
+        // Bottom border pattern
+        for (let x = border; x < worldWidth - border; x += patternSize * 2) {
+            for (let y = worldHeight - border; y < worldHeight; y += patternSize) {
+                if ((x + y) % (patternSize * 2) === 0) {
+                    this.ctx.fillRect(x, y, patternSize, patternSize);
+                }
+            }
+        }
+
+        this.ctx.restore();
     }
 
     // Draw enemy indicators on screen edges
@@ -3160,6 +3282,8 @@ class TankGame {
         this.ctx.fillText(`Notifications: ${this.notifications.length}`, 10, 520);
         this.ctx.fillText(`Edge Buffer: ${this.rockSettings.edgeBuffer}px`, 10, 540);
         this.ctx.fillText(`Min Passage Width: ${this.rockSettings.minPassageWidth}px`, 10, 560);
+        this.ctx.fillText(`Border Thickness: ${this.borderSettings.thickness}px`, 10, 580);
+        this.ctx.fillText(`Warning Distance: ${this.borderSettings.warningDistance}px`, 10, 600);
 
         this.ctx.restore();
     }
