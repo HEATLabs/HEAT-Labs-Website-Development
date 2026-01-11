@@ -72,7 +72,10 @@ class TankGame {
             irregularity: 0.3,
             spacing: 200,
             color: '#6B7280',
-            colorVariation: 20
+            colorVariation: 20,
+            edgeBuffer: 200,
+            playerBuffer: 300,
+            minPassageWidth: 100
         };
 
         // Health packs configuration
@@ -834,19 +837,30 @@ class TankGame {
         let attempts = 0;
         let rocksGenerated = 0;
 
+        // Calculate minimum safe distance from edges
+        const edgeBuffer = this.rockSettings.edgeBuffer;
+        const maxRockSize = this.rockSettings.maxSize;
+        const minPassageWidth = this.rockSettings.minPassageWidth;
+
+        // Calculate safe spawn boundaries
+        const minX = edgeBuffer + maxRockSize / 2;
+        const maxX = this.world.width - edgeBuffer - maxRockSize / 2;
+        const minY = edgeBuffer + maxRockSize / 2;
+        const maxY = this.world.height - edgeBuffer - maxRockSize / 2;
+
         while (rocksGenerated < this.rockSettings.count && attempts < maxAttempts) {
             attempts++;
 
-            // Generate random position
-            const x = Math.random() * (this.world.width - 100) + 50;
-            const y = Math.random() * (this.world.height - 100) + 50;
+            // Generate random position within safe boundaries
+            const x = Math.random() * (maxX - minX) + minX;
+            const y = Math.random() * (maxY - minY) + minY;
 
             // Avoid spawning rocks too close to player's starting position
             const dx = x - this.playerTank.x;
             const dy = y - this.playerTank.y;
             const distanceToPlayer = Math.sqrt(dx * dx + dy * dy);
 
-            if (distanceToPlayer < 300) {
+            if (distanceToPlayer < this.rockSettings.playerBuffer) {
                 continue; // Too close to player start
             }
 
@@ -865,6 +879,41 @@ class TankGame {
 
             if (tooClose) {
                 continue;
+            }
+
+            // Check if rock is too close to edges considering its size
+            // Left edge
+            if (x - maxRockSize / 2 < edgeBuffer) {
+                continue;
+            }
+            // Right edge
+            if (x + maxRockSize / 2 > this.world.width - edgeBuffer) {
+                continue;
+            }
+            // Top edge
+            if (y - maxRockSize / 2 < edgeBuffer) {
+                continue;
+            }
+            // Bottom edge
+            if (y + maxRockSize / 2 > this.world.height - edgeBuffer) {
+                continue;
+            }
+
+            // Check if rock blocks passage between edges
+            const leftDistance = x - maxRockSize / 2;
+            const rightDistance = this.world.width - (x + maxRockSize / 2);
+            const topDistance = y - maxRockSize / 2;
+            const bottomDistance = this.world.height - (y + maxRockSize / 2);
+
+            // Ensure at least one direction has enough clearance for 2 tanks
+            const hasClearPath = 
+                leftDistance >= minPassageWidth || 
+                rightDistance >= minPassageWidth || 
+                topDistance >= minPassageWidth || 
+                bottomDistance >= minPassageWidth;
+
+            if (!hasClearPath) {
+                continue; // Rock blocks all passages
             }
 
             // Generate rock size
@@ -3109,6 +3158,8 @@ class TankGame {
         this.ctx.fillText(`Obstacle Avoidance: ON`, 10, 480);
         this.ctx.fillText(`Enemy-Enemy Avoidance: ON`, 10, 500);
         this.ctx.fillText(`Notifications: ${this.notifications.length}`, 10, 520);
+        this.ctx.fillText(`Edge Buffer: ${this.rockSettings.edgeBuffer}px`, 10, 540);
+        this.ctx.fillText(`Min Passage Width: ${this.rockSettings.minPassageWidth}px`, 10, 560);
 
         this.ctx.restore();
     }
