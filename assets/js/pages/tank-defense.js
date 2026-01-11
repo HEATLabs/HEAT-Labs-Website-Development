@@ -222,6 +222,17 @@ class TankGame {
         // Animation for indicators
         this.indicatorPhase = 0;
 
+        // Notification system
+        this.notifications = [];
+        this.notificationSettings = {
+            maxNotifications: 5,
+            notificationDuration: 2000,
+            verticalSpacing: 60,
+            minTopPosition: 50,
+            maxTopPosition: 250,
+            initialTopPosition: 80
+        };
+
         this.init();
     }
 
@@ -1113,6 +1124,9 @@ class TankGame {
         // Clear respawn timers
         this.healthPackRespawnTimers = [];
 
+        // Clear all notifications
+        this.clearAllNotifications();
+
         // Hide wave timer
         if (this.waveTimerElement) {
             this.waveTimerElement.style.display = 'none';
@@ -1141,7 +1155,9 @@ class TankGame {
         this.updateUI();
 
         // Show wave start message
-        this.showMessage(`Wave ${this.waveSystem.currentWave} - ${this.waveSystem.waveEnemiesTarget} enemies incoming!`);
+        const enemyCount = this.waveSystem.waveEnemiesTarget;
+        const enemyText = enemyCount === 1 ? 'enemy' : 'enemies';
+        this.showMessage(`Wave ${this.waveSystem.currentWave} - ${enemyCount} ${enemyText} incoming!`);
     }
 
     startNextWave() {
@@ -1164,7 +1180,9 @@ class TankGame {
         this.updateUI();
 
         // Show wave start message
-        this.showMessage(`Wave ${this.waveSystem.currentWave} - ${this.waveSystem.waveEnemiesTarget} enemies incoming!`);
+        const enemyCount = this.waveSystem.waveEnemiesTarget;
+        const enemyText = enemyCount === 1 ? 'enemy' : 'enemies';
+        this.showMessage(`Wave ${this.waveSystem.currentWave} - ${enemyCount} ${enemyText} incoming!`);
     }
 
     // Wave scaling system
@@ -1217,7 +1235,8 @@ class TankGame {
         // Update the spawned count
         this.waveSystem.waveEnemiesSpawned = enemiesThisWave;
 
-        this.showMessage(`Wave ${this.waveSystem.currentWave} has begun! ${enemiesThisWave} new enemies added!`);
+        const enemyText = enemiesThisWave === 1 ? 'enemy' : 'enemies';
+        this.showMessage(`Wave ${this.waveSystem.currentWave} has begun! ${enemiesThisWave} new ${enemyText} added!`);
     }
 
     // Spawn an enemy at a random position on the map
@@ -1394,7 +1413,8 @@ class TankGame {
         } else {
             // Keep current enemies for next wave
             const existingEnemies = this.enemies.length;
-            this.showMessage(`Wave ${this.waveSystem.currentWave} time's up! ${existingEnemies} enemies carry over to next wave.`);
+            const enemyText = existingEnemies === 1 ? 'enemy' : 'enemies';
+            this.showMessage(`Wave ${this.waveSystem.currentWave} time's up! ${existingEnemies} ${enemyText} carry over to next wave.`);
         }
 
         // Start next wave after 3 seconds
@@ -1470,6 +1490,9 @@ class TankGame {
         // Update wave timer display
         this.updateWaveTimerDisplay();
 
+        // Update notifications
+        this.updateNotifications(deltaTime);
+
         // Handle auto-fire
         this.handleAutoFire(deltaTime);
     }
@@ -1487,6 +1510,65 @@ class TankGame {
         if (this.indicatorPhase > Math.PI * 2) {
             this.indicatorPhase -= Math.PI * 2;
         }
+    }
+
+    // Update notifications
+    updateNotifications(deltaTime) {
+        for (let i = this.notifications.length - 1; i >= 0; i--) {
+            const notification = this.notifications[i];
+            notification.life -= deltaTime;
+
+            if (notification.life <= 0) {
+                // Remove notification element
+                if (notification.element && notification.element.parentNode) {
+                    notification.element.parentNode.removeChild(notification.element);
+                }
+                // Remove from array
+                this.notifications.splice(i, 1);
+                // Recalculate positions for remaining notifications
+                this.recalculateNotificationPositions();
+                continue;
+            }
+
+            // Update opacity based on life
+            notification.element.style.opacity = Math.min(notification.life / notification.maxLife, 1);
+        }
+    }
+
+    // Recalculate positions for all notifications
+    recalculateNotificationPositions() {
+        let currentTop = this.notificationSettings.initialTopPosition;
+
+        for (let i = 0; i < this.notifications.length; i++) {
+            const notification = this.notifications[i];
+
+            // Position the notification
+            notification.element.style.top = `${currentTop}px`;
+            notification.topPosition = currentTop;
+
+            // Move to next position
+            currentTop += this.notificationSettings.verticalSpacing;
+
+            // Don't let notifications go too low
+            if (currentTop > this.notificationSettings.maxTopPosition) {
+                // If we run out of space, start removing oldest notifications
+                for (let j = 0; j < i; j++) {
+                    const oldNotification = this.notifications[j];
+                    oldNotification.life = 0; // Mark for removal
+                }
+                break;
+            }
+        }
+    }
+
+    // Clear all notifications
+    clearAllNotifications() {
+        for (const notification of this.notifications) {
+            if (notification.element && notification.element.parentNode) {
+                notification.element.parentNode.removeChild(notification.element);
+            }
+        }
+        this.notifications = [];
     }
 
     // Format time in MM:SS format
@@ -3026,6 +3108,7 @@ class TankGame {
         this.ctx.fillText(`Enemy AI: Turret Tracking ON`, 10, 460);
         this.ctx.fillText(`Obstacle Avoidance: ON`, 10, 480);
         this.ctx.fillText(`Enemy-Enemy Avoidance: ON`, 10, 500);
+        this.ctx.fillText(`Notifications: ${this.notifications.length}`, 10, 520);
 
         this.ctx.restore();
     }
@@ -3155,7 +3238,16 @@ class TankGame {
     }
 
     showMessage(text) {
-        // Create temporary message display
+        // Remove old notifications if we have too many
+        if (this.notifications.length >= this.notificationSettings.maxNotifications) {
+            const oldestNotification = this.notifications[0];
+            if (oldestNotification.element && oldestNotification.element.parentNode) {
+                oldestNotification.element.parentNode.removeChild(oldestNotification.element);
+            }
+            this.notifications.shift();
+        }
+
+        // Create notification element
         const message = document.createElement('div');
         message.textContent = text;
         message.style.cssText = `
@@ -3173,13 +3265,67 @@ class TankGame {
             animation: fadeOut 2s forwards;
         `;
 
+        // Add pulsing animation
+        message.style.animation = 'pulse 2s ease-in-out infinite';
+
+        // Add CSS for pulse animation
+        if (!document.getElementById('notificationPulseStyle')) {
+            const style = document.createElement('style');
+            style.id = 'notificationPulseStyle';
+            style.textContent = `
+                @keyframes pulse {
+                    0% { box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+                                    0 0 0 1px rgba(255, 255, 255, 0.05),
+                                    0 0 20px rgba(76, 175, 80, 0.2); }
+                    50% { box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                                    0 0 0 1px rgba(255, 255, 255, 0.1),
+                                    0 0 30px rgba(76, 175, 80, 0.3); }
+                    100% { box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+                                    0 0 0 1px rgba(255, 255, 255, 0.05),
+                                    0 0 20px rgba(76, 175, 80, 0.2); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
         document.body.appendChild(message);
 
+        // Create notification object
+        const notification = {
+            element: message,
+            life: this.notificationSettings.notificationDuration,
+            maxLife: this.notificationSettings.notificationDuration,
+            topPosition: this.notificationSettings.initialTopPosition
+        };
+
+        // Add to notifications array
+        this.notifications.push(notification);
+
+        // Calculate new position for this notification
+        this.recalculateNotificationPositions();
+
+        // Remove notification after duration
         setTimeout(() => {
             if (message.parentNode) {
-                message.parentNode.removeChild(message);
+                message.style.opacity = '0';
+                message.style.transform = 'translateX(-50%) translateY(-10px)';
+
+                setTimeout(() => {
+                    if (message.parentNode) {
+                        message.parentNode.removeChild(message);
+                    }
+
+                    // Remove from array
+                    const index = this.notifications.indexOf(notification);
+                    if (index > -1) {
+                        this.notifications.splice(index, 1);
+                    }
+
+                    // Recalculate positions for remaining notifications
+                    this.recalculateNotificationPositions();
+                }, 300);
             }
-        }, 2000);
+        }, this.notificationSettings.notificationDuration);
     }
 }
 
