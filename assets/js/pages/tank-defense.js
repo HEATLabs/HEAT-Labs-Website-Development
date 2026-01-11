@@ -184,9 +184,17 @@ class TankGame {
             enemyDespawnDistance: 800,
             enemyCollisionRepulsion: 0.5,
             enemySeparationDistance: 80,
-            enemyObstacleDetectionRange: 150,
+            enemyObstacleDetectionRange: 200,
             enemyPathfindingAttempts: 5,
-            enemySmoothMovement: true
+            enemySmoothMovement: true,
+            enemyAvoidanceForce: 1.5,
+            enemyPursuitForce: 1.0,
+            enemyWanderForce: 0.3,
+            enemyRotationSpeed: 0.05,
+            enemyTurretTrackingSpeed: 0.1,
+            enemyMemorySize: 10,
+            enemyStuckThreshold: 60,
+            enemyStuckEscapeForce: 2.0
         };
 
         // Score configuration
@@ -1316,7 +1324,12 @@ class TankGame {
                 desiredX: x,
                 desiredY: y,
                 // For wave system
-                wave: this.waveSystem.currentWave
+                wave: this.waveSystem.currentWave,
+                stuckTimer: 0,
+                lastPositions: [],
+                wanderAngle: Math.random() * Math.PI * 2,
+                targetRotation: Math.random() * Math.PI * 2,
+                rotationSpeed: this.settings.enemyRotationSpeed + Math.random() * 0.02
             });
 
             return; // Successfully spawned
@@ -1352,7 +1365,12 @@ class TankGame {
             avoidanceForceY: 0,
             desiredX: fallbackX,
             desiredY: fallbackY,
-            wave: this.waveSystem.currentWave
+            wave: this.waveSystem.currentWave,
+            stuckTimer: 0,
+            lastPositions: [],
+            wanderAngle: Math.random() * Math.PI * 2,
+            targetRotation: Math.random() * Math.PI * 2,
+            rotationSpeed: this.settings.enemyRotationSpeed + Math.random() * 0.02
         });
     }
 
@@ -1671,35 +1689,122 @@ class TankGame {
         for (let i = 0; i < this.enemies.length; i++) {
             const enemy = this.enemies[i];
 
-            // Reset avoidance force
-            enemy.avoidanceForceX = 0;
-            enemy.avoidanceForceY = 0;
+            // Track position history for stuck detection
+            enemy.lastPositions.push({
+                x: enemy.x,
+                y: enemy.y
+            });
+            if (enemy.lastPositions.length > this.settings.enemyMemorySize) {
+                enemy.lastPositions.shift();
+            }
 
             // Move toward player
             const dx = this.playerTank.x - enemy.x;
             const dy = this.playerTank.y - enemy.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
-            // Calculate basic movement toward player
-            let desiredX = enemy.x;
-            let desiredY = enemy.y;
-
+            // Update turret rotation to track player
             if (distance > 0) {
-                desiredX = enemy.x + (dx / distance) * enemy.speed;
-                desiredY = enemy.y + (dy / distance) * enemy.speed;
-                enemy.rotation = Math.atan2(dy, dx);
-                enemy.turretRotation = enemy.rotation;
+                const targetTurretAngle = Math.atan2(dy, dx);
+                const angleDiff = this.normalizeAngle(targetTurretAngle - enemy.turretRotation);
+                enemy.turretRotation += angleDiff * this.settings.enemyTurretTrackingSpeed * deltaTimeNormalized;
             }
 
-            // Apply obstacle avoidance
-            this.applyObstacleAvoidance(enemy, desiredX, desiredY);
+            // Calculate pursuit force
+            let pursuitX = 0;
+            let pursuitY = 0;
+            if (distance > 0) {
+                pursuitX = (dx / distance) * this.settings.enemyPursuitForce;
+                pursuitY = (dy / distance) * this.settings.enemyPursuitForce;
+            }
 
-            // Store desired movement with avoidance applied
-            const avoidanceInfluence = 0.3;
-            enemy.desiredX = desiredX * (1 - avoidanceInfluence) +
-                (desiredX + enemy.avoidanceForceX) * avoidanceInfluence;
-            enemy.desiredY = desiredY * (1 - avoidanceInfluence) +
-                (desiredY + enemy.avoidanceForceY) * avoidanceInfluence;
+            // Calculate obstacle avoidance force
+            let avoidanceX = 0;
+            let avoidanceY = 0;
+
+            // Avoid rocks
+            for (const rock of this.rocks) {
+                const rockDx = rock.x - enemy.x;
+                const rockDy = rock.y - enemy.y;
+                const rockDistance = Math.sqrt(rockDx * rockDx + rockDy * rockDy);
+                const minDistance = enemy.width / 2 + rock.radius + 20;
+
+                if (rockDistance < minDistance * 2) {
+                    // Calculate repulsion force
+                    const force = Math.max(0, 1 - (rockDistance / (minDistance * 2)));
+                    avoidanceX -= (rockDx / rockDistance) * force * this.settings.enemyAvoidanceForce;
+                    avoidanceY -= (rockDy / rockDistance) * force * this.settings.enemyAvoidanceForce;
+                }
+            }
+
+            // Avoid other enemies
+            for (let j = 0; j < this.enemies.length; j++) {
+                if (i === j) continue;
+
+                const otherEnemy = this.enemies[j];
+                const enemyDx = otherEnemy.x - enemy.x;
+                const enemyDy = otherEnemy.y - enemy.y;
+                const enemyDistance = Math.sqrt(enemyDx * enemyDx + enemyDy * enemyDy);
+                const minEnemyDistance = enemy.width + 30;
+
+                if (enemyDistance < minEnemyDistance * 1.5) {
+                    // Calculate repulsion force
+                    const force = Math.max(0, 1 - (enemyDistance / (minEnemyDistance * 1.5)));
+                    avoidanceX -= (enemyDx / enemyDistance) * force * this.settings.enemyAvoidanceForce * 0.7;
+                    avoidanceY -= (enemyDy / enemyDistance) * force * this.settings.enemyAvoidanceForce * 0.7;
+                }
+            }
+
+            // Add some wander behavior to prevent clustering
+            enemy.wanderAngle += (Math.random() - 0.5) * 0.5;
+            const wanderX = Math.cos(enemy.wanderAngle) * this.settings.enemyWanderForce;
+            const wanderY = Math.sin(enemy.wanderAngle) * this.settings.enemyWanderForce;
+
+            // Combine forces
+            let desiredX = pursuitX + avoidanceX + wanderX;
+            let desiredY = pursuitY + avoidanceY + wanderY;
+
+            // Normalize desired direction
+            const desiredLength = Math.sqrt(desiredX * desiredX + desiredY * desiredY);
+            if (desiredLength > 0) {
+                desiredX /= desiredLength;
+                desiredY /= desiredLength;
+
+                // Calculate target rotation
+                enemy.targetRotation = Math.atan2(desiredY, desiredX);
+
+                // Smoothly rotate toward target
+                const angleDiff = this.normalizeAngle(enemy.targetRotation - enemy.rotation);
+                enemy.rotation += angleDiff * enemy.rotationSpeed * deltaTimeNormalized;
+
+                // Move in the direction enemy is facing
+                enemy.desiredX = enemy.x + Math.cos(enemy.rotation) * enemy.speed;
+                enemy.desiredY = enemy.y + Math.sin(enemy.rotation) * enemy.speed;
+            }
+
+            // Check if enemy is stuck
+            if (enemy.lastPositions.length >= 5) {
+                const recentPos = enemy.lastPositions[enemy.lastPositions.length - 1];
+                const oldPos = enemy.lastPositions[0];
+                const movedDistance = Math.sqrt(
+                    Math.pow(recentPos.x - oldPos.x, 2) +
+                    Math.pow(recentPos.y - oldPos.y, 2)
+                );
+
+                if (movedDistance < 10) {
+                    enemy.stuckTimer++;
+                    if (enemy.stuckTimer > this.settings.enemyStuckThreshold) {
+                        // Apply escape force in random direction
+                        const escapeAngle = Math.random() * Math.PI * 2;
+                        enemy.desiredX = enemy.x + Math.cos(escapeAngle) * this.settings.enemyStuckEscapeForce;
+                        enemy.desiredY = enemy.y + Math.sin(escapeAngle) * this.settings.enemyStuckEscapeForce;
+                        enemy.stuckTimer = 0;
+                        enemy.lastPositions = []; // Clear position history
+                    }
+                } else {
+                    enemy.stuckTimer = Math.max(0, enemy.stuckTimer - 2);
+                }
+            }
 
             // Enemy shooting
             if (distance < 400) {
@@ -1711,131 +1816,13 @@ class TankGame {
             }
         }
 
-        // Handle enemy-to-enemy collisions
-        this.handleEnemyCollisions();
-
-        // Update positions and check bounds
+        // Handle collisions with rocks after movement
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
 
-            // Apply movement
-            enemy.x = enemy.desiredX;
-            enemy.y = enemy.desiredY;
-
-            // Remove enemies that are out of world bounds
-            const margin = 100;
-            if (enemy.x < -margin || enemy.x > this.world.width + margin ||
-                enemy.y < -margin || enemy.y > this.world.height + margin) {
-                this.enemies.splice(i, 1);
-            }
-        }
-    }
-
-    // Apply obstacle avoidance to enemy movement
-    applyObstacleAvoidance(enemy, desiredX, desiredY) {
-        const detectionRange = this.settings.enemyObstacleDetectionRange;
-        const enemyRadius = enemy.width / 2;
-        const maxAvoidanceForce = enemy.speed * 0.5;
-
-        // Check for nearby rocks
-        for (const rock of this.rocks) {
-            const dx = desiredX - rock.x;
-            const dy = desiredY - rock.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            const minDistance = enemyRadius + rock.radius;
-
-            if (distance < minDistance * 1.5) {
-                // Calculate avoidance force based on proximity
-                const avoidanceStrength = Math.max(0, 1 - (distance / (minDistance * 1.5)));
-                const angle = Math.atan2(dy, dx);
-
-                // Push away from rock
-                const forceX = Math.cos(angle) * avoidanceStrength * maxAvoidanceForce;
-                const forceY = Math.sin(angle) * avoidanceStrength * maxAvoidanceForce;
-
-                enemy.avoidanceForceX += forceX;
-                enemy.avoidanceForceY += forceY;
-            }
-        }
-
-        // Check for nearby health packs (enemies should avoid them too)
-        for (const pack of this.healthPacks) {
-            if (!pack.collected) {
-                const dx = desiredX - pack.x;
-                const dy = desiredY - pack.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                const minDistance = enemyRadius + pack.size / 2;
-
-                if (distance < minDistance * 2) {
-                    // Calculate avoidance force based on proximity
-                    const avoidanceStrength = Math.max(0, 1 - (distance / (minDistance * 2)));
-                    const angle = Math.atan2(dy, dx);
-
-                    // Push away from health pack
-                    const forceX = Math.cos(angle) * avoidanceStrength * maxAvoidanceForce * 0.5;
-                    const forceY = Math.sin(angle) * avoidanceStrength * maxAvoidanceForce * 0.5;
-
-                    enemy.avoidanceForceX += forceX;
-                    enemy.avoidanceForceY += forceY;
-                }
-            }
-        }
-
-        // Limit total avoidance force to prevent enemies from getting stuck
-        const totalAvoidance = Math.sqrt(
-            enemy.avoidanceForceX * enemy.avoidanceForceX +
-            enemy.avoidanceForceY * enemy.avoidanceForceY
-        );
-
-        if (totalAvoidance > maxAvoidanceForce) {
-            const scale = maxAvoidanceForce / totalAvoidance;
-            enemy.avoidanceForceX *= scale;
-            enemy.avoidanceForceY *= scale;
-        }
-    }
-
-    handleEnemyCollisions() {
-        const repulsion = this.settings.enemyCollisionRepulsion;
-        const separationDistance = this.settings.enemySeparationDistance;
-
-        // Check each enemy against every other enemy
-        for (let i = 0; i < this.enemies.length; i++) {
-            const enemy1 = this.enemies[i];
-
-            for (let j = i + 1; j < this.enemies.length; j++) {
-                const enemy2 = this.enemies[j];
-
-                // Calculate distance between enemies
-                const dx = enemy2.x - enemy1.x;
-                const dy = enemy2.y - enemy1.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                // If enemies are too close, push them apart
-                if (distance < separationDistance && distance > 0) {
-                    // Calculate overlap amount
-                    const overlap = separationDistance - distance;
-
-                    // Normalize direction vector
-                    const nx = dx / distance;
-                    const ny = dy / distance;
-
-                    // Apply repulsion force to both enemies
-                    const force = overlap * repulsion * 0.5;
-
-                    // Move enemy1 away from enemy2
-                    enemy1.desiredX -= nx * force;
-                    enemy1.desiredY -= ny * force;
-
-                    // Move enemy2 away from enemy1
-                    enemy2.desiredX += nx * force;
-                    enemy2.desiredY += ny * force;
-                }
-            }
-        }
-
-        // Check enemy collisions with rocks
-        for (const enemy of this.enemies) {
+            // Check collision with rocks
             const enemyRadius = enemy.width / 2;
+            let collisionDetected = false;
 
             for (const rock of this.rocks) {
                 const dx = enemy.desiredX - rock.x;
@@ -1848,17 +1835,34 @@ class TankGame {
                     const angle = Math.atan2(dy, dx);
                     const overlap = minDistance - distance;
 
-                    enemy.desiredX += Math.cos(angle) * overlap * 1.5;
-                    enemy.desiredY += Math.sin(angle) * overlap * 1.5;
-
-                    // Also reduce their desired speed if stuck
-                    const speedReduction = 0.7;
-                    const desiredMovementX = enemy.desiredX - enemy.x;
-                    const desiredMovementY = enemy.desiredY - enemy.y;
-
-                    enemy.desiredX = enemy.x + desiredMovementX * speedReduction;
-                    enemy.desiredY = enemy.y + desiredMovementY * speedReduction;
+                    enemy.desiredX += Math.cos(angle) * overlap * 1.2;
+                    enemy.desiredY += Math.sin(angle) * overlap * 1.2;
+                    collisionDetected = true;
                 }
+            }
+
+            // Apply movement if position changed
+            const moveX = enemy.desiredX - enemy.x;
+            const moveY = enemy.desiredY - enemy.y;
+            const moveDistance = Math.sqrt(moveX * moveX + moveY * moveY);
+
+            if (moveDistance > 0) {
+                // Limit movement to avoid overshooting
+                const maxMove = enemy.speed * 2;
+                if (moveDistance > maxMove) {
+                    enemy.desiredX = enemy.x + (moveX / moveDistance) * maxMove;
+                    enemy.desiredY = enemy.y + (moveY / moveDistance) * maxMove;
+                }
+
+                enemy.x = enemy.desiredX;
+                enemy.y = enemy.desiredY;
+            }
+
+            // Remove enemies that are out of world bounds
+            const margin = 100;
+            if (enemy.x < -margin || enemy.x > this.world.width + margin ||
+                enemy.y < -margin || enemy.y > this.world.height + margin) {
+                this.enemies.splice(i, 1);
             }
         }
     }
@@ -2734,14 +2738,36 @@ class TankGame {
             // Draw health bar
             this.drawHealthBar(enemy);
 
-            // Draw avoidance force indicator (DEBUG)
-            if (this.settings.debugMode && (enemy.avoidanceForceX !== 0 || enemy.avoidanceForceY !== 0)) {
-                this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+            // Draw debug info
+            if (this.settings.debugMode) {
+                // Draw avoidance force indicator
+                if (enemy.avoidanceForceX !== 0 || enemy.avoidanceForceY !== 0) {
+                    this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, 0);
+                    this.ctx.lineTo(enemy.avoidanceForceX * 10, enemy.avoidanceForceY * 10);
+                    this.ctx.stroke();
+                }
+
+                // Draw target rotation indicator
+                this.ctx.strokeStyle = 'rgba(255, 0, 255, 0.5)';
                 this.ctx.lineWidth = 2;
                 this.ctx.beginPath();
                 this.ctx.moveTo(0, 0);
-                this.ctx.lineTo(enemy.avoidanceForceX * 10, enemy.avoidanceForceY * 10);
+                this.ctx.lineTo(
+                    Math.cos(enemy.targetRotation) * 30,
+                    Math.sin(enemy.targetRotation) * 30
+                );
                 this.ctx.stroke();
+
+                // Draw stuck timer
+                if (enemy.stuckTimer > 0) {
+                    this.ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                    this.ctx.font = 'bold 12px Arial';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText(`Stuck: ${enemy.stuckTimer}`, 0, -40);
+                }
             }
 
             this.ctx.restore();
@@ -2997,6 +3023,9 @@ class TankGame {
         this.ctx.fillText(`Survival Time: ${this.formatTime(this.survivalTime)}`, 10, 400);
         this.ctx.fillText(`Enemy Indicators: ${this.enemyIndicators.enabled ? 'ON' : 'OFF'}`, 10, 420);
         this.ctx.fillText(`Indicator Phase: ${this.indicatorPhase.toFixed(2)}`, 10, 440);
+        this.ctx.fillText(`Enemy AI: Turret Tracking ON`, 10, 460);
+        this.ctx.fillText(`Obstacle Avoidance: ON`, 10, 480);
+        this.ctx.fillText(`Enemy-Enemy Avoidance: ON`, 10, 500);
 
         this.ctx.restore();
     }
