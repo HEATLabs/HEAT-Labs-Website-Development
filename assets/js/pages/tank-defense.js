@@ -21,6 +21,8 @@ class TankGame {
         this.isFullscreen = false;
         this.fullscreenControlsVisible = true;
         this.fullscreenControlsTimeout = null;
+        this.survivalTime = 0;
+        this.startTime = 0;
 
         // Auto-fire properties
         this.isMouseDown = false;
@@ -252,6 +254,11 @@ class TankGame {
                 id: 'fullscreenHealthPacks',
                 label: 'Health Packs',
                 value: '0'
+            },
+            {
+                id: 'fullscreenSurvivalTime',
+                label: 'Survival Time',
+                value: '00:00'
             }
         ];
 
@@ -360,7 +367,8 @@ class TankGame {
             fullscreenHealth: this.playerHealth,
             fullscreenEnemies: this.enemies.length,
             fullscreenKills: this.totalKills,
-            fullscreenHealthPacks: this.healthPacksCollected
+            fullscreenHealthPacks: this.healthPacksCollected,
+            fullscreenSurvivalTime: this.formatTime(this.survivalTime)
         };
 
         for (const [id, value] of Object.entries(stats)) {
@@ -972,6 +980,10 @@ class TankGame {
         this.gamePaused = false;
         this.gameOver = false;
 
+        // Start survival timer
+        this.startTime = performance.now();
+        this.survivalTime = 0;
+
         // Position player in center of world
         this.playerTank.x = this.world.width / 2;
         this.playerTank.y = this.world.height / 2;
@@ -1031,6 +1043,8 @@ class TankGame {
         this.healthPacksCollected = 0;
         this.isMouseDown = false;
         this.autoFireTimer = 0;
+        this.survivalTime = 0;
+        this.startTime = 0;
 
         // Reset wave system
         this.waveSystem.currentWave = 1;
@@ -1360,6 +1374,9 @@ class TankGame {
         // Update wave system
         this.updateWaveSystem(deltaTime);
 
+        // Update survival timer
+        this.updateSurvivalTimer(deltaTime);
+
         // Update player movement
         this.updatePlayer(deltaTime);
 
@@ -1401,6 +1418,21 @@ class TankGame {
 
         // Handle auto-fire
         this.handleAutoFire(deltaTime);
+    }
+
+    // Update survival timer
+    updateSurvivalTimer(deltaTime) {
+        if (this.gameRunning && !this.gamePaused && !this.gameOver) {
+            this.survivalTime += deltaTime;
+        }
+    }
+
+    // Format time in MM:SS format
+    formatTime(timeInMilliseconds) {
+        const totalSeconds = Math.floor(timeInMilliseconds / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
 
     // Handle auto-fire when mouse is held down
@@ -2719,6 +2751,7 @@ class TankGame {
         this.ctx.fillText(`Health Packs Collected: ${this.healthPacksCollected}`, 10, 340);
         this.ctx.fillText(`Auto-fire: ${this.isMouseDown ? 'ACTIVE' : 'INACTIVE'}`, 10, 360);
         this.ctx.fillText(`Auto-fire Timer: ${this.autoFireTimer.toFixed(0)}ms`, 10, 380);
+        this.ctx.fillText(`Survival Time: ${this.formatTime(this.survivalTime)}`, 10, 400);
 
         this.ctx.restore();
     }
@@ -2759,6 +2792,49 @@ class TankGame {
         if (healthPacksElement) {
             healthPacksElement.textContent = this.healthPacksCollected;
         }
+
+        // Update survival time
+        const survivalTimeElement = document.getElementById('gameSurvivalTime');
+        if (!survivalTimeElement) {
+            // Create survival time element if it doesn't exist
+            this.createSurvivalTimeElement();
+        } else {
+            survivalTimeElement.textContent = this.formatTime(this.survivalTime);
+        }
+    }
+
+    createSurvivalTimeElement() {
+        // Find the stats container
+        const statsContainer = document.querySelector('.tank-game-stats');
+        if (!statsContainer) return;
+
+        // Check if survival time element already exists
+        if (document.getElementById('gameSurvivalTime')) return;
+
+        // Create survival time stat item
+        const statItem = document.createElement('div');
+        statItem.className = 'stat-item';
+
+        const statValue = document.createElement('div');
+        statValue.className = 'stat-value';
+        statValue.id = 'gameSurvivalTime';
+        statValue.textContent = this.formatTime(this.survivalTime);
+
+        const statLabel = document.createElement('div');
+        statLabel.className = 'stat-label';
+        statLabel.textContent = 'Survival Time';
+
+        statItem.appendChild(statValue);
+        statItem.appendChild(statLabel);
+
+        // Insert after health packs collected stat
+        const healthPacksElement = document.getElementById('healthPacksCollected');
+        if (healthPacksElement && healthPacksElement.parentNode) {
+            healthPacksElement.parentNode.parentNode.insertBefore(statItem, healthPacksElement.parentNode.nextSibling);
+        } else {
+            // If not found, append to the end
+            statsContainer.appendChild(statItem);
+        }
     }
 
     showGameOver() {
@@ -2771,6 +2847,32 @@ class TankGame {
         document.getElementById('finalScore').textContent = this.score;
         document.getElementById('finalWave').textContent = this.waveSystem.currentWave;
         document.getElementById('enemiesKilled').textContent = this.totalKills;
+
+        // Add survival time to game over screen
+        const survivalTimeElement = document.getElementById('finalSurvivalTime');
+        if (!survivalTimeElement) {
+            // Create the element if it doesn't exist
+            const overlayStats = document.querySelector('.overlay-stats');
+            if (overlayStats) {
+                const survivalStat = document.createElement('div');
+                survivalStat.className = 'overlay-stat';
+
+                const statValue = document.createElement('div');
+                statValue.className = 'overlay-stat-value';
+                statValue.id = 'finalSurvivalTime';
+                statValue.textContent = this.formatTime(this.survivalTime);
+
+                const statLabel = document.createElement('div');
+                statLabel.className = 'overlay-stat-label';
+                statLabel.textContent = 'Survival Time';
+
+                survivalStat.appendChild(statValue);
+                survivalStat.appendChild(statLabel);
+                overlayStats.appendChild(survivalStat);
+            }
+        } else {
+            survivalTimeElement.textContent = this.formatTime(this.survivalTime);
+        }
 
         // Hide wave timer
         if (this.waveTimerElement) {
