@@ -5,6 +5,8 @@
         'tiktok': 'https://www.tiktok.com/@heatlabs_official',
         'twitch': 'https://www.twitch.tv/HEATLabs',
         'reddit': 'https://www.reddit.com/r/HEATLabs',
+        'instagram': 'https://www.instagram.com/heatlabs_official',
+        'steam': 'https://store.steampowered.com/app/4318510/HEAT_Labs',
         'twitter': 'https://x.com/HEAT_Labs',
         'github': 'https://github.com/HEATLabs',
         'discord': 'https://discord.heatlabs.net',
