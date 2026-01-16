@@ -1147,3 +1147,32 @@ p {
 	font-size: 0.95rem !important;
 	color: var(--text-secondary);
 }
+
+/* Tournament Bracket */
+.tournament-bracket-canvas-container {
+	position: relative;
+	background-color: var(--card-bg);
+	border-radius: 0.75rem;
+	overflow: hidden;
+	border: 1px solid var(--border-color);
+	box-shadow: var(--shadow);
+	aspect-ratio: 16/9;
+}
+
+/* Fullscreen styles */
+.tournament-bracket-fullscreen .tournament-bracket-canvas-container {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	border-radius: 0;
+	border: none;
+	z-index: 1000;
+	aspect-ratio: auto;
+}
+
+.tournament-bracket-fullscreen .tournament-bracket-container {
+	height: 100vh;
+	overflow: hidden;
+}

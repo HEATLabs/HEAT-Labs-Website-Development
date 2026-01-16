@@ -599,3 +599,83 @@ function initializeImageGallery() {
         }
     }
 }
+
+/* Tournament Bracket */
+
+class TournamentBracket {
+    constructor() {
+        this.canvas = document.getElementById("tournamentBracketCanvas");
+        this.ctx = this.canvas.getContext("2d");;
+        this.container = this.canvas.parentElement;
+        this.init();
+    }
+
+    init() {
+        document.addEventListener('DOMContentLoaded', () => {
+            this.setupBracket()
+        });
+    }
+
+    setupBracket(){
+        this.canvas.width = this.container.clientWidth;
+        this.canvas.height = this.container.clientHeight;
+        this.drawBackground()
+        this.drawGrid()
+        this.drawText()
+        this.renderMatchBox()
+
+        window.addEventListener('resize', () => {
+            this.setupBracket();
+        });
+    }
+
+    drawBackground() {
+        // Clear canvas
+        this.ctx.fillStyle = '#1a1a1a';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    drawGrid() {
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        this.ctx.lineWidth = 1;
+
+        const gridSize = 50;
+
+        // Draw vertical lines
+        for (let x = 0; x <= this.canvas.width; x += gridSize) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, 0);
+            this.ctx.lineTo(x, this.canvas.height);
+            this.ctx.stroke();
+        }
+
+        // Draw horizontal lines
+        for (let y = 0; y <= this.canvas.height; y += gridSize) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, y);
+            this.ctx.lineTo(this.canvas.width, y);
+            this.ctx.stroke();
+        }
+    }
+    drawText() {
+        this.ctx.font = " 48px Montserrat";
+        this.ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-dark");
+        this.ctx.fillText("Team 1 Name goes here", 10,50, this.canvas.width);
+        this.ctx.fillText("Team 2 Name goes here", 10,120, this.canvas.width);
+    }
+    renderMatchBox(){
+    const boxWidth = 110;
+    const boxHeight = 50;
+
+    const strokeColor = getComputedStyle(document.body).getPropertyValue("--text-dark").trim();
+    this.ctx.strokeStyle = strokeColor;
+    this.ctx.lineWidth = 1;
+
+    // Boxes
+        this.ctx.strokeRect(0, 10, boxWidth, boxHeight);
+        this.ctx.strokeRect(0, 60, boxWidth, boxHeight);
+    }
+
+}
+
+const tournamentBracket = new TournamentBracket();
