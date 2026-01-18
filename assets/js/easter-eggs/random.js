@@ -23,7 +23,10 @@
         "Trying to find which castle the princess is actually in.",
         "We checked. Twice. Still not here.",
         "Current Objective: Survive.",
-        "Inserting disc two."
+        "Inserting disc two.",
+        "We don't know how this works.",
+        "Nothing is broken if we cant tell its broken.",
+        "Why are you reading this?"
     ];
 
     // Update the h1 tag
