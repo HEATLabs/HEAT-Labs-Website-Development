@@ -605,34 +605,135 @@ function initializeImageGallery() {
 class TournamentBracket {
     constructor() {
         this.canvas = document.getElementById("tournamentBracketCanvas");
-        this.ctx = this.canvas.getContext("2d");;
+        this.ctx = this.canvas.getContext("2d");
         this.container = this.canvas.parentElement;
+
+        // Drag stuff
+        this.isDragging = false;
+        this.startX = 0;
+        this.startY = 0;
+        this.offsetX = 0;
+        this.offsetY = 0;
+
+        // Zoom stuff
+        this.minZoom = 0.5;
+        this.maxZoom = 3;
+        this.defaultZoom = 1;
+        this.zoomSpeed = 0.1;
+
         this.init();
     }
 
     init() {
         document.addEventListener('DOMContentLoaded', () => {
-            this.setupBracket()
+            this.setupBracket();
+            this.setupDrag();
+            this.setupZoom();
         });
     }
 
     setupBracket(){
         this.canvas.width = this.container.clientWidth;
         this.canvas.height = this.container.clientHeight;
-        this.drawBackground()
-        this.drawGrid()
-        this.drawText()
-        this.renderMatchBox()
+        this.draw();
 
         window.addEventListener('resize', () => {
-            this.setupBracket();
+            this.canvas.width = this.container.clientWidth;
+            this.canvas.height = this.container.clientHeight;
+            this.draw();
         });
     }
 
+    setupDrag(){
+        this.canvas.addEventListener('mousedown', (event) => {
+            this.isDragging = true;
+            this.startX = event.clientX - this.offsetX;
+            this.startY = event.clientY - this.offsetY;
+        });
+
+        this.canvas.addEventListener('mousemove', (event) => {
+            if (!this.isDragging) return;
+
+            this.offsetX = event.clientX - this.startX;
+            this.offsetY = event.clientY - this.startY;
+            this.draw();
+        });
+
+        this.canvas.addEventListener('mouseup', () => {
+            this.isDragging = false;
+        });
+
+        this.canvas.addEventListener('mouseleave', () => {
+            this.isDragging = false;
+        });
+    }
+
+    setupZoom() {
+        this.canvas.addEventListener('wheel', (event) => {
+            event.preventDefault();
+
+            const rect = this.canvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+
+            const zoomDirection = event.deltaY > 0 ? -1 : 1;
+
+            const zoomFactor = 1 + (zoomDirection * this.zoomSpeed);
+            const newZoom = this.defaultZoom * zoomFactor;
+
+            if (newZoom < this.minZoom || newZoom > this.maxZoom) {
+                return;
+            }
+
+            const worldX = (mouseX - this.offsetX) / this.defaultZoom;
+            const worldY = (mouseY - this.offsetY) / this.defaultZoom;
+
+            this.defaultZoom = newZoom;
+
+            this.offsetX = mouseX - worldX * this.defaultZoom;
+            this.offsetY = mouseY - worldY * this.defaultZoom;
+
+            this.draw();
+        })
+    }
+
+    draw(){
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        this.ctx.save();
+        this.ctx.translate(this.offsetX, this.offsetY);
+        this.ctx.scale(this.defaultZoom, this.defaultZoom)
+
+        this.drawBackground();
+        this.drawGrid();
+        this.drawText();
+        this.renderMatchBox();
+
+        this.ctx.restore();
+
+        this.drawZoomIndicator();
+    }
+
+    drawZoomIndicator() {
+        this.ctx.save();
+        this.ctx.resetTransform();
+
+        this.ctx.font = '18px Montserrat';
+        this.ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-dark");
+        this.ctx.stroke();
+        this.ctx.textAlign = 'left';
+        this.ctx.fillText(`Zoom: ${Math.round(this.defaultZoom * 100)}%`, 10, 25);
+        this.ctx.fillText(`Canvas Size (X,Y) ${(this.canvas.width)}, ${(this.canvas.height)}`, 10, 50);
+
+        this.ctx.restore();
+    }
+
     drawBackground() {
-        // Clear canvas
+        const bgWidth = this.canvas.width * 2;
+        const bgHeight = this.canvas.height * 2;
+
         this.ctx.fillStyle = '#1a1a1a';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillRect(0, 0, bgWidth, bgHeight);
     }
 
     drawGrid() {
@@ -640,20 +741,22 @@ class TournamentBracket {
         this.ctx.lineWidth = 1;
 
         const gridSize = 50;
+        const gridWidth = (Math.round(this.canvas.width * 2));
+        const gridHeight = (Math.round(this.canvas.height * 2));
 
         // Draw vertical lines
-        for (let x = 0; x <= this.canvas.width; x += gridSize) {
+        for (let x = 0; x <= gridWidth; x += gridSize) {
             this.ctx.beginPath();
             this.ctx.moveTo(x, 0);
-            this.ctx.lineTo(x, this.canvas.height);
+            this.ctx.lineTo(x, gridHeight);
             this.ctx.stroke();
         }
 
         // Draw horizontal lines
-        for (let y = 0; y <= this.canvas.height; y += gridSize) {
+        for (let y = 0; y <= gridHeight; y += gridSize) {
             this.ctx.beginPath();
             this.ctx.moveTo(0, y);
-            this.ctx.lineTo(this.canvas.width, y);
+            this.ctx.lineTo(gridWidth, y);
             this.ctx.stroke();
         }
     }
