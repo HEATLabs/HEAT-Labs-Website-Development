@@ -4,7 +4,7 @@ let tanksData = [];
 // Load tanks data
 async function loadTanksData() {
     try {
-        const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images-Configs/refs/heads/main/tanks.json');
+        const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Image-Configs/refs/heads/main/tanks.json');
         if (!response.ok) {
             throw new Error('Failed to fetch tanks data');
         }
@@ -618,7 +618,7 @@ class TournamentBracket {
         // Zoom stuff
         this.minZoom = 0.5;
         this.maxZoom = 3;
-        this.defaultZoom = 1;
+        this.currentZoom = 1;
         this.zoomSpeed = 0.1;
 
         this.init();
@@ -649,22 +649,25 @@ class TournamentBracket {
             this.isDragging = true;
             this.startX = event.clientX - this.offsetX;
             this.startY = event.clientY - this.offsetY;
-        });
 
-        this.canvas.addEventListener('mousemove', (event) => {
-            if (!this.isDragging) return;
+            // Define global handlers
+            const handleGlobalMouseMove = (e) => {
+                if (!this.isDragging) return;
+                this.offsetX = e.clientX - this.startX;
+                this.offsetY = e.clientY - this.startY;
+                this.draw();
+            };
 
-            this.offsetX = event.clientX - this.startX;
-            this.offsetY = event.clientY - this.startY;
-            this.draw();
-        });
+            const handleGlobalMouseUp = () => {
+                if (!this.isDragging) return;
+                this.isDragging = false;
+                document.removeEventListener('mousemove', handleGlobalMouseMove);
+                document.removeEventListener('mouseup', handleGlobalMouseUp);
+            };
 
-        this.canvas.addEventListener('mouseup', () => {
-            this.isDragging = false;
-        });
-
-        this.canvas.addEventListener('mouseleave', () => {
-            this.isDragging = false;
+            // Add event handlers
+            document.addEventListener('mousemove', handleGlobalMouseMove);
+            document.addEventListener('mouseup', handleGlobalMouseUp);
         });
     }
 
@@ -679,19 +682,19 @@ class TournamentBracket {
             const zoomDirection = event.deltaY > 0 ? -1 : 1;
 
             const zoomFactor = 1 + (zoomDirection * this.zoomSpeed);
-            const newZoom = this.defaultZoom * zoomFactor;
+            const newZoom = this.currentZoom * zoomFactor;
 
             if (newZoom < this.minZoom || newZoom > this.maxZoom) {
                 return;
             }
 
-            const worldX = (mouseX - this.offsetX) / this.defaultZoom;
-            const worldY = (mouseY - this.offsetY) / this.defaultZoom;
+            const worldX = (mouseX - this.offsetX) / this.currentZoom;
+            const worldY = (mouseY - this.offsetY) / this.currentZoom;
 
-            this.defaultZoom = newZoom;
+            this.currentZoom = newZoom;
 
-            this.offsetX = mouseX - worldX * this.defaultZoom;
-            this.offsetY = mouseY - worldY * this.defaultZoom;
+            this.offsetX = mouseX - worldX * this.currentZoom;
+            this.offsetY = mouseY - worldY * this.currentZoom;
 
             this.draw();
         })
@@ -702,7 +705,7 @@ class TournamentBracket {
 
         this.ctx.save();
         this.ctx.translate(this.offsetX, this.offsetY);
-        this.ctx.scale(this.defaultZoom, this.defaultZoom)
+        this.ctx.scale(this.currentZoom, this.currentZoom)
 
         this.drawBackground();
         this.drawGrid();
@@ -722,7 +725,7 @@ class TournamentBracket {
         this.ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-dark");
         this.ctx.stroke();
         this.ctx.textAlign = 'left';
-        this.ctx.fillText(`Zoom: ${Math.round(this.defaultZoom * 100)}%`, 10, 25);
+        this.ctx.fillText(`Zoom: ${Math.round(this.currentZoom * 100)}%`, 10, 25);
         this.ctx.fillText(`Canvas Size (X,Y) ${(this.canvas.width)}, ${(this.canvas.height)}`, 10, 50);
 
         this.ctx.restore();
