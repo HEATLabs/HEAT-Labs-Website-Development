@@ -629,6 +629,7 @@ class TournamentBracket {
             this.setupBracket();
             this.setupDrag();
             this.setupZoom();
+            this.createControlsUI();
         });
     }
 
@@ -700,6 +701,13 @@ class TournamentBracket {
         })
     }
 
+    resetZoom(){
+        this.currentZoom = 1;
+        this.offsetX = 0;
+        this.offsetY = 0;
+        this.draw();
+    }
+
     draw(){
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -722,7 +730,7 @@ class TournamentBracket {
         this.ctx.resetTransform();
 
         this.ctx.font = '18px Montserrat';
-        this.ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-dark");
+        this.ctx.fillStyle = '#00ff00'
         this.ctx.stroke();
         this.ctx.textAlign = 'left';
         this.ctx.fillText(`Zoom: ${Math.round(this.currentZoom * 100)}%`, 10, 25);
@@ -780,6 +788,32 @@ class TournamentBracket {
     // Boxes
         this.ctx.strokeRect(0, 10, boxWidth, boxHeight);
         this.ctx.strokeRect(0, 60, boxWidth, boxHeight);
+    }
+
+    createControlsUI() {
+        // Create controls container
+        const controlsContainer = document.createElement('div');
+        controlsContainer.className = 'tournament-bracket-controls';
+
+        // Reset view button
+        const resetBtn = document.createElement('button');
+        resetBtn.className = 'tournament-control-btn';
+        resetBtn.innerHTML = '<i class="fas fa-home"></i>';
+        resetBtn.title = 'Reset View';
+        resetBtn.addEventListener('click', () => this.resetZoom());
+
+
+        // Fullscreen button
+        // const fullscreenBtn = document.createElement('button');
+        // fullscreenBtn.className = 'model-control-btn';
+        // fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+        // fullscreenBtn.title = 'Enter Fullscreen';
+        // fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+
+        controlsContainer.appendChild(resetBtn);
+        // controlsContainer.appendChild(fullscreenBtn);
+
+        this.container.appendChild(controlsContainer);
     }
 
 }

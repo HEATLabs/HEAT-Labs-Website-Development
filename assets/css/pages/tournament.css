@@ -1176,3 +1176,43 @@ p {
 	height: 100vh;
 	overflow: hidden;
 }
+
+/* Tournament Bracket Controls */
+.tournament-bracket-controls {
+	position: absolute;
+	bottom: 1rem;
+	left: 50%;
+	transform: translateX(-50%);
+	display: flex;
+	gap: 0.5rem;
+	background-color: rgba(0, 0, 0, 0.7);
+	padding: 0.75rem;
+	border-radius: 2rem;
+	backdrop-filter: blur(10px);
+	z-index: 10;
+}
+
+.tournament-control-btn {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background-color: var(--accent-color);
+	color: white;
+	border: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	font-size: 1rem;
+}
+
+.tournament-control-btn:hover {
+	background-color: var(accent-color-hover);
+	transform: scale(1.1);
+}
+
+.tournament-control-btn.active {
+	background-color: var(accent-color-light);
+	box-shadow: 0 0 0 2px white;
+}
