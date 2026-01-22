@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Fetch tank data from JSON file
     async function fetchTankData() {
         try {
-            const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images-Configs/refs/heads/main/tanks.json');
+            const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/tanks.json');
             if (!response.ok) {
                 throw new Error('Failed to load tank data');
             }
