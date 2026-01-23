@@ -703,6 +703,17 @@ class TournamentBracket {
 
     resetZoom(){
         this.currentZoom = 1;
+        this.draw();
+    }
+
+    resetView(){
+        this.currentZoom = 1;
+        this.offsetX = 0;
+        this.offsetY = 0;
+        this.draw();
+    }
+
+    resetPosition(){
         this.offsetX = 0;
         this.offsetY = 0;
         this.draw();
@@ -738,6 +749,85 @@ class TournamentBracket {
 
         this.ctx.restore();
     }
+
+    toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            this.enterFullscreen();
+        } else {
+            this.exitFullscreen();
+        }
+    }
+
+    enterFullscreen() {
+        // Store current dimensions before entering fullscreen
+        this.originalWidth = this.container.clientWidth;
+        this.originalHeight = this.container.clientHeight;
+
+        this.container.classList.add('fullscreen-tournament-bracket');
+
+        if (this.container.requestFullscreen) {
+            this.container.requestFullscreen();
+        } else if (this.container.webkitRequestFullscreen) {
+            this.container.webkitRequestFullscreen();
+        } else if (this.container.msRequestFullscreen) {
+            this.container.msRequestFullscreen();
+        }
+
+        // Add close button for fullscreen
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'fullscreen-close';
+        closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+        closeBtn.addEventListener('click', () => this.exitFullscreen());
+        this.container.appendChild(closeBtn);
+
+        // Force resize after a brief delay to ensure fullscreen is active
+        setTimeout(() => {
+            this.onWindowResize();
+        }, 100);
+    }
+
+    exitFullscreen() {
+        // Exit fullscreen first
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+
+        // Remove fullscreen class
+        this.container.classList.remove('fullscreen-tournament-bracket');
+
+        // Remove close button
+        const closeBtn = this.container.querySelector('.fullscreen-close');
+        if (closeBtn) {
+            closeBtn.remove();
+        }
+
+        // Restore original dimensions and trigger resize
+        this.restoreOriginalSize();
+    }
+
+    restoreOriginalSize() {
+        if (!this.draw) return;
+
+        // Use a small delay to ensure the DOM has updated
+        setTimeout(() => {
+            const width = this.originalWidth || this.container.clientWidth;
+            const height = this.originalHeight || this.container.clientHeight;
+
+            this.canvas.width = width;
+            this.canvas.height = height;
+
+            // Force a render update
+            if (this.draw) {
+                this.draw()
+            }
+        }, 50);
+    }
+
+
 
     drawBackground() {
         const bgWidth = this.canvas.width * 2;
@@ -796,22 +886,35 @@ class TournamentBracket {
         controlsContainer.className = 'tournament-bracket-controls';
 
         // Reset view button
-        const resetBtn = document.createElement('button');
-        resetBtn.className = 'tournament-control-btn';
-        resetBtn.innerHTML = '<i class="fas fa-home"></i>';
-        resetBtn.title = 'Reset View';
-        resetBtn.addEventListener('click', () => this.resetZoom());
+        const resetViewAll = document.createElement('button');
+        resetViewAll.className = 'tournament-control-btn';
+        resetViewAll.innerHTML = '<i class="fas fa-home"></i>';
+        resetViewAll.title = 'Reset View';
+        resetViewAll.addEventListener('click', () => this.resetView());
 
+        const resetZoom = document.createElement('button');
+        resetZoom.className = 'tournament-control-btn';
+        resetZoom.innerHTML = '<i class="fa-solid fa-magnifying-glass-minus"></i>';
+        resetZoom.title = 'Reset Zoom';
+        resetZoom.addEventListener('click', () => this.resetZoom());
+
+        const resetPosition = document.createElement('button');
+        resetPosition.className = 'tournament-control-btn';
+        resetPosition.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i>';
+        resetPosition.title = 'Reset Position';
+        resetPosition.addEventListener('click', () => this.resetPosition());
 
         // Fullscreen button
-        // const fullscreenBtn = document.createElement('button');
-        // fullscreenBtn.className = 'model-control-btn';
-        // fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
-        // fullscreenBtn.title = 'Enter Fullscreen';
-        // fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'tournament-control-btn';
+        fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+        fullscreenBtn.title = 'Enter Fullscreen';
+        fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
 
-        controlsContainer.appendChild(resetBtn);
-        // controlsContainer.appendChild(fullscreenBtn);
+        controlsContainer.appendChild(resetViewAll);
+        controlsContainer.appendChild(resetZoom);
+        controlsContainer.appendChild(resetPosition);
+        controlsContainer.appendChild(fullscreenBtn);
 
         this.container.appendChild(controlsContainer);
     }
