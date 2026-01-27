@@ -100,6 +100,7 @@
 /* Search and theme toggle buttons */
 .search-button,
 .system-status,
+.login-button,
 .settings-button {
 	width: 40px;
 	height: 40px;
@@ -117,6 +118,7 @@
 
 .system-status:hover,
 .search-button:hover,
+.login-button:hover,
 .settings-button:hover {
 	background-color: var(--accent-color-light);
 	color: var(--accent-color);
