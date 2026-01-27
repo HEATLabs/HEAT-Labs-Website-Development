@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('click', handleBypassIndicatorClick);
 
     // Function to show the WIP modal
-    function showWipModal(event, href, isBypass = false) {
+    function showWipModal(event, href, isBypass = false, elementType = 'link') {
         // Prevent default action immediately
         if (event) {
             event.preventDefault();
@@ -148,16 +148,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 const visitBtn = document.getElementById('wipModalVisit');
 
                 // Remove any existing listeners to prevent duplicates
-                cancelBtn.replaceWith(cancelBtn.cloneNode(true));
-                visitBtn.replaceWith(visitBtn.cloneNode(true));
+                if (cancelBtn) cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+                if (visitBtn) visitBtn.replaceWith(visitBtn.cloneNode(true));
 
                 // Add fresh event listeners
                 document.getElementById('wipModalCancel').addEventListener('click', closeWipModal, {
                     once: true
                 });
                 document.getElementById('wipModalVisit').addEventListener('click', function() {
-                    // Navigate to the page
-                    window.location.href = href;
+                    // Navigate to the page or execute the button's original action
+                    if (href && elementType === 'link') {
+                        window.location.href = href;
+                    } else if (elementType === 'login-button') {
+                        // If it's the login button with bypass, allow it to open
+                        const openLoginBtn = document.getElementById('openLogin');
+                        if (openLoginBtn) {
+                            // Trigger the original login modal function
+                            const originalEvent = new Event('click');
+                            openLoginBtn.dispatchEvent(originalEvent);
+                        }
+                    }
+                    closeWipModal();
                 }, {
                     once: true
                 });
@@ -173,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Add event listener for Got It button
                 const gotItBtn = document.getElementById('wipModalGotIt');
-                gotItBtn.replaceWith(gotItBtn.cloneNode(true));
+                if (gotItBtn) gotItBtn.replaceWith(gotItBtn.cloneNode(true));
                 document.getElementById('wipModalGotIt').addEventListener('click', closeWipModal, {
                     once: true
                 });
@@ -216,6 +227,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Special handler for the login button
+    function handleLoginButtonWip(e) {
+        const href = this.getAttribute('href') || '';
+        showWipModal(e, href, true, 'login-button');
+    }
+
     // Optimized function to handle WIP element clicks
     function handleWipClick(e) {
         const href = this.getAttribute('href');
@@ -227,27 +244,51 @@ document.addEventListener('DOMContentLoaded', function() {
         const wipElements = document.querySelectorAll('.wip');
 
         wipElements.forEach(element => {
-            // Remove existing listeners to prevent duplicates
-            element.removeEventListener('click', handleWipClick);
-
+            // Check if it's the login button specifically
+            if (element.id === 'openLogin' || element.classList.contains('login-button')) {
+                // Remove existing listeners to prevent duplicates
+                element.removeEventListener('click', handleLoginButtonWip);
+                element.addEventListener('click', handleLoginButtonWip);
+            }
             // Check if element is a link or has an href attribute
-            if (element.tagName === 'A' && element.getAttribute('href')) {
+            else if (element.tagName === 'A' && element.getAttribute('href')) {
+                element.removeEventListener('click', handleWipClick);
                 element.addEventListener('click', handleWipClick);
             }
             // Check if element is a button that might navigate
             else if (element.tagName === 'BUTTON' && (element.onclick || element.getAttribute('onclick'))) {
+                element.removeEventListener('click', handleWipClick);
                 element.addEventListener('click', function(e) {
                     showWipModal(e, '', true);
                 });
             }
             // For other elements, check if they have a data-href attribute
             else if (element.getAttribute('data-href')) {
+                element.removeEventListener('click', handleWipClick);
                 element.addEventListener('click', function(e) {
                     const href = this.getAttribute('data-href');
                     showWipModal(e, href, true);
                 });
             }
+            // For any other elements with wip class
+            else {
+                element.removeEventListener('click', handleWipClick);
+                element.addEventListener('click', function(e) {
+                    showWipModal(e, '', true);
+                });
+            }
         });
+
+        // Override the login button event listener
+        const openLoginBtn = document.getElementById('openLogin');
+        if (openLoginBtn && openLoginBtn.classList.contains('wip')) {
+            // Remove any existing event listeners
+            const newOpenLoginBtn = openLoginBtn.cloneNode(true);
+            openLoginBtn.parentNode.replaceChild(newOpenLoginBtn, openLoginBtn);
+
+            // Add WIP handler
+            document.getElementById('openLogin').addEventListener('click', handleLoginButtonWip);
+        }
     }
 
     // Initialize WIP elements
