@@ -369,8 +369,7 @@ class HeatLabsContextMenu {
         const socialRow = document.createElement('div');
         socialRow.className = 'heatlabs-context-menu-social-row';
 
-        const socialLinks = [
-            {
+        const socialLinks = [{
                 platform: 'github',
                 icon: 'fab fa-github',
                 url: 'https://github.com/HEATLabs',

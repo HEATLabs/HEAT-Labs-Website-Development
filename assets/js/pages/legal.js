@@ -8,7 +8,9 @@ async function fetchViewCount(pageName) {
         return await response.json();
     } catch (error) {
         console.error('Error loading view count:', error);
-        return { totalViews: 0 }; // Return 0 if there's an error
+        return {
+            totalViews: 0
+        }; // Return 0 if there's an error
     }
 }
 

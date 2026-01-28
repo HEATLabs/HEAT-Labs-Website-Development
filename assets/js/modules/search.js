@@ -114,7 +114,9 @@ document.addEventListener('DOMContentLoaded', function() {
             tag.title = search; // Show full text on hover
             tag.addEventListener('click', function() {
                 searchInput.value = search;
-                const event = new Event('input', { bubbles: true });
+                const event = new Event('input', {
+                    bubbles: true
+                });
                 searchInput.dispatchEvent(event);
                 searchInput.focus();
             });
@@ -147,7 +149,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            return { ...page, score };
+            return {
+                ...page,
+                score
+            };
         });
 
         // Filter out zero-score results and sort by score

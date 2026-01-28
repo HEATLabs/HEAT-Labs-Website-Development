@@ -455,8 +455,12 @@ document.addEventListener('DOMContentLoaded', function() {
             item.addEventListener('dragend', dragEnd);
 
             // Touch events
-            item.addEventListener('touchstart', handleTouchStart, { passive: false });
-            item.addEventListener('touchmove', handleTouchMove, { passive: false });
+            item.addEventListener('touchstart', handleTouchStart, {
+                passive: false
+            });
+            item.addEventListener('touchmove', handleTouchMove, {
+                passive: false
+            });
             item.addEventListener('touchend', handleTouchEnd);
         });
 
@@ -468,7 +472,9 @@ document.addEventListener('DOMContentLoaded', function() {
             container.addEventListener('drop', drop);
 
             // Touch events
-            container.addEventListener('touchmove', handleContainerTouchMove, { passive: false });
+            container.addEventListener('touchmove', handleContainerTouchMove, {
+                passive: false
+            });
             container.addEventListener('touchend', handleContainerTouchEnd);
         });
     }
@@ -519,11 +525,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 const offset = dropY - box.top - box.height / 2;
 
                 if (offset < 0 && offset > closest.offset) {
-                    return { offset: offset, element: child };
+                    return {
+                        offset: offset,
+                        element: child
+                    };
                 } else {
                     return closest;
                 }
-            }, { offset: Number.NEGATIVE_INFINITY });
+            }, {
+                offset: Number.NEGATIVE_INFINITY
+            });
 
             if (closestItem.element) {
                 this.insertBefore(draggedItem, closestItem.element);

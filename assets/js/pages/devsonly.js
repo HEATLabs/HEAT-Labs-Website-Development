@@ -460,27 +460,27 @@ function runLatencyTest(testElement) {
 
     const startTime = performance.now();
     fetch('https://api.github.com', {
-        method: 'HEAD',
-        cache: 'no-store'
-    })
-    .then(() => {
-        const latency = Math.round(performance.now() - startTime);
-        logTestMessage(testElement, `Ping to GitHub completed in ${latency}ms`);
-        setTestResults(testElement, `Latency: ${latency}ms`);
+            method: 'HEAD',
+            cache: 'no-store'
+        })
+        .then(() => {
+            const latency = Math.round(performance.now() - startTime);
+            logTestMessage(testElement, `Ping to GitHub completed in ${latency}ms`);
+            setTestResults(testElement, `Latency: ${latency}ms`);
 
-        if (latency < 100) {
-            updateTestStatus(testElement, 'green');
-        } else if (latency < 300) {
-            updateTestStatus(testElement, 'yellow');
-        } else {
+            if (latency < 100) {
+                updateTestStatus(testElement, 'green');
+            } else if (latency < 300) {
+                updateTestStatus(testElement, 'yellow');
+            } else {
+                updateTestStatus(testElement, 'red');
+            }
+        })
+        .catch(error => {
+            logTestMessage(testElement, `Error: ${error.message}`);
+            setTestResults(testElement, 'Failed to ping GitHub');
             updateTestStatus(testElement, 'red');
-        }
-    })
-    .catch(error => {
-        logTestMessage(testElement, `Error: ${error.message}`);
-        setTestResults(testElement, 'Failed to ping GitHub');
-        updateTestStatus(testElement, 'red');
-    });
+        });
 }
 
 function clearLatencyTest(testElement) {
@@ -966,7 +966,9 @@ function runSaveFileTest(testElement) {
     const jsonData = JSON.stringify(mockSaveData, null, 2);
 
     // Create download link
-    const blob = new Blob([jsonData], { type: 'application/json' });
+    const blob = new Blob([jsonData], {
+        type: 'application/json'
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

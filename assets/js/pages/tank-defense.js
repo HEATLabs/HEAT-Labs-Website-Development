@@ -456,7 +456,10 @@ class TankGame {
             this.buttonElements.fullscreen = document.getElementById('fullscreenGame');
         }
 
-        const { pause, fullscreen } = this.buttonElements;
+        const {
+            pause,
+            fullscreen
+        } = this.buttonElements;
 
         if (!pause || !fullscreen) return;
 

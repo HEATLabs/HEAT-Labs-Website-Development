@@ -16,7 +16,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Format date from YYYY-MM-DD to DD Month, YYYY
     function formatDate(dateString) {
         const date = new Date(dateString);
-        const options = { day: 'numeric', month: 'long', year: 'numeric' };
+        const options = {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        };
         return date.toLocaleDateString('en-US', options);
     }
 

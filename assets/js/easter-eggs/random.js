@@ -26,7 +26,7 @@
         "Inserting disc two.",
         "We don't know how this works.",
         "Nothing is broken if we cant tell its broken.",
-        "Why are you reading this?",,
+        "Why are you reading this?",
         "This is why we can't have nice things.",
         "Deploying optimism.",
         "Stand by for mild disappointment.",

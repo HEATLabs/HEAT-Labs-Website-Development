@@ -166,12 +166,12 @@ function updateTournamentsDisplay() {
 // Fetch tournament data from JSON file
 async function fetchTournamentData() {
     try {
-        let dataURL = "https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images-Configs/refs/heads/main/tournaments-dev.json" ;
+        let dataURL = "https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images-Configs/refs/heads/main/tournaments-dev.json";
 
         // For use in Dev Env
         if (debugTournamentCards === true) {
             //dataURL = "../HEAT-Labs-Configs/tournaments-dev.json";
-            dataURL = "https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/tournaments-dev.json" ;
+            dataURL = "https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/tournaments-dev.json";
         }
 
         const response = await fetch(dataURL);
@@ -228,11 +228,11 @@ async function updateTournamentViewCounters() {
 // Determine Glare color to use based on tournament ID
 function getGlareColor(tournamentId) {
     const colorMap = {
-        '1': 'rgba(255, 148, 40, 0.3)',    // Orange-ish
-        '2': 'rgba(192, 192, 192, 0.3)',     // White-ish
-        '3': 'rgba(100, 255, 150, 0.3)',    // Test Color
-        '4': 'rgba(255, 200, 100, 0.3)',    // Test Color 2
-        '5': 'rgba(200, 100, 255, 0.3)',    // Test Color 3
+        '1': 'rgba(255, 148, 40, 0.3)', // Orange-ish
+        '2': 'rgba(192, 192, 192, 0.3)', // White-ish
+        '3': 'rgba(100, 255, 150, 0.3)', // Test Color
+        '4': 'rgba(255, 200, 100, 0.3)', // Test Color 2
+        '5': 'rgba(200, 100, 255, 0.3)', // Test Color 3
     };
 
     // Check if we have a direct match
@@ -263,12 +263,18 @@ function createTournamentCard(tournament) {
     const hasEnded = now >= tournamentEnd;
     const tournamentTag = (() => {
         switch (tournament.type?.toLowerCase()) {
-            case 'ended': return 'ended';
-            case 'upcoming': return 'upcoming';
-            case 'dev': return 'dev';
-            case 'cancelled': return 'cancelled';
-            case 'community': return 'community';
-            default: return hasEnded ? 'ended' : hasStarted ? 'ongoing' : 'upcoming';
+            case 'ended':
+                return 'ended';
+            case 'upcoming':
+                return 'upcoming';
+            case 'dev':
+                return 'dev';
+            case 'cancelled':
+                return 'cancelled';
+            case 'community':
+                return 'community';
+            default:
+                return hasEnded ? 'ended' : hasStarted ? 'ongoing' : 'upcoming';
         }
     })();
 
@@ -289,10 +295,10 @@ function createTournamentCard(tournament) {
 
     const tournamentLink =
         (debugTournamentCards === true) ?
-            `tournaments/${tournament.slug}.html`:
-            hasStarted ?
-                `tournaments/${tournament.slug}` :
-                'tournaments/tournament-maintenance';
+        `tournaments/${tournament.slug}.html` :
+        hasStarted ?
+        `tournaments/${tournament.slug}` :
+        'tournaments/tournament-maintenance';
 
     card.innerHTML = `
         <div class="tournament-img-container">
@@ -351,8 +357,8 @@ async function renderTournamentCards() {
     // Create and append cards for each tournament
     tournaments.forEach(tournament => {
         if (tournament.publish === true) {
-        const card = createTournamentCard(tournament);
-        tournamentGrid.appendChild(card);
+            const card = createTournamentCard(tournament);
+            tournamentGrid.appendChild(card);
         }
     });
 
@@ -380,9 +386,9 @@ document.addEventListener('DOMContentLoaded', function() {
         console.time("renderTournamentCards time");
         renderTournamentCards();
         console.timeEnd("renderTournamentCards time");
-    }else {
-    renderTournamentCards();
-}
+    } else {
+        renderTournamentCards();
+    }
     // Add event listeners for filter changes
     if (sortFilter) {
         sortFilter.addEventListener('change', () => {

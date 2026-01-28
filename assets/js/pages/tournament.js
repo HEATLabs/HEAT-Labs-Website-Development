@@ -44,7 +44,7 @@ async function fetchTournamentData(tournamentId) {
             throw new Error(`Failed to fetch tournaments list: ${tournamentsResponse.status}`);
         }
 
-         tournamentsData = await tournamentsResponse.json();
+        tournamentsData = await tournamentsResponse.json();
 
         const tournamentBracket = new TournamentBracket(tournamentId, tournamentsData);
         tournamentBracket.init();
@@ -129,7 +129,9 @@ async function fetchViewCount() {
         // Get the tracking pixel URL from the meta tag
         const trackingPixel = document.querySelector('.heatlabs-tracking-pixel');
         if (!trackingPixel || !trackingPixel.src) {
-            return { totalViews: 0 };
+            return {
+                totalViews: 0
+            };
         }
 
         // Convert tracking URL to stats API URL
@@ -142,7 +144,9 @@ async function fetchViewCount() {
         return await response.json();
     } catch (error) {
         console.error('Error loading view count:', error);
-        return { totalViews: 0 }; // Return 0 if there's an error
+        return {
+            totalViews: 0
+        }; // Return 0 if there's an error
     }
 }
 
@@ -631,11 +635,11 @@ class TournamentBracket {
         this.init();
     }
     init() {
-            this.updateTournamentName();
-            this.setupBracket();
-            this.setupDrag();
-            this.setupZoom();
-            this.createControlsUI();
+        this.updateTournamentName();
+        this.setupBracket();
+        this.setupDrag();
+        this.setupZoom();
+        this.createControlsUI();
     }
 
     updateTournamentName() {
@@ -648,7 +652,7 @@ class TournamentBracket {
         console.log('[Bracket] Tournament name set to:', this.tournamentName);
     }
 
-    setupBracket(){
+    setupBracket() {
         this.canvas.width = this.container.clientWidth;
         this.canvas.height = this.container.clientHeight;
         this.draw();
@@ -660,7 +664,7 @@ class TournamentBracket {
         });
     }
 
-    setupDrag(){
+    setupDrag() {
         this.canvas.addEventListener('mousedown', (event) => {
             this.isDragging = true;
             this.startX = event.clientX - this.offsetX;
@@ -716,25 +720,25 @@ class TournamentBracket {
         })
     }
 
-    resetZoom(){
+    resetZoom() {
         this.currentZoom = 0.5;
         this.draw();
     }
 
-    resetView(){
+    resetView() {
         this.currentZoom = 0.5;
         this.offsetX = 0;
         this.offsetY = 0;
         this.draw();
     }
 
-    resetPosition(){
+    resetPosition() {
         this.offsetX = 0;
         this.offsetY = 0;
         this.draw();
     }
 
-    draw(){
+    draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         this.ctx.save();
@@ -861,44 +865,44 @@ class TournamentBracket {
         this.ctx.fillStyle = textColor;
         this.ctx.textAlign = textAlign;
         this.ctx.font = '48px Montserrat';
-        this.ctx.fillText(`${this.tournamentName} Bracket`, (Math.round(bgWidth)/2), 40)
+        this.ctx.fillText(`${this.tournamentName} Bracket`, (Math.round(bgWidth) / 2), 40)
         let metricsName = this.ctx.measureText(`${this.tournamentName} Bracket`);
         let fontHeight = metricsName.fontBoundingBoxAscent + metricsName.fontBoundingBoxDescent;
         this.ctx.strokeStyle = recColor;
-        this.ctx.strokeRect(0,0, bgWidth, fontHeight);
+        this.ctx.strokeRect(0, 0, bgWidth, fontHeight);
 
         // Tournament Section headers
         this.ctx.textBaseline = 'top';
         this.ctx.textAlign = `left`;
         this.ctx.font = '36px Montserrat';
-        this.ctx.fillText(`Round 1`, 0, fontHeight +  textPadding);
-        this.ctx.strokeRect(0,fontHeight , this.getFontWidth(`Round 1`), (this.getFontHeight(`Round 1`) + textPadding));
+        this.ctx.fillText(`Round 1`, 0, fontHeight + textPadding);
+        this.ctx.strokeRect(0, fontHeight, this.getFontWidth(`Round 1`), (this.getFontHeight(`Round 1`) + textPadding));
 
         // Draw text and rectangles based on the bounding boxes of the previous round section
 
         // Round 2
-        this.ctx.fillText(`Round 2`, this.getFontWidth(`Round 1`), fontHeight +  textPadding);
-        this.ctx.strokeRect(this.getFontWidth(`Round 1`),fontHeight , this.getFontWidth(`Round 2`), (this.getFontHeight(`Round 2`) + textPadding));
+        this.ctx.fillText(`Round 2`, this.getFontWidth(`Round 1`), fontHeight + textPadding);
+        this.ctx.strokeRect(this.getFontWidth(`Round 1`), fontHeight, this.getFontWidth(`Round 2`), (this.getFontHeight(`Round 2`) + textPadding));
         previousXAxis = this.getFontWidth(`Round 1`)
 
         // Round 3
-        this.ctx.fillText(`Round 3`, (this.getFontWidth(`Round 2`) + previousXAxis) , fontHeight +  textPadding);
-        this.ctx.strokeRect((this.getFontWidth(`Round 2`) + previousXAxis),fontHeight , this.getFontWidth(`Round 3`), (this.getFontHeight(`Round 3`) + textPadding));
+        this.ctx.fillText(`Round 3`, (this.getFontWidth(`Round 2`) + previousXAxis), fontHeight + textPadding);
+        this.ctx.strokeRect((this.getFontWidth(`Round 2`) + previousXAxis), fontHeight, this.getFontWidth(`Round 3`), (this.getFontHeight(`Round 3`) + textPadding));
         previousXAxis = (this.getFontWidth(`Round 2`) + previousXAxis)
 
         // Quarterfinals
-        this.ctx.fillText(`Quarterfinals`, (this.getFontWidth(`Round 3`) + previousXAxis) , fontHeight +  textPadding);
-        this.ctx.strokeRect((this.getFontWidth(`Round 3`) + previousXAxis),fontHeight , this.getFontWidth(`Quarterfinals`), (this.getFontHeight(`Quarterfinals`) + textPadding));
+        this.ctx.fillText(`Quarterfinals`, (this.getFontWidth(`Round 3`) + previousXAxis), fontHeight + textPadding);
+        this.ctx.strokeRect((this.getFontWidth(`Round 3`) + previousXAxis), fontHeight, this.getFontWidth(`Quarterfinals`), (this.getFontHeight(`Quarterfinals`) + textPadding));
         previousXAxis = (this.getFontWidth(`Round 3`) + previousXAxis)
 
         // Semifinals
-        this.ctx.fillText(`Semifinals`, (this.getFontWidth(`Quarterfinals`) + previousXAxis) , fontHeight +  textPadding);
-        this.ctx.strokeRect((this.getFontWidth(`Quarterfinals`) + previousXAxis),fontHeight , this.getFontWidth(`Semifinals`), (this.getFontHeight(`Semifinals`) + textPadding));
+        this.ctx.fillText(`Semifinals`, (this.getFontWidth(`Quarterfinals`) + previousXAxis), fontHeight + textPadding);
+        this.ctx.strokeRect((this.getFontWidth(`Quarterfinals`) + previousXAxis), fontHeight, this.getFontWidth(`Semifinals`), (this.getFontHeight(`Semifinals`) + textPadding));
         previousXAxis = (this.getFontWidth(`Quarterfinals`) + previousXAxis)
 
         // Finals
-        this.ctx.fillText(`Finals`, (this.getFontWidth(`Semifinals`) + previousXAxis) , fontHeight +  textPadding);
-        this.ctx.strokeRect((this.getFontWidth(`Semifinals`) + previousXAxis),fontHeight , this.getFontWidth(`Finals`), (this.getFontHeight(`Finals`) + textPadding));
+        this.ctx.fillText(`Finals`, (this.getFontWidth(`Semifinals`) + previousXAxis), fontHeight + textPadding);
+        this.ctx.strokeRect((this.getFontWidth(`Semifinals`) + previousXAxis), fontHeight, this.getFontWidth(`Finals`), (this.getFontHeight(`Finals`) + textPadding));
         previousXAxis = (this.getFontWidth(`Finals`) + previousXAxis)
         // Winners Bracket
 
@@ -952,18 +956,18 @@ class TournamentBracket {
     drawText() {
         this.ctx.font = " 48px Montserrat";
         this.ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-dark");
-        this.ctx.fillText("Team 1 Name goes here", 10,50, this.canvas.width);
-        this.ctx.fillText("Team 2 Name goes here", 10,120, this.canvas.width);
+        this.ctx.fillText("Team 1 Name goes here", 10, 50, this.canvas.width);
+        this.ctx.fillText("Team 2 Name goes here", 10, 120, this.canvas.width);
     }
-    renderMatchBox(){
-    const boxWidth = 110;
-    const boxHeight = 50;
+    renderMatchBox() {
+        const boxWidth = 110;
+        const boxHeight = 50;
 
-    const strokeColor = getComputedStyle(document.body).getPropertyValue("--text-dark").trim();
-    this.ctx.strokeStyle = strokeColor;
-    this.ctx.lineWidth = 1;
+        const strokeColor = getComputedStyle(document.body).getPropertyValue("--text-dark").trim();
+        this.ctx.strokeStyle = strokeColor;
+        this.ctx.lineWidth = 1;
 
-    // Boxes
+        // Boxes
         this.ctx.strokeRect(0, 10, boxWidth, boxHeight);
         this.ctx.strokeRect(0, 60, boxWidth, boxHeight);
     }

@@ -1,7 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Konami code sequence (arrow keys only): ↑ ↑ ↓ ↓ ← → ← →
     const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
-                       'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight'];
+        'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight'
+    ];
     let konamiIndex = 0;
     let timeoutId = null;
     let sound = null; // Will hold our Audio object
