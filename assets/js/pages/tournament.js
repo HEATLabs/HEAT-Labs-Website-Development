@@ -1,6 +1,6 @@
 // Tournament Page JS for HEAT Labs
 let tanksData = [];
-
+let tournamentsData = [];
 // Load tanks data
 async function loadTanksData() {
     try {
@@ -44,7 +44,10 @@ async function fetchTournamentData(tournamentId) {
             throw new Error(`Failed to fetch tournaments list: ${tournamentsResponse.status}`);
         }
 
-        const tournamentsData = await tournamentsResponse.json();
+         tournamentsData = await tournamentsResponse.json();
+
+        const tournamentBracket = new TournamentBracket(tournamentId, tournamentsData);
+        tournamentBracket.init();
 
         // Find the tournament with matching ID
         const tournament = tournamentsData.find(t => t['tournament-id'] === tournamentId);
@@ -603,7 +606,7 @@ function initializeImageGallery() {
 /* Tournament Bracket */
 
 class TournamentBracket {
-    constructor() {
+    constructor(tournamentId, tournamentsData) {
         this.canvas = document.getElementById("tournamentBracketCanvas");
         this.ctx = this.canvas.getContext("2d");
         this.container = this.canvas.parentElement;
@@ -621,16 +624,28 @@ class TournamentBracket {
         this.currentZoom = 1;
         this.zoomSpeed = 0.1;
 
+        // Bracket Name stuff
+        this.tournamentName = '';
+        this.tournamentId = tournamentId;
+
         this.init();
     }
-
     init() {
-        document.addEventListener('DOMContentLoaded', () => {
+            this.updateTournamentName();
             this.setupBracket();
             this.setupDrag();
             this.setupZoom();
             this.createControlsUI();
-        });
+    }
+
+    updateTournamentName() {
+        const tournament = tournamentsData.find(t => t['tournament-id'] === this.tournamentId);
+        if (!tournament) {
+            console.error('[Bracket] Tournament not found with ID:', this.tournamentId);
+            return;
+        }
+        this.tournamentName = tournament.name;
+        console.log('[Bracket] Tournament name set to:', this.tournamentName);
     }
 
     setupBracket(){
@@ -728,8 +743,8 @@ class TournamentBracket {
 
         this.drawBackground();
         this.drawGrid();
-        this.drawText();
-        this.renderMatchBox();
+        //this.drawText();
+        //this.renderMatchBox();
 
         this.ctx.restore();
 
@@ -835,6 +850,14 @@ class TournamentBracket {
 
         this.ctx.fillStyle = '#1a1a1a';
         this.ctx.fillRect(0, 0, bgWidth, bgHeight);
+
+        // Tournament Name header
+        this.ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-dark").trim();
+        this.ctx.font = '48px Montserrat';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText(`${this.tournamentName} Bracket`, (Math.round(bgWidth)/2), 40)
+
+
     }
 
     drawGrid() {
@@ -920,5 +943,5 @@ class TournamentBracket {
     }
 
 }
-
-const tournamentBracket = new TournamentBracket();
+const tournamentIdMeta = document.querySelector('meta[name="tournament-id"]');
+const tournamentId = tournamentIdMeta ? tournamentIdMeta.content : null;
