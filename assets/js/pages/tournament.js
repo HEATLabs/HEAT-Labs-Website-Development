@@ -1,6 +1,6 @@
 // Tournament Page JS for HEAT Labs
 let tanksData = [];
-
+let tournamentsData = [];
 // Load tanks data
 async function loadTanksData() {
     try {
@@ -44,7 +44,10 @@ async function fetchTournamentData(tournamentId) {
             throw new Error(`Failed to fetch tournaments list: ${tournamentsResponse.status}`);
         }
 
-        const tournamentsData = await tournamentsResponse.json();
+         tournamentsData = await tournamentsResponse.json();
+
+        const tournamentBracket = new TournamentBracket(tournamentId, tournamentsData);
+        tournamentBracket.init();
 
         // Find the tournament with matching ID
         const tournament = tournamentsData.find(t => t['tournament-id'] === tournamentId);
@@ -603,7 +606,7 @@ function initializeImageGallery() {
 /* Tournament Bracket */
 
 class TournamentBracket {
-    constructor() {
+    constructor(tournamentId, tournamentsData) {
         this.canvas = document.getElementById("tournamentBracketCanvas");
         this.ctx = this.canvas.getContext("2d");
         this.container = this.canvas.parentElement;
@@ -618,19 +621,31 @@ class TournamentBracket {
         // Zoom stuff
         this.minZoom = 0.5;
         this.maxZoom = 3;
-        this.currentZoom = 1;
+        this.currentZoom = 0.5;
         this.zoomSpeed = 0.1;
+
+        // Bracket Name stuff
+        this.tournamentName = '';
+        this.tournamentId = tournamentId;
 
         this.init();
     }
-
     init() {
-        document.addEventListener('DOMContentLoaded', () => {
+            this.updateTournamentName();
             this.setupBracket();
             this.setupDrag();
             this.setupZoom();
             this.createControlsUI();
-        });
+    }
+
+    updateTournamentName() {
+        const tournament = tournamentsData.find(t => t['tournament-id'] === this.tournamentId);
+        if (!tournament) {
+            console.error('[Bracket] Tournament not found with ID:', this.tournamentId);
+            return;
+        }
+        this.tournamentName = tournament.name;
+        console.log('[Bracket] Tournament name set to:', this.tournamentName);
     }
 
     setupBracket(){
@@ -702,12 +717,12 @@ class TournamentBracket {
     }
 
     resetZoom(){
-        this.currentZoom = 1;
+        this.currentZoom = 0.5;
         this.draw();
     }
 
     resetView(){
-        this.currentZoom = 1;
+        this.currentZoom = 0.5;
         this.offsetX = 0;
         this.offsetY = 0;
         this.draw();
@@ -728,8 +743,8 @@ class TournamentBracket {
 
         this.drawBackground();
         this.drawGrid();
-        this.drawText();
-        this.renderMatchBox();
+        //this.drawText();
+        //this.renderMatchBox();
 
         this.ctx.restore();
 
@@ -746,7 +761,7 @@ class TournamentBracket {
         this.ctx.textAlign = 'left';
         this.ctx.fillText(`Zoom: ${Math.round(this.currentZoom * 100)}%`, 10, 25);
         this.ctx.fillText(`Canvas Size (X,Y) ${(this.canvas.width)}, ${(this.canvas.height)}`, 10, 50);
-
+        this.ctx.fillText(`Canvas Location (X,Y) ${(this.offsetX)}, ${(this.offsetY)}`, 10, 75);
         this.ctx.restore();
     }
 
@@ -835,6 +850,29 @@ class TournamentBracket {
 
         this.ctx.fillStyle = '#1a1a1a';
         this.ctx.fillRect(0, 0, bgWidth, bgHeight);
+
+        // Text Stuff
+        const textColor = getComputedStyle(document.body).getPropertyValue("--text-dark").trim();
+        const textAlign = 'center';
+        const recColor = getComputedStyle(document.body).getPropertyValue("--text-dark").trim();
+
+        // Tournament Name header
+        this.ctx.fillStyle = textColor;
+        this.ctx.textAlign = textAlign;
+        this.ctx.font = '48px Montserrat';
+        this.ctx.fillText(`${this.tournamentName} Bracket`, (Math.round(bgWidth)/2), 40)
+        let metricsName = this.ctx.measureText(`${this.tournamentName} Bracket`);
+        let fontHeight = metricsName.fontBoundingBoxAscent + metricsName.fontBoundingBoxDescent;
+        this.ctx.strokeStyle = recColor;
+        this.ctx.strokeRect(0,0, bgWidth, fontHeight);
+
+        // Tournament Section headers
+
+        // Winners Bracket
+
+        // Losers Bracket Name header
+
+
     }
 
     drawGrid() {
@@ -920,5 +958,5 @@ class TournamentBracket {
     }
 
 }
-
-const tournamentBracket = new TournamentBracket();
+const tournamentIdMeta = document.querySelector('meta[name="tournament-id"]');
+const tournamentId = tournamentIdMeta ? tournamentIdMeta.content : null;
