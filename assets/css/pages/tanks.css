@@ -261,6 +261,7 @@
 	grid-template-columns: repeat(2, 1fr);
 	gap: 0.75rem;
 }
+
 .status-filter-btn {
 	display: flex;
 	align-items: center;
@@ -612,7 +613,7 @@
 	}
 
 	.comparison-sidebar-footer {
-	    position: sticky;
+		position: sticky;
 		padding: 0.75rem;
 		flex-wrap: wrap;
 		gap: 0.5rem;

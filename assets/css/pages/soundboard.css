@@ -652,19 +652,19 @@
 }
 
 .share-modal-content {
-    background-color: var(--card-bg);
-    border-radius: 1rem;
-    padding: 2rem;
-    max-width: 500px;
-    width: 90%;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    border: 1px solid var(--border-color);
-    transform: translateY(20px);
-    transition: transform var(--transition-speed);
-    display: flex;
-    flex-direction: column;
+	background-color: var(--card-bg);
+	border-radius: 1rem;
+	padding: 2rem;
+	max-width: 500px;
+	width: 90%;
+	max-height: 90vh;
+	overflow-y: auto;
+	box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+	border: 1px solid var(--border-color);
+	transform: translateY(20px);
+	transition: transform var(--transition-speed);
+	display: flex;
+	flex-direction: column;
 }
 
 .share-modal.active .share-modal-content {
@@ -703,7 +703,7 @@
 }
 
 .share-sound-preview {
-    margin-bottom: 1.5rem;
+	margin-bottom: 1.5rem;
 }
 
 .share-sound-info {
@@ -739,42 +739,42 @@
 }
 
 .share-sound-player {
-    margin-top: auto;
-    margin-bottom: 0;
+	margin-top: auto;
+	margin-bottom: 0;
 }
 
 .share-play-btn {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 1rem;
-    background-color: var(--accent-color);
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    transition: all var(--transition-speed);
-    font-size: 1rem;
-    font-weight: 500;
-    margin-top: 1.5rem;
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	padding: 1rem;
+	background-color: var(--accent-color);
+	color: white;
+	border: none;
+	border-radius: 0.5rem;
+	cursor: pointer;
+	transition: all var(--transition-speed);
+	font-size: 1rem;
+	font-weight: 500;
+	margin-top: 1.5rem;
 }
 
 .share-play-btn:hover {
-    background-color: var(--accent-color-hover);
+	background-color: var(--accent-color-hover);
 }
 
 .share-play-btn.playing {
-    background-color: #e74c3c;
+	background-color: #e74c3c;
 }
 
 .share-play-btn.playing:hover {
-    background-color: #c0392b;
+	background-color: #c0392b;
 }
 
 .share-url-section {
-    margin-bottom: 0;
+	margin-bottom: 0;
 }
 
 .share-url-label {
@@ -830,7 +830,7 @@
 }
 
 .share-actions {
-    display: none;
+	display: none;
 }
 
 .share-action-btn {
@@ -884,43 +884,43 @@
 
 /* Responsive styles for share modal */
 @media (max-width: 768px) {
-    .share-modal-content {
-        padding: 1.5rem;
-        margin: 1rem;
-    }
+	.share-modal-content {
+		padding: 1.5rem;
+		margin: 1rem;
+	}
 
-    .share-url-container {
-        flex-direction: column;
-    }
+	.share-url-container {
+		flex-direction: column;
+	}
 
-    .share-url-input {
-        width: 100%;
-    }
+	.share-url-input {
+		width: 100%;
+	}
 
-    .share-play-btn {
-        padding: 0.875rem;
-        font-size: 0.95rem;
-    }
+	.share-play-btn {
+		padding: 0.875rem;
+		font-size: 0.95rem;
+	}
 }
 
 @media (max-width: 480px) {
-    .share-modal-content {
-        padding: 1rem;
-    }
+	.share-modal-content {
+		padding: 1rem;
+	}
 
-    .share-modal-header {
-        margin-bottom: 1rem;
-    }
+	.share-modal-header {
+		margin-bottom: 1rem;
+	}
 
-    .share-sound-meta {
-        flex-direction: column;
-        align-items: flex-start;
-    }
+	.share-sound-meta {
+		flex-direction: column;
+		align-items: flex-start;
+	}
 
-    .share-play-btn {
-        padding: 0.75rem;
-        font-size: 0.9rem;
-    }
+	.share-play-btn {
+		padding: 0.75rem;
+		font-size: 0.9rem;
+	}
 }
 
 @media (max-width: 1024px) {

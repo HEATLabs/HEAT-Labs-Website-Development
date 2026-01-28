@@ -275,6 +275,7 @@ body {
 }
 
 @media (max-width: 767px) {
+
 	.hero .hero-content p,
 	.home-hero .hero-content p {
 		display: none !important;

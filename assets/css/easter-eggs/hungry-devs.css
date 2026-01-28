@@ -3,28 +3,29 @@
 .list-disc {
 	color: var(--text-dark-secondary);
 }
+
 /* View counter styles */
 .hungry-devs-views-counter {
-    position: absolute;
-    top: 0.5rem;
-    left: 0.5rem;
-    background-color: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 0.25rem 0.75rem;
-    border-radius: 1rem;
-    font-size: 0.85rem;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    z-index: 10;
+	position: absolute;
+	top: 0.5rem;
+	left: 0.5rem;
+	background-color: rgba(0, 0, 0, 0.7);
+	color: white;
+	padding: 0.25rem 0.75rem;
+	border-radius: 1rem;
+	font-size: 0.85rem;
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+	z-index: 10;
 }
 
 .hungry-devs-views-counter i {
-    font-size: 0.75rem;
+	font-size: 0.75rem;
 }
 
 .hungry-devs-img-container {
-    position: relative;
+	position: relative;
 }
 
 @media (max-width: 768px) {
@@ -92,6 +93,4 @@
 	}
 }
 
-.hungry-devs-lists ul{
-
-}
+.hungry-devs-lists ul {}

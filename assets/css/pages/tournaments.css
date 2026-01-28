@@ -265,6 +265,7 @@
 		font-size: 1rem;
 	}
 }
+
 /* Filters */
 .news-filters {
 	display: flex;
@@ -304,6 +305,7 @@
 	border-color: var(--accent-color);
 	box-shadow: 0 0 0 2px rgba(var(--accent-color-rgb), 0.2);
 }
+
 /* Pagination Styles */
 .pagination-container {
 	display: flex;
@@ -378,6 +380,7 @@
 	color: var(--text-primary);
 	cursor: pointer;
 }
+
 .tournaments-meta span {
 	display: flex;
 	align-items: center;

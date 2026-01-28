@@ -115,59 +115,59 @@
 }
 
 .tank-card {
-    background-color: var(--card-bg);
-    border-radius: 0.75rem;
-    overflow: hidden;
-    box-shadow: var(--shadow);
-    border: 1px solid var(--border-color);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 1rem;
-    cursor: pointer;
+	background-color: var(--card-bg);
+	border-radius: 0.75rem;
+	overflow: hidden;
+	box-shadow: var(--shadow);
+	border: 1px solid var(--border-color);
+	transition: transform 0.3s ease, box-shadow 0.3s ease;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	padding: 1rem;
+	cursor: pointer;
 }
 
 .tank-card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-lg);
+	transform: translateY(-5px);
+	box-shadow: var(--shadow-lg);
 }
 
 .tank-img-container {
-    width: 100%;
-    height: 120px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 0.75rem;
+	width: 100%;
+	height: 120px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-bottom: 0.75rem;
 }
 
 .tank-img-container img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-    transition: transform 0.3s ease;
+	max-width: 100%;
+	max-height: 100%;
+	object-fit: contain;
+	transition: transform 0.3s ease;
 }
 
 .tank-card:hover .tank-img-container img {
-    transform: scale(1.05);
+	transform: scale(1.05);
 }
 
 .tank-info {
-    width: 100%;
-    padding: 0.5rem 0;
+	width: 100%;
+	padding: 0.5rem 0;
 }
 
 .tank-info h3 {
-    margin: 0;
-    font-size: 1.1rem;
-    color: var(--text-primary);
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 100%;
+	margin: 0;
+	font-size: 1.1rem;
+	color: var(--text-primary);
+	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	width: 100%;
 }
 
 .tank-info p {
@@ -710,9 +710,9 @@ p {
 
 /* Mobile Gallery Styles */
 @media (max-width: 768px) {
-    #tanks-container {
-        display: flex;
-        flex-direction: column;
+	#tanks-container {
+		display: flex;
+		flex-direction: column;
 	}
 
 	.gallery-modal-content {
@@ -741,9 +741,9 @@ p {
 }
 
 @media (max-width: 480px) {
-    #tanks-container {
-        display: flex;
-        flex-direction: column;
+	#tanks-container {
+		display: flex;
+		flex-direction: column;
 	}
 
 	.gallery-main-image-container {

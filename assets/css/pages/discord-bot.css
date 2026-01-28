@@ -1,18 +1,18 @@
 /* HEAT Labs Discord Bot Page Styles */
 .bot-intro {
-    margin-top: -40px;
+	margin-top: -40px;
 }
 
 .bot-feature-card {
-    color: var(--text-primary);
-    background: var(--bg-dark-secondary);
+	color: var(--text-primary);
+	background: var(--bg-dark-secondary);
 	transition: transform 0.3s ease, box-shadow 0.3s ease;
 	border-left: 4px solid var(--accent-color);
 }
 
 .light-theme .bot-feature-card {
-    color: var(--text-primary);
-    background: var(--bg-light-secondary);
+	color: var(--text-primary);
+	background: var(--bg-light-secondary);
 	transition: transform 0.3s ease, box-shadow 0.3s ease;
 	border-left: 4px solid var(--accent-color);
 }
@@ -199,13 +199,13 @@
 }
 
 .light-theme .faq-item {
-    color: var(--text-primary);
-    background: var(--bg-light-secondary);
+	color: var(--text-primary);
+	background: var(--bg-light-secondary);
 }
 
 .faq-item {
-    color: var(--text-primary);
-    background: var(--bg-dark-secondary);
+	color: var(--text-primary);
+	background: var(--bg-dark-secondary);
 }
 
 /* Responsive adjustments */

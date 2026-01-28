@@ -163,7 +163,7 @@
 	min-width: 200px;
 	max-width: 300px;
 	-webkit-appearance: none;
-	background: linear-gradient(to right , var(--bg-dark-secondary), var(--bg-dark-tertiary), var(--accent-color-light), var(--accent-color));
+	background: linear-gradient(to right, var(--bg-dark-secondary), var(--bg-dark-tertiary), var(--accent-color-light), var(--accent-color));
 	border-radius: 0.5rem;
 	border: 0.1rem solid var(--border-color);
 	margin-left: 15%;
@@ -189,6 +189,7 @@
 	border: 1px solid var(--accent-color);
 	-webkit-appearance: none !important;
 }
+
 .checkbox-item {
 	grid-column: 1 / -1;
 	display: flex;
@@ -273,7 +274,7 @@
 	border-color: var(--accent-color);
 }
 
-.btn-save-config{
+.btn-save-config {
 	background-color: var(--accent-color);
 	color: white;
 }
