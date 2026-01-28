@@ -855,7 +855,8 @@ class TournamentBracket {
         const textColor = getComputedStyle(document.body).getPropertyValue("--text-dark").trim();
         const textAlign = 'center';
         const recColor = getComputedStyle(document.body).getPropertyValue("--text-dark").trim();
-
+        const textPadding = 10;
+        let previousXAxis = 0;
         // Tournament Name header
         this.ctx.fillStyle = textColor;
         this.ctx.textAlign = textAlign;
@@ -867,12 +868,61 @@ class TournamentBracket {
         this.ctx.strokeRect(0,0, bgWidth, fontHeight);
 
         // Tournament Section headers
+        this.ctx.textBaseline = 'top';
+        this.ctx.textAlign = `left`;
+        this.ctx.font = '36px Montserrat';
+        this.ctx.fillText(`Round 1`, 0, fontHeight +  textPadding);
+        this.ctx.strokeRect(0,fontHeight , this.getFontWidth(`Round 1`), (this.getFontHeight(`Round 1`) + textPadding));
 
+        // Draw text and rectangles based on the bounding boxes of the previous round section
+
+        // Round 2
+        this.ctx.fillText(`Round 2`, this.getFontWidth(`Round 1`), fontHeight +  textPadding);
+        this.ctx.strokeRect(this.getFontWidth(`Round 1`),fontHeight , this.getFontWidth(`Round 2`), (this.getFontHeight(`Round 2`) + textPadding));
+        previousXAxis = this.getFontWidth(`Round 1`)
+
+        // Round 3
+        this.ctx.fillText(`Round 3`, (this.getFontWidth(`Round 2`) + previousXAxis) , fontHeight +  textPadding);
+        this.ctx.strokeRect((this.getFontWidth(`Round 2`) + previousXAxis),fontHeight , this.getFontWidth(`Round 3`), (this.getFontHeight(`Round 3`) + textPadding));
+        previousXAxis = (this.getFontWidth(`Round 2`) + previousXAxis)
+
+        // Quarterfinals
+        this.ctx.fillText(`Quarterfinals`, (this.getFontWidth(`Round 3`) + previousXAxis) , fontHeight +  textPadding);
+        this.ctx.strokeRect((this.getFontWidth(`Round 3`) + previousXAxis),fontHeight , this.getFontWidth(`Quarterfinals`), (this.getFontHeight(`Quarterfinals`) + textPadding));
+        previousXAxis = (this.getFontWidth(`Round 3`) + previousXAxis)
+
+        // Semifinals
+        this.ctx.fillText(`Semifinals`, (this.getFontWidth(`Quarterfinals`) + previousXAxis) , fontHeight +  textPadding);
+        this.ctx.strokeRect((this.getFontWidth(`Quarterfinals`) + previousXAxis),fontHeight , this.getFontWidth(`Semifinals`), (this.getFontHeight(`Semifinals`) + textPadding));
+        previousXAxis = (this.getFontWidth(`Quarterfinals`) + previousXAxis)
+
+        // Finals
+        this.ctx.fillText(`Finals`, (this.getFontWidth(`Semifinals`) + previousXAxis) , fontHeight +  textPadding);
+        this.ctx.strokeRect((this.getFontWidth(`Semifinals`) + previousXAxis),fontHeight , this.getFontWidth(`Finals`), (this.getFontHeight(`Finals`) + textPadding));
+        previousXAxis = (this.getFontWidth(`Finals`) + previousXAxis)
         // Winners Bracket
 
         // Losers Bracket Name header
 
+        // Losers Bracket Section headers
 
+        // Losers Bracket
+        this.ctx.textAlign = textAlign;
+
+    }
+
+    getFontWidth(text) {
+        const context = this.ctx
+        const canvas = this.canvas
+
+        const metrics = context.measureText(text);
+        return (Math.round(metrics.width));
+    }
+
+    getFontHeight(text) {
+        let metricsName = this.ctx.measureText(text);
+        let fontHeight = metricsName.fontBoundingBoxAscent + metricsName.fontBoundingBoxDescent;
+        return fontHeight;
     }
 
     drawGrid() {
