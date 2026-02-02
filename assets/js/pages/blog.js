@@ -171,12 +171,9 @@ function updateBlogDisplay() {
     const typeValue = typeFilter.value;
     postsPerPage = postsPerPageFilter.value === 'all' ? originalCards.length : parseInt(postsPerPageFilter.value);
 
-    // If originalCards is empty (first load), store the initial cards
-    if (originalCards.length === 0) {
-        originalCards = Array.from(blogGrid.querySelectorAll('.blog-card'));
-        // Update dates in original cards
-        updateCardDates(originalCards);
-    }
+    originalCards = Array.from(blogGrid.querySelectorAll('.blog-card'))
+    // Update dates in original cards
+    updateCardDates(originalCards);
 
     // Filter cards by type
     let filteredCards = originalCards;
