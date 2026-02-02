@@ -263,3 +263,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }, 300);
 });
+
+// Force re-initialization on back button
+window.addEventListener(`pageshow`, function(event) {
+    if (event.persisted) {
+        originalCards = [];
+        currentPage = 1;
+        updateNewsDisplay();
+    }
+});
