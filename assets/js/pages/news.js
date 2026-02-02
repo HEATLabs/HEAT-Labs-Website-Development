@@ -167,9 +167,12 @@ function updateNewsDisplay() {
     const patchValue = patchFilter.value;
     postsPerPage = postsPerPageFilter.value === 'all' ? originalCards.length : parseInt(postsPerPageFilter.value);
 
-    originalCards = Array.from(newsGrid.querySelectorAll('.news-card'));
-    // Update dates in original cards
-    updateCardDates(originalCards);
+    // If originalCards is empty (first load), store the initial cards
+    if (originalCards.length === 0) {
+        originalCards = Array.from(newsGrid.querySelectorAll('.news-card'));
+        // Update dates in original cards
+        updateCardDates(originalCards);
+    }
 
     // Filter cards by type
     let filteredCards = originalCards;
