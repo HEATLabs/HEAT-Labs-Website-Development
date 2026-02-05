@@ -636,6 +636,7 @@ class TournamentBracket {
 
         this.init();
     }
+
     init() {
         this.updateTournamentName();
         this.setupBracket();
@@ -674,8 +675,17 @@ class TournamentBracket {
             // Define global handlers
             const handleGlobalMouseMove = (e) => {
                 if (!this.isDragging) return;
-                this.offsetX = e.clientX - this.startX;
-                this.offsetY = e.clientY - this.startY;
+
+                // Calculate new offset
+                let newOffsetX = e.clientX - this.startX;
+                let newOffsetY = e.clientY - this.startY;
+
+                const clamped = this.clampOffset(newOffsetX, newOffsetY);
+
+                // Update with clamped values
+                this.offsetX = clamped.x;
+                this.offsetY = clamped.y;
+
                 this.draw();
             };
 
@@ -690,6 +700,27 @@ class TournamentBracket {
             document.addEventListener('mousemove', handleGlobalMouseMove);
             document.addEventListener('mouseup', handleGlobalMouseUp);
         });
+    }
+
+    clampOffset(offsetX, offsetY) {
+        const bgWidth = this.canvas.width * 2;
+        const bgHeight = this.canvas.height * 2;
+        const canvasWidth = this.canvas.width;
+        const canvasHeight = this.canvas.height;
+
+        // Calculate maximum allowed offsets
+        const maxVisibleWidth = bgWidth * this.currentZoom;
+        const maxVisibleHeight = bgHeight * this.currentZoom;
+
+        // Calculate limits
+        const maxOffsetX = Math.max(0, maxVisibleWidth - canvasWidth);
+        const maxOffsetY = Math.max(0, maxVisibleHeight - canvasHeight);
+
+        // Clamp values
+        const clampedX = Math.max(-maxOffsetX, Math.min(0, offsetX));
+        const clampedY = Math.max(-maxOffsetY, Math.min(0, offsetY));
+
+        return { x: clampedX, y: clampedY };
     }
 
     setupZoom() {
