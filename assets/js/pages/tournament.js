@@ -624,7 +624,7 @@ class TournamentBracket {
         this.offsetY = 0;
 
         // Zoom stuff
-        this.minZoom = 0.5;
+        this.minZoom = 0.25;
         this.maxZoom = 3;
         this.currentZoom = 0.5;
         this.zoomSpeed = 0.1;
@@ -703,8 +703,8 @@ class TournamentBracket {
     }
 
     clampOffset(offsetX, offsetY) {
-        const bgWidth = this.canvas.width * 2;
-        const bgHeight = this.canvas.height * 2;
+        const bgWidth = this.canvas.width * 4;
+        const bgHeight = this.canvas.height * 4;
         const canvasWidth = this.canvas.width;
         const canvasHeight = this.canvas.height;
 
@@ -881,8 +881,8 @@ class TournamentBracket {
 
 
     drawBackground() {
-        const bgWidth = this.canvas.width * 2;
-        const bgHeight = this.canvas.height * 2;
+        const bgWidth = this.canvas.width * 4;
+        const bgHeight = this.canvas.height * 4;
 
         this.ctx.fillStyle = '#1a1a1a';
         this.ctx.fillRect(0, 0, bgWidth, bgHeight);
@@ -906,8 +906,8 @@ class TournamentBracket {
     }
 
     drawTournamentTitle() {
-        const bgWidth = this.canvas.width * 2;
-        const bgHeight = this.canvas.height * 2;
+        const bgWidth = this.canvas.width * 4;
+        const bgHeight = this.canvas.height * 4;
 
         const textColor = getComputedStyle(document.body).getPropertyValue("--text-dark").trim();
         const textAlign = 'center';
@@ -926,30 +926,47 @@ class TournamentBracket {
     }
 
     drawSectionTitles() {
-        const bgWidth = this.canvas.width * 2;
+        const bgWidth = this.canvas.width * 4;
+        const bgHeight = this.canvas.height * 4;
         const textColor = getComputedStyle(document.body).getPropertyValue("--text-dark").trim();
         this.ctx.fillStyle = textColor;
         this.ctx.font = '36px Montserrat';
         this.ctx.textBaseline = 'top';
         const textPadding = 10;
 
-        const rounds = actualTournamentData?.winners_bracket?.rounds || [];
-        const roundNames = rounds.map(r => r.round_name);
+        const rounds_winner = actualTournamentData?.winners_bracket?.rounds || [];
+        const roundNames_winner = rounds_winner.map(r => r.round_name);
 
-        if (roundNames.length === 0) return;
+        if (roundNames_winner.length === 0) return;
         // Create equal spacing
-        const sectionWidth = bgWidth / roundNames.length;
+        const sectionWidth_winners = bgWidth / roundNames_winner.length;
         const startY = this.tournamentNameSize;
-        roundNames.forEach((name, i) => {
-            const x = i * sectionWidth;
-            const centerX = x + (sectionWidth / 2);
+        roundNames_winner.forEach((name, i) => {
+            const x = i * sectionWidth_winners;
+            const centerX = x + (sectionWidth_winners / 2);
 
             this.ctx.textAlign = 'center';
             this.ctx.fillText(name, centerX, startY + textPadding);
 
             // Draw bounding box
             this.ctx.strokeStyle = textColor;
-            this.ctx.strokeRect(x, startY, sectionWidth, this.getFontHeight(name) + 20);
+            this.ctx.strokeRect(x, startY, sectionWidth_winners, this.getFontHeight(name) + 20);
+        });
+
+        const rounds_loser = actualTournamentData?.losers_bracket?.rounds || [];
+        const roundNames_loser = rounds_loser.map(r => r.round_name);
+        const sectionWidth_losers = bgWidth / roundNames_loser.length;
+        roundNames_loser.forEach((name, i) => {
+            const x = i * sectionWidth_losers;
+            const centerX = x + (sectionWidth_losers / 2);
+            const centerY = (bgHeight / 2);
+
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(name, centerX, centerY + textPadding);
+
+            // Draw bounding box
+            this.ctx.strokeStyle = textColor;
+            this.ctx.strokeRect(x, centerY, sectionWidth_losers, this.getFontHeight(name) + 20);
         });
     }
 
@@ -972,8 +989,8 @@ class TournamentBracket {
         this.ctx.lineWidth = 1;
 
         const gridSize = 50;
-        const gridWidth = (Math.round(this.canvas.width * 2));
-        const gridHeight = (Math.round(this.canvas.height * 2));
+        const gridWidth = (Math.round(this.canvas.width * 4));
+        const gridHeight = (Math.round(this.canvas.height * 4));
 
         // Draw vertical lines
         for (let x = 0; x <= gridWidth; x += gridSize) {
