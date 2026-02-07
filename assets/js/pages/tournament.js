@@ -626,7 +626,7 @@ class TournamentBracket {
         // Zoom stuff
         this.minZoom = 0.25;
         this.maxZoom = 3;
-        this.currentZoom = 0.5;
+        this.currentZoom = 0.25;
         this.zoomSpeed = 0.1;
 
         // Bracket Name stuff
@@ -657,6 +657,8 @@ class TournamentBracket {
     setupBracket() {
         this.canvas.width = this.container.clientWidth;
         this.canvas.height = this.container.clientHeight;
+        // center bracket
+        this.offsetX = -(((this.canvas.width *4) * this.currentZoom) - this.canvas.width) /2;
         this.draw();
 
         window.addEventListener('resize', () => {
@@ -753,19 +755,19 @@ class TournamentBracket {
     }
 
     resetZoom() {
-        this.currentZoom = 0.5;
+        this.currentZoom = 0.25;
         this.draw();
     }
 
     resetView() {
-        this.currentZoom = 0.5;
-        this.offsetX = 0;
+        this.currentZoom = 0.25;
+        this.offsetX = -(((this.canvas.width *4) * this.currentZoom) - this.canvas.width) /2;
         this.offsetY = 0;
         this.draw();
     }
 
     resetPosition() {
-        this.offsetX = 0;
+        this.offsetX = -(((this.canvas.width *4) * this.currentZoom) - this.canvas.width) /2;
         this.offsetY = 0;
         this.draw();
     }
