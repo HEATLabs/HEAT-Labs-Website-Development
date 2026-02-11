@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
                            class="login-input"
                            id="loginEmail"
                            placeholder="Enter your email"
+                           autocomplete="email"
                            required>
                 </div>
 
@@ -33,6 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
                            class="login-input"
                            id="loginPassword"
                            placeholder="Enter your password"
+                           autocomplete="current-password"
                            required>
                 </div>
 
@@ -86,6 +88,7 @@ document.addEventListener('DOMContentLoaded', function() {
                            class="login-input"
                            id="signupEmail"
                            placeholder="Enter your email"
+                           autocomplete="email"
                            required>
                 </div>
 
@@ -95,6 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
                            class="login-input"
                            id="signupPassword"
                            placeholder="Create a password"
+                           autocomplete="new-password"
                            required>
                     <div class="password-requirements">
                         <small>Password must be at least 8 characters long</small>
@@ -107,6 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
                            class="login-input"
                            id="confirmPassword"
                            placeholder="Confirm your password"
+                           autocomplete="new-password"
                            required>
                 </div>
 
