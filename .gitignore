@@ -23,3 +23,6 @@
 hs_err_pid*
 replay_pid*
 /.idea
+assets/js/easter-eggs/ai.js
+assets/css/easter-eggs/ai.css
+ai.html
