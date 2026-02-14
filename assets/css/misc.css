@@ -1,1 +1,15 @@
 /* Miscellaneous Styles */
+/* Sidebar margin */
+.content-wrapper {
+	margin-left: var(--sidebar-collapsed-width, 3.5rem);
+	transition: margin-left var(--transition-speed) ease;
+	width: calc(100% - var(--sidebar-collapsed-width, 4rem));
+}
+
+/* Sidebar margin mobile */
+@media (max-width: 768px) {
+	.content-wrapper {
+		margin-left: 0;
+		width: 100%;
+	}
+}
