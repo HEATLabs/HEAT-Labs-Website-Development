@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const messageHTML = `
             <div class="prediction-off-message">
                 <h3>Looks like our prediction was a bit off...</h3>
-                <p>Alpha 3 hasn't started yet, but don't worry! We're still counting up until we get official news.</p>
+                <p>Our prediction for the start time was February 15, 2026 at 12:00 UTC, we missed the mark and Alpha 3 hasn't started yet. We're still counting up until we get official news.</p>
             </div>
         `;
 
