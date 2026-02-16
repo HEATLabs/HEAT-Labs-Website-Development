@@ -111,25 +111,6 @@
     <link rel="canonical" href="https://dev.heatlabs.net/wrong-turn">
     <!-- Sitemap -->
     <link rel="sitemap" type="application/xml" href="https://heatlabs.net/site-data/sitemap.xml">
-    <!-- Theme Checker -->
-    <script>
-      // Immediately set theme class before rendering begins
-      (function() {
-        try {
-          const savedTheme = localStorage.getItem('theme');
-          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          // Default to dark theme if saved or system preference
-          if (savedTheme === 'dark-theme' || (!savedTheme && prefersDark)) {
-            document.documentElement.classList.add('dark-theme');
-          } else {
-            document.documentElement.classList.add('light-theme');
-          }
-        } catch (e) {
-          console.error('Theme initialization error:', e);
-          document.documentElement.classList.add('light-theme');
-        }
-      })();
-    </script>
     <!-- External CDN connections -->
     <link rel="dns-prefetch" href="https://raw.githubusercontent.com">
     <!-- Main stylesheets -->
@@ -199,8 +180,6 @@
     <meta name="twitter:image:alt" content="HEAT Labs [DEV] - Your one-stop solution for comprehensive statistics insights and guides for World of Tanks: HEAT">
   </head>
   <body>
-    <!-- Custom Privacy-Focused Tracking Pixel -->
-    <img src="https://views.heatlabs.net/api/track/pcwstats-tracker-pixel-search.png" alt="HEAT Labs Tracking View Counter" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" class="heatlabs-tracking-pixel" data-page="search">
     <!-- Main Content -->
     <div class="content-wrapper">
       <section id="main" class="section">
@@ -208,8 +187,6 @@
       </section>
     </div>
     <script src="assets/js/main.js"></script>
-    <script src="assets/js/misc.js"></script>
     <script src="assets/js/pages/search-page.js"></script>
-    <script src="assets/js/modules/theme-loader.js"></script>
   </body>
 </html>
