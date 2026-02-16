@@ -1187,6 +1187,7 @@
 
 	/* Favorite Tools */
 	.favorite-tools-section {
+	    margin-top: -1rem;
 		margin-bottom: 1rem;
 	}
 
@@ -1289,6 +1290,7 @@
 	}
 
 	.favorite-tools-section {
+	    margin-top: -1rem;
 		margin-bottom: 1rem;
 	}
 
