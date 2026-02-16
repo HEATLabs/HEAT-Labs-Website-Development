@@ -202,7 +202,7 @@
 	width: 48px;
 	height: 48px;
 	border-radius: 50%;
-	background: var(--card-bg);
+	background: var(--bg-dark);
 	border: 1px solid var(--border-color);
 	color: var(--text-secondary);
 	font-size: 1.5rem;
@@ -229,7 +229,7 @@
 	width: 48px;
 	height: 48px;
 	border-radius: 50%;
-	background: var(--card-bg);
+	background: var(--bg-dark);
 	border: 1px solid var(--border-color);
 	color: var(--text-secondary);
 	font-size: 1.5rem;
@@ -280,7 +280,7 @@
 	top: 80px;
 	right: 20px;
 	width: 280px;
-	background: var(--card-bg);
+	background: var(--bg-dark);
 	border-radius: 12px;
 	border: 1px solid var(--border-color);
 	box-shadow: var(--shadow-lg);
@@ -621,7 +621,7 @@
 	font-size: 1.2rem;
 	border: 2px solid var(--border-color);
 	border-radius: 50px;
-	background: var(--card-bg);
+	background: var(--bg-dark);
 	color: var(--text-primary);
 	transition: all var(--transition-speed) ease;
 	box-shadow: var(--shadow);
