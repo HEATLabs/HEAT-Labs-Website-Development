@@ -191,73 +191,14 @@
       </button>
       <!-- Clock Display -->
       <div id="liveClock" class="live-clock"></div>
-      <!-- Settings Panel -->
-      <div class="search-settings-panel" id="searchSettingsPanel">
-        <div class="search-settings-header">
-          <h3>Settings</h3>
-          <button id="closeSettingsPanel" class="search-settings-close">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="search-settings-header" style="border-bottom: 1px solid var(--border-color);">
-          <h3>Search Engine</h3>
-        </div>
-        <div class="search-settings-options">
-          <label class="search-settings-option">
-            <input type="radio" name="searchEngine" value="google" checked>
-            <span class="search-settings-option-text">Google</span>
-          </label>
-          <label class="search-settings-option">
-            <input type="radio" name="searchEngine" value="bing">
-            <span class="search-settings-option-text">Bing</span>
-          </label>
-          <label class="search-settings-option">
-            <input type="radio" name="searchEngine" value="duckduckgo">
-            <span class="search-settings-option-text">DuckDuckGo</span>
-          </label>
-          <label class="search-settings-option">
-            <input type="radio" name="searchEngine" value="brave">
-            <span class="search-settings-option-text">Brave</span>
-          </label>
-        </div>
-        <!-- Display Options -->
-        <div class="search-settings-header" style="border-top: 1px solid var(--border-color); margin-top: 0.5rem;">
-          <h3>Display Options</h3>
-        </div>
-        <div class="search-settings-options">
-          <label class="search-settings-option">
-            <input type="checkbox" id="clockToggle" checked>
-            <span class="search-settings-option-text">Show Live Clock</span>
-          </label>
-          <label class="search-settings-option">
-            <input type="checkbox" id="frequentToggle" checked>
-            <span class="search-settings-option-text">Show Frequent Searches</span>
-          </label>
-          <label class="search-settings-option">
-            <input type="checkbox" id="logoToggle" checked>
-            <span class="search-settings-option-text">Show HEAT Labs Logo</span>
-          </label>
-          <label class="search-settings-option">
-            <input type="checkbox" id="wavesToggle" checked>
-            <span class="search-settings-option-text">Background Waves</span>
-          </label>
-          <label class="search-settings-option">
-            <input type="checkbox" id="toolsToggle" checked>
-            <span class="search-settings-option-text">Show Favorite Tools</span>
-          </label>
-        </div>
-        <div class="search-settings-footer">
-          <button id="favoriteToolsBtn" class="search-settings-tools-btn">
-            <i class="fas fa-star"></i> Customize Favorite Tools </button>
-          <button id="clearFrequentSearchesBtn" class="search-settings-clear-btn">
-            <i class="fas fa-trash-alt"></i> Clear Frequent Searches </button>
-        </div>
-      </div>
       <!-- Info Modal -->
       <div class="info-modal-overlay" id="infoModalOverlay">
         <div class="info-modal">
           <div class="info-modal-header">
             <h2>Your Privacy Matters</h2>
+            <button id="closeInfoModal" class="modal-close-btn" aria-label="Close">
+              <i class="fas fa-times"></i>
+            </button>
           </div>
           <div class="info-modal-body">
             <p>
@@ -275,19 +216,86 @@
           </div>
         </div>
       </div>
+      <!-- Settings Modal -->
+      <div class="settings-modal-overlay" id="settingsModalOverlay">
+        <div class="settings-modal">
+          <div class="settings-modal-header">
+            <h2>Settings</h2>
+            <button id="closeSettingsModal" class="modal-close-btn" aria-label="Close">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="settings-modal-body">
+            <div class="settings-section">
+              <h3 class="settings-section-title">Search Engine</h3>
+              <div class="settings-options">
+                <label class="settings-option">
+                  <input type="radio" name="searchEngine" value="google" checked>
+                  <span class="settings-option-text">Google</span>
+                </label>
+                <label class="settings-option">
+                  <input type="radio" name="searchEngine" value="bing">
+                  <span class="settings-option-text">Bing</span>
+                </label>
+                <label class="settings-option">
+                  <input type="radio" name="searchEngine" value="duckduckgo">
+                  <span class="settings-option-text">DuckDuckGo</span>
+                </label>
+                <label class="settings-option">
+                  <input type="radio" name="searchEngine" value="brave">
+                  <span class="settings-option-text">Brave</span>
+                </label>
+              </div>
+            </div>
+            <div class="settings-section">
+              <h3 class="settings-section-title">Display Options</h3>
+              <div class="settings-options">
+                <label class="settings-option">
+                  <input type="checkbox" id="clockToggle" checked>
+                  <span class="settings-option-text">Show Live Clock</span>
+                </label>
+                <label class="settings-option">
+                  <input type="checkbox" id="frequentToggle" checked>
+                  <span class="settings-option-text">Show Frequent Searches</span>
+                </label>
+                <label class="settings-option">
+                  <input type="checkbox" id="logoToggle" checked>
+                  <span class="settings-option-text">Show HEAT Labs Logo</span>
+                </label>
+                <label class="settings-option">
+                  <input type="checkbox" id="wavesToggle" checked>
+                  <span class="settings-option-text">Background Waves</span>
+                </label>
+                <label class="settings-option">
+                  <input type="checkbox" id="toolsToggle" checked>
+                  <span class="settings-option-text">Show Favorite Tools</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="settings-modal-footer">
+            <button id="favoriteToolsBtn" class="settings-modal-button">
+              <i class="fas fa-star"></i> Customize Favorite Tools </button>
+            <button id="clearFrequentSearchesBtn" class="settings-modal-button secondary">
+              <i class="fas fa-trash-alt"></i> Clear Frequent Searches </button>
+          </div>
+        </div>
+      </div>
       <!-- Tools Modal -->
       <div class="tools-modal-overlay" id="toolsModalOverlay">
         <div class="tools-modal">
           <div class="tools-modal-header">
             <h2>Choose Your Favorite Tools</h2>
+            <button id="toolsModalClose" class="modal-close-btn" aria-label="Close">
+              <i class="fas fa-times"></i>
+            </button>
           </div>
           <div class="tools-modal-body">
             <div id="toolsGrid" class="tools-grid">
               <!-- Tools will be populated by JavaScript -->
             </div>
           </div>
-          <div class="tools-modal-footer" style="display: flex; gap: 1rem; justify-content: center;">
-            <button id="toolsModalClose" class="tools-modal-button" style="background: transparent; border: 1px solid var(--border-color);">Cancel</button>
+          <div class="tools-modal-footer">
             <button id="toolsModalSave" class="tools-modal-button">Save Selection</button>
           </div>
         </div>

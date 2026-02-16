@@ -2,8 +2,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Get DOM elements
     const searchBox = document.getElementById('newTabSearch');
     const settingsBtn = document.getElementById('searchSettingsBtn');
-    const settingsPanel = document.getElementById('searchSettingsPanel');
-    const closeSettingsBtn = document.getElementById('closeSettingsPanel');
+    const settingsModalOverlay = document.getElementById('settingsModalOverlay');
+    const closeSettingsBtn = document.getElementById('closeSettingsModal');
     const clearFrequentBtn = document.getElementById('clearFrequentSearchesBtn');
     const frequentSearchesTags = document.getElementById('frequentSearchesTags');
     const frequentSearchesSection = document.getElementById('frequentSearches');
@@ -54,52 +54,56 @@ document.addEventListener('DOMContentLoaded', function() {
     // Maximum number of favorite tools
     const MAX_FAVORITE_TOOLS = 5;
 
+    // Check if we're on mobile
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+
     // Available tools with their icons and URLs
-    const availableTools = [{
+    const availableTools = [
+        {
             id: 'tankStats',
-            name: 'Tank Statistics',
+            name: isMobile ? 'Tanks' : 'Tank Statistics',
             icon: 'fa-shield-alt',
             url: 'https://heatlabs.net/tanks'
         },
         {
             id: 'mapKnowledge',
-            name: 'Map Knowledge',
+            name: isMobile ? 'Maps' : 'Map Knowledge',
             icon: 'fa-map',
             url: 'https://heatlabs.net/maps'
         },
         {
             id: 'communityGuides',
-            name: 'Community Guides',
+            name: isMobile ? 'Guides' : 'Community Guides',
             icon: 'fa-book-open',
             url: 'https://heatlabs.net/guides'
         },
         {
             id: 'commonBuilds',
-            name: 'Common Builds',
+            name: isMobile ? 'Builds' : 'Common Builds',
             icon: 'fa-wrench',
             url: 'https://heatlabs.net/builds'
         },
         {
             id: 'playground',
-            name: 'Playground Features',
+            name: isMobile ? 'Playground' : 'Playground Features',
             icon: 'fa-gamepad',
             url: 'https://heatlabs.net/playground'
         },
         {
             id: 'news',
-            name: 'Latest Game News',
+            name: isMobile ? 'News' : 'Latest Game News',
             icon: 'fa-newspaper',
             url: 'https://heatlabs.net/news'
         },
         {
             id: 'assetGallery',
-            name: 'Asset Gallery',
+            name: isMobile ? 'Assets' : 'Asset Gallery',
             icon: 'fa-database',
             url: 'https://heatlabs.net/asset-gallery'
         },
         {
             id: 'tournaments',
-            name: 'Tournaments',
+            name: isMobile ? 'Tournaments' : 'Tournaments',
             icon: 'fa-trophy',
             url: 'https://heatlabs.net/tournaments'
         }
@@ -139,16 +143,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // Info Modal Logic
     infoBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        // Close settings panel if it's open
-        settingsPanel.classList.remove('active');
+        // Close settings modal if it's open
+        settingsModalOverlay.classList.remove('active');
+        document.body.style.overflow = 'hidden';
         // Show info modal
         infoModalOverlay.classList.add('active');
-        document.body.style.overflow = 'hidden';
     });
 
     function closeInfoModal() {
         infoModalOverlay.classList.remove('active');
         document.body.style.overflow = '';
+    }
+
+    // Close info modal with close button
+    if (closeInfoModalBtn) {
+        closeInfoModalBtn.addEventListener('click', closeInfoModal);
     }
 
     infoModalGotItBtn.addEventListener('click', closeInfoModal);
@@ -160,21 +169,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Toggle settings panel
+    // Settings Modal Logic
     settingsBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        settingsPanel.classList.toggle('active');
+        settingsModalOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
     });
 
-    // Close settings panel
+    // Close settings modal
     closeSettingsBtn.addEventListener('click', function() {
-        settingsPanel.classList.remove('active');
+        settingsModalOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+    });
+
+    // Close settings modal when clicking outside
+    settingsModalOverlay.addEventListener('click', function(e) {
+        if (e.target === settingsModalOverlay) {
+            settingsModalOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
     });
 
     // Show clear confirmation modal
     clearFrequentBtn.addEventListener('click', function() {
-        // Close settings panel
-        settingsPanel.classList.remove('active');
+        // Close settings modal
+        settingsModalOverlay.classList.remove('active');
 
         // Show confirmation modal
         clearConfirmOverlay.classList.add('active');
@@ -211,13 +230,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target === clearConfirmOverlay) {
             clearConfirmOverlay.classList.remove('active');
             document.body.style.overflow = '';
-        }
-    });
-
-    // Close settings panel when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!settingsPanel.contains(e.target) && !settingsBtn.contains(e.target)) {
-            settingsPanel.classList.remove('active');
         }
     });
 
@@ -298,7 +310,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Open Tools Modal
     favoriteToolsBtn.addEventListener('click', function() {
-        settingsPanel.classList.remove('active');
+        settingsModalOverlay.classList.remove('active');
         renderToolsModal();
         toolsModalOverlay.classList.add('active');
         document.body.style.overflow = 'hidden';
@@ -383,9 +395,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Escape key handlers
         if (e.key === 'Escape') {
-            // Close settings panel
-            if (settingsPanel.classList.contains('active')) {
-                settingsPanel.classList.remove('active');
+            // Close settings modal
+            if (settingsModalOverlay.classList.contains('active')) {
+                settingsModalOverlay.classList.remove('active');
+                document.body.style.overflow = '';
             }
             // Close info modal
             if (infoModalOverlay.classList.contains('active')) {
@@ -401,6 +414,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 toolsModalOverlay.classList.remove('active');
                 document.body.style.overflow = '';
             }
+        }
+    });
+
+    // Listen for window resize to update mobile status
+    window.addEventListener('resize', function() {
+        const newIsMobile = window.matchMedia('(max-width: 768px)').matches;
+        // If mobile status changed, update the news tool name
+        if (newIsMobile !== isMobile) {
+            // Update the availableTools array
+            const newsTool = availableTools.find(t => t.id === 'news');
+            if (newsTool) {
+                newsTool.name = newIsMobile ? 'Game News' : 'Latest Game News';
+            }
+            // Re-render the tools modal if it's open
+            if (toolsModalOverlay.classList.contains('active')) {
+                renderToolsModal();
+            }
+            // Re-display favorite tools to update names
+            displayFavoriteTools();
         }
     });
 
@@ -598,12 +630,25 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        favoriteToolsGrid.innerHTML = tools.map(tool => `
-            <button class="favorite-tool-button" data-url="${tool.url}" data-tool-id="${tool.id}">
-                <i class="fas ${tool.icon}"></i>
-                <span>${tool.name}</span>
-            </button>
-        `).join('');
+        favoriteToolsGrid.innerHTML = tools.map(tool => {
+            // Check if this is the news tool and apply mobile name if needed
+            const isMobileNow = window.matchMedia('(max-width: 768px)').matches;
+            let displayName = tool.name;
+
+            // If this is the news tool and we're on mobile, use the shorter name
+            if (tool.id === 'news' && isMobileNow) {
+                displayName = 'Game News';
+            } else if (tool.id === 'news' && !isMobileNow) {
+                displayName = 'Latest Game News';
+            }
+
+            return `
+                <button class="favorite-tool-button" data-url="${tool.url}" data-tool-id="${tool.id}">
+                    <i class="fas ${tool.icon}"></i>
+                    <span>${displayName}</span>
+                </button>
+            `;
+        }).join('');
 
         // Add click handlers to tool buttons
         document.querySelectorAll('.favorite-tool-button').forEach(button => {
@@ -620,11 +665,20 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderToolsModal() {
         const currentTools = getFavoriteTools();
         const currentToolIds = currentTools.map(t => t.id);
+        const isMobileNow = window.matchMedia('(max-width: 768px)').matches;
 
         toolsGrid.innerHTML = availableTools.map(tool => {
             const isChecked = currentToolIds.includes(tool.id);
             // Check if this tool would be disabled
             const isDisabled = !isChecked && currentToolIds.length >= MAX_FAVORITE_TOOLS;
+
+            // Use mobile-friendly name if needed
+            let displayName = tool.name;
+            if (tool.id === 'news' && isMobileNow) {
+                displayName = 'Game News';
+            } else if (tool.id === 'news' && !isMobileNow) {
+                displayName = 'Latest Game News';
+            }
 
             return `
                 <label class="tool-checkbox-item ${isDisabled ? 'disabled' : ''}">
@@ -633,18 +687,14 @@ document.addEventListener('DOMContentLoaded', function() {
                            ${isChecked ? 'checked' : ''}
                            ${isDisabled ? 'disabled' : ''}>
                     <i class="fas ${tool.icon}"></i>
-                    <span>${tool.name}</span>
+                    <span>${displayName}</span>
                 </label>
             `;
         }).join('');
 
         // Add max selection warning
         const warningEl = document.createElement('p');
-        warningEl.className = 'text-secondary text-sm mt-3';
-        warningEl.style.color = 'var(--text-secondary)';
-        warningEl.style.fontSize = '0.9rem';
-        warningEl.style.marginTop = '1rem';
-        warningEl.style.padding = '0 1rem';
+        warningEl.className = 'tools-warning';
         warningEl.innerHTML = `<i class="fas fa-info-circle"></i> You can select up to ${MAX_FAVORITE_TOOLS} favorite tools. Uncheck some to select others.`;
 
         // Remove existing warning if any
@@ -653,7 +703,6 @@ document.addEventListener('DOMContentLoaded', function() {
             existingWarning.remove();
         }
 
-        warningEl.classList.add('tools-warning');
         toolsGrid.parentNode.appendChild(warningEl);
 
         // Add change event listeners to handle enabling/disabling based on count
