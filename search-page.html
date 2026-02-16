@@ -180,13 +180,143 @@
     <meta name="twitter:image:alt" content="HEAT Labs [DEV] - Your one-stop solution for comprehensive statistics insights and guides for World of Tanks: HEAT">
   </head>
   <body>
-    <!-- Main Content -->
-    <div class="content-wrapper">
-      <section id="main" class="section">
-      <!-- Search Modal -->
+    <div class="content-wrapper search-page">
+      <!-- Waves -->
+      <div class="waves-container"></div>
+      <!-- Info Button -->
+      <button id="searchInfoBtn" class="search-info-btn" aria-label="Information">
+        <i class="fas fa-info-circle"></i>
+      </button>
+      <!-- Settings Cog -->
+      <button id="searchSettingsBtn" class="search-settings-btn">
+        <i class="fas fa-cog"></i>
+      </button>
+      <!-- Clock Display -->
+      <div id="liveClock" class="live-clock"></div>
+      <!-- Settings Panel -->
+      <div class="search-settings-panel" id="searchSettingsPanel">
+        <div class="search-settings-header">
+          <h3>Settings</h3>
+          <button id="closeSettingsPanel" class="search-settings-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="search-settings-header" style="border-bottom: 1px solid var(--border-color);">
+          <h3>Search Engine</h3>
+        </div>
+        <div class="search-settings-options">
+          <label class="search-settings-option">
+            <input type="radio" name="searchEngine" value="google" checked>
+            <span class="search-settings-option-text">Google</span>
+          </label>
+          <label class="search-settings-option">
+            <input type="radio" name="searchEngine" value="bing">
+            <span class="search-settings-option-text">Bing</span>
+          </label>
+          <label class="search-settings-option">
+            <input type="radio" name="searchEngine" value="duckduckgo">
+            <span class="search-settings-option-text">DuckDuckGo</span>
+          </label>
+          <label class="search-settings-option">
+            <input type="radio" name="searchEngine" value="brave">
+            <span class="search-settings-option-text">Brave</span>
+          </label>
+        </div>
+        <!-- Display Options -->
+        <div class="search-settings-header" style="border-top: 1px solid var(--border-color); margin-top: 0.5rem;">
+          <h3>Display Options</h3>
+        </div>
+        <div class="search-settings-options">
+          <label class="search-settings-option">
+            <input type="checkbox" id="clockToggle" checked>
+            <span class="search-settings-option-text">Show Live Clock</span>
+          </label>
+          <label class="search-settings-option">
+            <input type="checkbox" id="frequentToggle" checked>
+            <span class="search-settings-option-text">Show Frequent Searches</span>
+          </label>
+          <label class="search-settings-option">
+            <input type="checkbox" id="logoToggle" checked>
+            <span class="search-settings-option-text">Show HEAT Labs Logo</span>
+          </label>
+          <label class="search-settings-option">
+            <input type="checkbox" id="wavesToggle" checked>
+            <span class="search-settings-option-text">Background Waves</span>
+          </label>
+        </div>
+        <div class="search-settings-footer">
+          <button id="clearFrequentSearchesBtn" class="search-settings-clear-btn">
+            <i class="fas fa-trash-alt"></i> Clear Frequent Searches </button>
+        </div>
+      </div>
+      <!-- Info Modal -->
+      <div class="info-modal-overlay" id="infoModalOverlay">
+        <div class="info-modal">
+          <div class="info-modal-header">
+            <h2>Your Privacy Matters</h2>
+          </div>
+          <div class="info-modal-body">
+            <p>
+              <strong>HEAT Labs</strong> is designed with your privacy as a top priority. The search queries you enter on this page <strong class="highlight">never leave your device</strong> unless you press Enter to perform a search.
+            </p>
+            <p>
+              <strong>Local Storage Only:</strong> Your frequent searches are stored locally in your browser's memory (localStorage). This data is used solely to populate the "Frequent Searches" tags below the search bar. It is <strong class="highlight">never exported, tracked, or sent to any HEAT Labs server</strong>.
+            </p>
+            <p>
+              <strong>A Note on Third Parties:</strong> When you perform a search, you are redirected to your chosen search engine (Google, Bing, etc.). HEAT Labs has no control over and accepts no responsibility for the data collection practices, privacy policies, or content of these external sites. We encourage you to review the privacy policy of your selected search engine.
+            </p>
+          </div>
+          <div class="info-modal-footer">
+            <button id="infoModalGotIt" class="info-modal-button">Got It</button>
+          </div>
+        </div>
+      </div>
+      <!-- Clear Confirmation Modal -->
+      <div class="clear-confirm-overlay" id="clearConfirmOverlay">
+        <div class="clear-confirm-modal">
+          <div class="clear-confirm-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <h2 class="clear-confirm-title">Clear Frequent Searches</h2>
+          <p class="clear-confirm-message">Are you sure you want to clear all your frequent searches? This action cannot be undone.</p>
+          <div class="clear-confirm-buttons">
+            <button class="clear-confirm-button clear-confirm-button-secondary" id="clearConfirmCancel">
+              <i class="fas fa-times"></i> Cancel </button>
+            <button class="clear-confirm-button clear-confirm-button-primary" id="clearConfirmProceed">
+              <i class="fas fa-trash-alt"></i> Clear All </button>
+          </div>
+        </div>
+      </div>
+      <!-- Main Content -->
+      <section id="main" class="section search-section">
+        <div class="search-container">
+          <!-- Logo -->
+          <div class="search-logo">
+            <img src="https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/logo/logo.webp" alt="HEAT Labs Logo" class="search-logo-img">
+            <h1 class="search-logo-text">HEAT <span class="orange-text">Labs</span> Search </h1>
+          </div>
+          <!-- Search Box -->
+          <div class="search-box-container">
+            <div class="search-input-wrapper">
+              <i class="fas fa-search search-icon"></i>
+              <input type="text" id="newTabSearch" class="search-input" placeholder="Search the web..." autofocus>
+            </div>
+          </div>
+          <!-- Frequent Searches -->
+          <div class="frequent-searches" id="frequentSearches">
+            <h3 class="frequent-searches-title">Frequent Searches</h3>
+            <div class="frequent-searches-tags" id="frequentSearchesTags"></div>
+          </div>
+        </div>
       </section>
+      <!-- Footer -->
+      <div class="search-footer">
+        <p>© 2025 - 2026 HEAT Labs by SINEWAVE Development</p>
+      </div>
     </div>
     <script src="assets/js/main.js"></script>
+    <script src="assets/js/modules/waves.js"></script>
+    <script src="assets/js/modules/image-protection.js"></script>
     <script src="assets/js/pages/search-page.js"></script>
   </body>
 </html>
