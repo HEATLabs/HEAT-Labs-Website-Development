@@ -186,7 +186,6 @@
 
 .info-modal-button:hover {
 	background-color: var(--accent-color-hover, #e67300);
-	transform: translateY(-2px);
 	box-shadow: var(--shadow-dark);
 }
 
@@ -517,10 +516,6 @@
 	background-color: var(--accent-color-hover, #e67300);
 }
 
-.clear-confirm-button-primary:active {
-	transform: translateY(-1px);
-}
-
 .clear-confirm-button-secondary {
 	background-color: var(--bg-tertiary);
 	color: var(--text-primary);
@@ -529,10 +524,6 @@
 
 .clear-confirm-button-secondary:hover {
 	background-color: var(--bg-secondary);
-}
-
-.clear-confirm-button-secondary:active {
-	transform: translateY(-1px);
 }
 
 /* Main Search Section */
@@ -710,7 +701,6 @@
 	background: var(--accent-color);
 	border-color: var(--accent-color);
 	color: white;
-	transform: translateY(-2px);
 	box-shadow: var(--shadow-dark);
 }
 
