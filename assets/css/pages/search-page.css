@@ -1019,6 +1019,7 @@
 
 	/* Favorite Tools */
 	.favorite-tools-section {
+	    margin-top: -1.5rem;
 		margin-bottom: 1.5rem;
 		width: 100%;
 		display: flex;
