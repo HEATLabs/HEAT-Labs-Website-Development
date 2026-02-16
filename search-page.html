@@ -241,8 +241,14 @@
             <input type="checkbox" id="wavesToggle" checked>
             <span class="search-settings-option-text">Background Waves</span>
           </label>
+          <label class="search-settings-option">
+            <input type="checkbox" id="toolsToggle" checked>
+            <span class="search-settings-option-text">Show Favorite Tools</span>
+          </label>
         </div>
         <div class="search-settings-footer">
+          <button id="favoriteToolsBtn" class="search-settings-tools-btn">
+            <i class="fas fa-star"></i> Customize Favorite Tools </button>
           <button id="clearFrequentSearchesBtn" class="search-settings-clear-btn">
             <i class="fas fa-trash-alt"></i> Clear Frequent Searches </button>
         </div>
@@ -269,6 +275,23 @@
           </div>
         </div>
       </div>
+      <!-- Tools Modal -->
+      <div class="tools-modal-overlay" id="toolsModalOverlay">
+        <div class="tools-modal">
+          <div class="tools-modal-header">
+            <h2>Choose Your Favorite Tools</h2>
+          </div>
+          <div class="tools-modal-body">
+            <div id="toolsGrid" class="tools-grid">
+              <!-- Tools will be populated by JavaScript -->
+            </div>
+          </div>
+          <div class="tools-modal-footer" style="display: flex; gap: 1rem; justify-content: center;">
+            <button id="toolsModalClose" class="tools-modal-button" style="background: transparent; border: 1px solid var(--border-color);">Cancel</button>
+            <button id="toolsModalSave" class="tools-modal-button">Save Selection</button>
+          </div>
+        </div>
+      </div>
       <!-- Clear Confirmation Modal -->
       <div class="clear-confirm-overlay" id="clearConfirmOverlay">
         <div class="clear-confirm-modal">
@@ -292,6 +315,10 @@
           <div class="search-logo">
             <img src="https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/logo/logo.webp" alt="HEAT Labs Logo" class="search-logo-img">
             <h1 class="search-logo-text">HEAT <span class="orange-text">Labs</span> Search</h1>
+          </div>
+          <!-- Favorite Tools -->
+          <div class="favorite-tools-section" id="favoriteToolsSection">
+            <div class="favorite-tools-grid" id="favoriteToolsGrid"></div>
           </div>
           <!-- Search Box -->
           <div class="search-box-container">

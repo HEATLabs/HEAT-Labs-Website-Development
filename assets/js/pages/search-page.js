@@ -38,8 +38,72 @@ document.addEventListener('DOMContentLoaded', function() {
     const clearConfirmCancel = document.getElementById('clearConfirmCancel');
     const clearConfirmProceed = document.getElementById('clearConfirmProceed');
 
-    // Maximum number of frequent searches to store
+    // Favorite Tools Elements
+    const favoriteToolsBtn = document.getElementById('favoriteToolsBtn');
+    const toolsModalOverlay = document.getElementById('toolsModalOverlay');
+    const toolsModalClose = document.getElementById('toolsModalClose');
+    const toolsModalSave = document.getElementById('toolsModalSave');
+    const toolsGrid = document.getElementById('toolsGrid');
+    const favoriteToolsSection = document.getElementById('favoriteToolsSection');
+    const favoriteToolsGrid = document.getElementById('favoriteToolsGrid');
+    const toolsToggle = document.getElementById('toolsToggle');
+
+    // Maximum number of frequent searches and to store
     const MAX_FREQUENT_SEARCHES = 8;
+
+    // Maximum number of favorite tools
+    const MAX_FAVORITE_TOOLS = 5;
+
+    // Available tools with their icons and URLs
+    const availableTools = [{
+            id: 'tankStats',
+            name: 'Tank Statistics',
+            icon: 'fa-shield-alt',
+            url: 'https://heatlabs.net/tanks'
+        },
+        {
+            id: 'mapKnowledge',
+            name: 'Map Knowledge',
+            icon: 'fa-map',
+            url: 'https://heatlabs.net/maps'
+        },
+        {
+            id: 'communityGuides',
+            name: 'Community Guides',
+            icon: 'fa-book-open',
+            url: 'https://heatlabs.net/guides'
+        },
+        {
+            id: 'commonBuilds',
+            name: 'Common Builds',
+            icon: 'fa-wrench',
+            url: 'https://heatlabs.net/builds'
+        },
+        {
+            id: 'playground',
+            name: 'Playground Features',
+            icon: 'fa-gamepad',
+            url: 'https://heatlabs.net/playground'
+        },
+        {
+            id: 'news',
+            name: 'Latest Game News',
+            icon: 'fa-newspaper',
+            url: 'https://heatlabs.net/news'
+        },
+        {
+            id: 'assetGallery',
+            name: 'Asset Gallery',
+            icon: 'fa-database',
+            url: 'https://heatlabs.net/asset-gallery'
+        },
+        {
+            id: 'tournaments',
+            name: 'Tournaments',
+            icon: 'fa-trophy',
+            url: 'https://heatlabs.net/tournaments'
+        }
+    ];
 
     // Store waves cleanup function
     let wavesCleanup = null;
@@ -63,8 +127,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load waves visibility preference
     loadWavesPreference();
 
+    // Load favorite tools visibility preference
+    loadToolsPreference();
+
     // Load and display frequent searches
     displayFrequentSearches();
+
+    // Load and display favorite tools
+    displayFavoriteTools();
 
     // Info Modal Logic
     infoBtn.addEventListener('click', function(e) {
@@ -215,6 +285,66 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.setItem('showWaves', this.checked);
     });
 
+    // Favorite Tools Toggle
+    toolsToggle.addEventListener('change', function() {
+        if (this.checked) {
+            favoriteToolsSection.classList.remove('hidden');
+        } else {
+            favoriteToolsSection.classList.add('hidden');
+        }
+        // Save preference
+        localStorage.setItem('showFavoriteTools', this.checked);
+    });
+
+    // Open Tools Modal
+    favoriteToolsBtn.addEventListener('click', function() {
+        settingsPanel.classList.remove('active');
+        renderToolsModal();
+        toolsModalOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    });
+
+    // Close Tools Modal
+    toolsModalClose.addEventListener('click', function() {
+        toolsModalOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+    });
+
+    // Save Tools Selection
+    toolsModalSave.addEventListener('click', function() {
+        const selectedTools = [];
+        const checkboxes = document.querySelectorAll('#toolsGrid input[type="checkbox"]:checked');
+
+        checkboxes.forEach(checkbox => {
+            const toolId = checkbox.value;
+            const tool = availableTools.find(t => t.id === toolId);
+            if (tool) {
+                selectedTools.push(tool);
+            }
+        });
+
+        // Limit to MAX_FAVORITE_TOOLS
+        const toolsToSave = selectedTools.slice(0, MAX_FAVORITE_TOOLS);
+
+        // Save to localStorage
+        localStorage.setItem('favoriteTools', JSON.stringify(toolsToSave));
+
+        // Update display
+        displayFavoriteTools();
+
+        // Close modal
+        toolsModalOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+    });
+
+    // Close modal when clicking outside
+    toolsModalOverlay.addEventListener('click', function(e) {
+        if (e.target === toolsModalOverlay) {
+            toolsModalOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    });
+
     // Handle search on Enter key
     searchBox.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
@@ -264,6 +394,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // Close clear confirmation modal
             if (clearConfirmOverlay.classList.contains('active')) {
                 clearConfirmOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+            // Close tools modal
+            if (toolsModalOverlay.classList.contains('active')) {
+                toolsModalOverlay.classList.remove('active');
                 document.body.style.overflow = '';
             }
         }
@@ -358,6 +493,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Load favorite tools visibility preference
+    function loadToolsPreference() {
+        const showTools = localStorage.getItem('showFavoriteTools');
+        // Default to true if no preference is saved
+        if (showTools === 'false') {
+            toolsToggle.checked = false;
+            favoriteToolsSection.classList.add('hidden');
+        } else {
+            toolsToggle.checked = true;
+            favoriteToolsSection.classList.remove('hidden');
+            // Ensure the default is saved if it doesn't exist
+            if (showTools === null) {
+                localStorage.setItem('showFavoriteTools', 'true');
+            }
+        }
+    }
+
     // Live Clock Function
     function startLiveClock() {
         function updateClock() {
@@ -425,6 +577,104 @@ document.addEventListener('DOMContentLoaded', function() {
                 const query = this.dataset.query;
                 searchBox.value = query;
                 searchBox.focus();
+            });
+        });
+    }
+
+    // Get favorite tools from localStorage
+    function getFavoriteTools() {
+        const saved = localStorage.getItem('favoriteTools');
+        return saved ? JSON.parse(saved) : [];
+    }
+
+    // Display favorite tools
+    function displayFavoriteTools() {
+        const tools = getFavoriteTools();
+
+        if (!favoriteToolsGrid) return;
+
+        if (tools.length === 0) {
+            favoriteToolsGrid.innerHTML = '<span class="empty-tools">Select your favorite tools in settings</span>';
+            return;
+        }
+
+        favoriteToolsGrid.innerHTML = tools.map(tool => `
+            <button class="favorite-tool-button" data-url="${tool.url}" data-tool-id="${tool.id}">
+                <i class="fas ${tool.icon}"></i>
+                <span>${tool.name}</span>
+            </button>
+        `).join('');
+
+        // Add click handlers to tool buttons
+        document.querySelectorAll('.favorite-tool-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const url = this.dataset.url;
+                if (url) {
+                    window.open(url, '_blank');
+                }
+            });
+        });
+    }
+
+    // Render tools modal with checkboxes and disabled state when max reached
+    function renderToolsModal() {
+        const currentTools = getFavoriteTools();
+        const currentToolIds = currentTools.map(t => t.id);
+
+        toolsGrid.innerHTML = availableTools.map(tool => {
+            const isChecked = currentToolIds.includes(tool.id);
+            // Check if this tool would be disabled
+            const isDisabled = !isChecked && currentToolIds.length >= MAX_FAVORITE_TOOLS;
+
+            return `
+                <label class="tool-checkbox-item ${isDisabled ? 'disabled' : ''}">
+                    <input type="checkbox"
+                           value="${tool.id}"
+                           ${isChecked ? 'checked' : ''}
+                           ${isDisabled ? 'disabled' : ''}>
+                    <i class="fas ${tool.icon}"></i>
+                    <span>${tool.name}</span>
+                </label>
+            `;
+        }).join('');
+
+        // Add max selection warning
+        const warningEl = document.createElement('p');
+        warningEl.className = 'text-secondary text-sm mt-3';
+        warningEl.style.color = 'var(--text-secondary)';
+        warningEl.style.fontSize = '0.9rem';
+        warningEl.style.marginTop = '1rem';
+        warningEl.style.padding = '0 1rem';
+        warningEl.innerHTML = `<i class="fas fa-info-circle"></i> You can select up to ${MAX_FAVORITE_TOOLS} favorite tools. Uncheck some to select others.`;
+
+        // Remove existing warning if any
+        const existingWarning = toolsGrid.parentNode.querySelector('.tools-warning');
+        if (existingWarning) {
+            existingWarning.remove();
+        }
+
+        warningEl.classList.add('tools-warning');
+        toolsGrid.parentNode.appendChild(warningEl);
+
+        // Add change event listeners to handle enabling/disabling based on count
+        const checkboxes = toolsGrid.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const checkedCount = toolsGrid.querySelectorAll('input[type="checkbox"]:checked').length;
+
+                // Update disabled state of all unchecked checkboxes
+                checkboxes.forEach(cb => {
+                    const label = cb.closest('.tool-checkbox-item');
+                    if (!cb.checked) {
+                        if (checkedCount >= MAX_FAVORITE_TOOLS) {
+                            cb.disabled = true;
+                            label.classList.add('disabled');
+                        } else {
+                            cb.disabled = false;
+                            label.classList.remove('disabled');
+                        }
+                    }
+                });
             });
         });
     }
