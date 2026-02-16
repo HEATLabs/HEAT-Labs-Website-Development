@@ -1062,6 +1062,63 @@ p {
 	}
 }
 
+/* Bracket Match Card */
+.match-card {
+	background-color: var(--card-bg);
+	border-radius: 0.75rem;
+	overflow: hidden;
+	box-shadow:  var(--shadow), 0 0 10px var(--match-glow);
+	border: 2px solid var(--match-glow);
+	transition: transform 0.3s ease;
+	max-width: 400px;
+	width: 100%;
+}
+
+.match-card:hover {
+	box-shadow: var(--shadow-lg), 0 0 20px var(--match-glow);
+}
+
+.match-team {
+	display: flex;
+	align-items: center;
+	padding: 16px;
+	border-bottom: 1px solid var(--border-color);
+}
+
+.match-team:last-child {
+	border-bottom: none;
+}
+
+.match-team.winner {
+	background: #1b322a;
+}
+
+.match-team.loser {
+	background: #281717;
+}
+
+.match-team-name {
+	flex: 1 1 auto;
+	font-size: 1.1rem;
+	font-weight: 500;
+	color: var(--text-primary);
+}
+
+.match-team.winner .match-team-name {
+	font-weight: 600;
+}
+
+.match-score-section {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-shrink: 0;
+}
+
+.match-score {
+	text-align: center;
+}
+
 /* Stream Cards */
 .stream-card {
 	background-color: var(--card-bg);
@@ -1219,11 +1276,11 @@ p {
 }
 
 .tournament-control-btn:hover {
-	background-color: var(accent-color-hover);
+	background-color: var(--accent-color-hover);
 	transform: scale(1.1);
 }
 
 .tournament-control-btn.active {
-	background-color: var(accent-color-light);
+	background-color: var(--accent-color-light);
 	box-shadow: 0 0 0 2px white;
 }
