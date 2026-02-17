@@ -3,7 +3,7 @@
     'use strict';
 
     // Toggle Valentine's Effects
-    const VALENTINES_ENABLED = true;
+    const VALENTINES_ENABLED = false;
 
     // Configuration
     const config = {
