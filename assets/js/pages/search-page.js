@@ -50,7 +50,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Maximum number of frequent searches and to store
     const MAX_FREQUENT_SEARCHES = 8;
-
+    // Maximum length for frequent search display
+    const MAX_SEARCH_LENGTH = 30;
     // Maximum number of favorite tools
     const MAX_FAVORITE_TOOLS = 5;
 
@@ -585,6 +586,12 @@ document.addEventListener('DOMContentLoaded', function() {
         return saved ? JSON.parse(saved) : [];
     }
 
+    // Helper function to truncate text with ellipsis
+    function truncateText(text, maxLength) {
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '...';
+    }
+
     // Display frequent searches
     function displayFrequentSearches() {
         const searches = getFrequentSearches();
@@ -596,12 +603,15 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        frequentSearchesTags.innerHTML = searches.map(query => `
-            <span class="frequent-search-tag" data-query="${query}">
-                <i class="fas fa-history"></i>
-                ${query}
-            </span>
-        `).join('');
+        frequentSearchesTags.innerHTML = searches.map(query => {
+            const displayQuery = truncateText(query, MAX_SEARCH_LENGTH);
+            return `
+                <span class="frequent-search-tag" data-query="${query}">
+                    <i class="fas fa-history"></i>
+                    ${displayQuery}
+                </span>
+            `;
+        }).join('');
 
         // Add click handlers to tags
         document.querySelectorAll('.frequent-search-tag').forEach(tag => {
