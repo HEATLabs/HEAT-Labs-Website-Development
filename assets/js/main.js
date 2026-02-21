@@ -118,6 +118,7 @@ function getLatestGameVersion(buildsData) {
         const builds = buildsData.builds;
         let latestBuild = null;
         let latestDate = null;
+        let latestVersion = null;
 
         // Iterate through all game builds to find the latest one
         for (const gameName in builds) {
@@ -135,8 +136,25 @@ function getLatestGameVersion(buildsData) {
         }
 
         if (latestBuild) {
+            // Check if version_name is empty and try to get version from patches (Thanks WG)
+            let versionName = latestBuild.build_info.version_name;
+
+            // If version_name is empty or just whitespace, try to get from patches (who needs version names am i right?)
+            if (!versionName || versionName.trim() === '') {
+                // Look through patches to find version_to
+                if (latestBuild.patches && latestBuild.patches.length > 0) {
+                    // Find the first patch with a version_to that's not empty (at least this exists)
+                    for (const patch of latestBuild.patches) {
+                        if (patch.version_to && patch.version_to.trim() !== '') {
+                            versionName = patch.version_to;
+                            break;
+                        }
+                    }
+                }
+            }
+
             return {
-                gameVersion: latestBuild.build_info.version_name,
+                gameVersion: versionName || '0.0.0.0',
                 gameBuildDate: latestBuild.build_info.build_date
             };
         }
