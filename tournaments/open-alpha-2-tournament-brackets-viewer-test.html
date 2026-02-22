@@ -464,9 +464,39 @@
           <div class="tournament-content-wrapper">
             <!-- Main Content -->
             <div class="tournament-main-content">
-              <!-- Announcement Image -->
-              <div class="tournament-image mb-8">
-                <img src="https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images-Tournaments/refs/heads/main/tournaments/OAT2/Tournament_announcement-2.webp" alt="Open Alpha 2 tournament announcement image" class="rounded-lg shadow-lg">
+              <!-- Tournament Bracket Section -->
+              <div class="tournament-bracket-section mb-8">
+                <h2 id="tournament-bracket">Tournament Bracket</h2>
+                <p class="mb-4 text-center">View the complete tournament bracket with all matches</p>
+                <!-- Bracket Canvas Container -->
+                <div class="tournament-bracket-canvas-container" id="tournament-bracket-container">
+                  <!-- Brackets Viewer Container -->
+                  <div class="brackets-viewer" id="brackets-viewer">
+                    <div class="tournament-bracket-loading">
+                      <i class="fas fa-spinner fa-spin"></i>
+                      <p>Loading tournament bracket...</p>
+                    </div>
+                  </div>
+                  <!-- Bracket Controls -->
+                  <div class="tournament-bracket-controls">
+                    <button class="tournament-control-btn" id="zoom-in" title="Zoom In">
+                      <i class="fas fa-search-plus"></i>
+                    </button>
+                    <button class="tournament-control-btn" id="zoom-out" title="Zoom Out">
+                      <i class="fas fa-search-minus"></i>
+                    </button>
+                    <button class="tournament-control-btn" id="reset-zoom" title="Reset Zoom">
+                      <i class="fas fa-undo-alt"></i>
+                    </button>
+                    <button class="tournament-control-btn" id="fullscreen-bracket" title="Fullscreen">
+                      <i class="fas fa-expand"></i>
+                    </button>
+                  </div>
+                  <!-- Fullscreen Close Button (hidden by default) -->
+                  <button class="fullscreen-close" id="fullscreen-close" style="display: none;">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
               </div>
               <!-- Tournament Top Teams Section -->
               <div class="mt-16 mb-12">
