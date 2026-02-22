@@ -47,9 +47,10 @@ async function fetchTournamentData(tournamentId) {
 
         tournamentsData = await tournamentsResponse.json();
 
-        const tournamentBracket = new TournamentBracket(tournamentId, tournamentsData);
-        tournamentBracket.init();
-
+        if (document.getElementById('tournamentBracketCanvas')) {
+            const tournamentBracket = new TournamentBracket(tournamentId, tournamentsData);
+            tournamentBracket.init();
+        }
         // Find the tournament with matching ID
         const tournament = tournamentsData.find(t => t['tournament-id'] === tournamentId);
 
