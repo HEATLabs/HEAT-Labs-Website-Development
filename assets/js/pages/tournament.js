@@ -1010,23 +1010,14 @@ class TournamentBracket {
             this.ctx.stroke();
         }
     }
-    drawText() {
-        this.ctx.font = " 48px Montserrat";
-        this.ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-dark");
-        this.ctx.fillText("Team 1 Name goes here", 10, 50, this.canvas.width);
-        this.ctx.fillText("Team 2 Name goes here", 10, 120, this.canvas.width);
-    }
+
     renderMatchBox() {
-        const boxWidth = 110;
-        const boxHeight = 50;
+        const bgWidth = this.canvas.width * 4;
+        const bgHeight = this.canvas.height * 4;
+        const textColor = getComputedStyle(document.body).getPropertyValue("--text-dark").trim();
+        this.ctx.fillStyle = textColor;
 
-        const strokeColor = getComputedStyle(document.body).getPropertyValue("--text-dark").trim();
-        this.ctx.strokeStyle = strokeColor;
-        this.ctx.lineWidth = 1;
 
-        // Boxes
-        this.ctx.strokeRect(0, 10, boxWidth, boxHeight);
-        this.ctx.strokeRect(0, 60, boxWidth, boxHeight);
     }
 
     createControlsUI() {
@@ -1071,3 +1062,10 @@ class TournamentBracket {
 }
 const tournamentIdMeta = document.querySelector('meta[name="tournament-id"]');
 const tournamentId = tournamentIdMeta ? tournamentIdMeta.content : null;
+
+window.bracketsViewer.render({
+    stages: data.stage,
+    matches: data.match,
+    matchGames: data.match_game,
+    participants: data.participant,
+});
