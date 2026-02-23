@@ -20,6 +20,16 @@ let availableTournaments = [];
 let currentBracketData = null;
 let selectedItem = null;
 
+// Pan and zoom variables
+let currentZoom = 1;
+let currentX = 0;
+let currentY = 0;
+let isDragging = false;
+let startX, startY;
+let dragWrapper = null;
+let bracketsViewer = null;
+let panIndicator = null;
+
 // Function to fetch tournaments list from config
 async function fetchTournamentsList() {
     try {
@@ -289,40 +299,214 @@ function initializeTournamentBracket() {
     const zoomInBtn = document.getElementById('zoom-in');
     const zoomOutBtn = document.getElementById('zoom-out');
     const resetZoomBtn = document.getElementById('reset-zoom');
+    const themeToggle = document.getElementById('theme-toggle');
 
     if (!bracketContainer || !bracketViewer) return;
 
-    // Zoom controls
-    let zoomLevel = 1;
-    const maxZoom = 2;
-    const minZoom = 0.5;
+    // Store references
+    bracketsViewer = bracketViewer;
 
+    // Initialize drag functionality
+    initDragPan(bracketViewer, bracketContainer);
+
+    // Zoom controls
     if (zoomInBtn) {
         zoomInBtn.addEventListener('click', () => {
-            if (zoomLevel < maxZoom) {
-                zoomLevel += 0.1;
-                bracketViewer.style.transform = `scale(${zoomLevel})`;
-                bracketViewer.style.transformOrigin = 'top left';
-            }
+            zoom(0.1);
         });
     }
 
     if (zoomOutBtn) {
         zoomOutBtn.addEventListener('click', () => {
-            if (zoomLevel > minZoom) {
-                zoomLevel -= 0.1;
-                bracketViewer.style.transform = `scale(${zoomLevel})`;
-                bracketViewer.style.transformOrigin = 'top left';
-            }
+            zoom(-0.1);
         });
     }
 
     if (resetZoomBtn) {
         resetZoomBtn.addEventListener('click', () => {
-            zoomLevel = 1;
-            bracketViewer.style.transform = 'scale(1)';
-            bracketViewer.style.transformOrigin = 'top left';
+            resetZoom();
         });
+    }
+
+    // Theme toggle
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+    }
+}
+
+// Initialize drag to pan functionality
+function initDragPan(element, container) {
+    if (!element) return;
+
+    // Set initial transform
+    updateTransform(element);
+
+    // Mouse down handler
+    element.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return; // Left click only
+
+        isDragging = true;
+        startX = e.clientX - currentX;
+        startY = e.clientY - currentY;
+
+        element.style.cursor = 'grabbing';
+        element.classList.add('dragging');
+
+        // Show pan indicator
+        if (panIndicator) {
+            panIndicator.classList.add('visible');
+            setTimeout(() => {
+                panIndicator.classList.remove('visible');
+            }, 2000);
+        }
+
+        e.preventDefault();
+    });
+
+    // Mouse move handler
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+
+        currentX = e.clientX - startX;
+        currentY = e.clientY - startY;
+
+        // Add boundaries to prevent dragging too far
+        const bounds = getDragBounds(element);
+        currentX = Math.min(Math.max(currentX, bounds.minX), bounds.maxX);
+        currentY = Math.min(Math.max(currentY, bounds.minY), bounds.maxY);
+
+        updateTransform(element);
+    });
+
+    // Mouse up handler
+    document.addEventListener('mouseup', () => {
+        if (isDragging) {
+            isDragging = false;
+            element.style.cursor = 'grab';
+            element.classList.remove('dragging');
+        }
+    });
+
+    // Mouse leave handler
+    element.addEventListener('mouseleave', () => {
+        if (isDragging) {
+            isDragging = false;
+            element.style.cursor = 'grab';
+            element.classList.remove('dragging');
+        }
+    });
+
+    // Wheel zoom handler
+    element.addEventListener('wheel', (e) => {
+        e.preventDefault();
+
+        // Get mouse position relative to element
+        const rect = element.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        // Calculate zoom delta
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        const newZoom = Math.min(Math.max(currentZoom + delta, 0.3), 3);
+
+        if (newZoom !== currentZoom) {
+            // Adjust position to zoom towards mouse
+            const scale = newZoom / currentZoom;
+            currentX = mouseX - (mouseX - currentX) * scale;
+            currentY = mouseY - (mouseY - currentY) * scale;
+            currentZoom = newZoom;
+
+            // Add boundaries
+            const bounds = getDragBounds(element);
+            currentX = Math.min(Math.max(currentX, bounds.minX), bounds.maxX);
+            currentY = Math.min(Math.max(currentY, bounds.minY), bounds.maxY);
+
+            updateTransform(element);
+        }
+    }, {
+        passive: false
+    });
+}
+
+// Calculate drag boundaries
+function getDragBounds(element) {
+    const rect = element.getBoundingClientRect();
+    const parentRect = element.parentElement.getBoundingClientRect();
+
+    // Calculate bounds based on zoom level
+    const contentWidth = element.scrollWidth * currentZoom;
+    const contentHeight = element.scrollHeight * currentZoom;
+    const viewportWidth = parentRect.width;
+    const viewportHeight = parentRect.height;
+
+    return {
+        minX: Math.min(0, viewportWidth - contentWidth),
+        maxX: Math.max(0, viewportWidth - contentWidth),
+        minY: Math.min(0, viewportHeight - contentHeight),
+        maxY: Math.max(0, viewportHeight - contentHeight)
+    };
+}
+
+// Update transform for element
+function updateTransform(element) {
+    element.style.transform = `translate(${currentX}px, ${currentY}px) scale(${currentZoom})`;
+}
+
+// Zoom function
+function zoom(delta) {
+    const newZoom = Math.min(Math.max(currentZoom + delta, 0.3), 3);
+
+    if (newZoom !== currentZoom) {
+        // Zoom towards center of viewport
+        const element = bracketsViewer;
+        const rect = element.getBoundingClientRect();
+        const viewportWidth = element.parentElement.clientWidth;
+        const viewportHeight = element.parentElement.clientHeight;
+
+        const centerX = viewportWidth / 2 - rect.left;
+        const centerY = viewportHeight / 2 - rect.top;
+
+        const scale = newZoom / currentZoom;
+        currentX = centerX - (centerX - currentX) * scale;
+        currentY = centerY - (centerY - currentY) * scale;
+        currentZoom = newZoom;
+
+        // Add boundaries
+        const bounds = getDragBounds(element);
+        currentX = Math.min(Math.max(currentX, bounds.minX), bounds.maxX);
+        currentY = Math.min(Math.max(currentY, bounds.minY), bounds.maxY);
+
+        updateTransform(element);
+    }
+}
+
+// Reset zoom function
+function resetZoom() {
+    currentZoom = 1;
+    currentX = 0;
+    currentY = 0;
+
+    if (bracketsViewer) {
+        updateTransform(bracketsViewer);
+    }
+}
+
+// Toggle theme
+function toggleTheme() {
+    const html = document.documentElement;
+    const themeToggle = document.getElementById('theme-toggle');
+    const icon = themeToggle.querySelector('i');
+
+    if (html.classList.contains('dark-theme')) {
+        html.classList.remove('dark-theme');
+        html.classList.add('light-theme');
+        icon.className = 'fas fa-sun';
+        localStorage.setItem('theme', 'light-theme');
+    } else {
+        html.classList.remove('light-theme');
+        html.classList.add('dark-theme');
+        icon.className = 'fas fa-moon';
+        localStorage.setItem('theme', 'dark-theme');
     }
 }
 
@@ -333,6 +517,9 @@ async function initializeBracketsViewer(tournamentData) {
         console.error('Brackets viewer not available');
         return;
     }
+
+    // Reset pan and zoom
+    resetZoom();
 
     // Prepare data for brackets viewer
     const stages = tournamentData.stages || [];
@@ -408,10 +595,45 @@ async function initializeBracketsViewer(tournamentData) {
         // Clear the bracket viewer first to remove loading state
         bracketViewer.innerHTML = '';
 
+        // Set cursor to grab
+        bracketViewer.style.cursor = 'grab';
+
         // Render the brackets
         await window.bracketsViewer.render(data, config);
+
+        // Ensure bracket connections aligned
+        setTimeout(fixBracketConnections, 100);
     } catch (error) {
         console.error('Error rendering bracket:', error);
         showError('Error rendering tournament bracket. Please try again later.');
     }
+}
+
+// Fix bracket connection lines
+function fixBracketConnections() {
+    const brackets = document.querySelectorAll('.brackets-viewer .bracket');
+
+    brackets.forEach(bracket => {
+        const rounds = bracket.querySelectorAll('.round');
+
+        rounds.forEach((round, roundIndex) => {
+            if (roundIndex === rounds.length - 1) return; // Skip last round
+
+            const matches = round.querySelectorAll('.match');
+            const nextRound = rounds[roundIndex + 1];
+            const nextMatches = nextRound.querySelectorAll('.match');
+
+            matches.forEach((match, matchIndex) => {
+                // Ensure connection classes are properly set
+                if (nextMatches[matchIndex * 2] || nextMatches[matchIndex * 2 + 1]) {
+                    match.classList.add('connect-next');
+
+                    // Add straight class for finals
+                    if (rounds.length - roundIndex <= 2) {
+                        match.classList.add('straight');
+                    }
+                }
+            });
+        });
+    });
 }
