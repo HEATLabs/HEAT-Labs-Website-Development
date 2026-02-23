@@ -24,6 +24,7 @@ let selectedItem = null;
 async function fetchTournamentsList() {
     try {
         const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/tournaments-dev.json');
+        // const response = await fetch('../HEAT-Labs-Configs/tournaments-dev-local.json');
         if (!response.ok) {
             throw new Error(`Failed to fetch tournaments list: ${response.status}`);
         }
