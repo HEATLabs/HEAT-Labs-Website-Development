@@ -207,7 +207,6 @@ body {
 .tournament-control-btn:hover {
 	background-color: var(--accent-color-hover, #6ba5f0);
 	transform: scale(1.1);
-	box-shadow: 0 4px 15px rgba(74, 144, 226, 0.4);
 }
 
 .tournament-control-btn:active {
@@ -239,7 +238,6 @@ body {
 
 .brackets-viewer .participant.hover {
 	background: var(--accent-color-light, #8bb9ff) !important;
-	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .brackets-viewer .win .result {
