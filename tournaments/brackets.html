@@ -210,49 +210,43 @@
     <!-- Custom Privacy-Focused Tracking Pixel -->
     <img src="https://views.heatlabs.net/api/track/pcwstats-tracker-pixel-brackets.png" alt="HEAT Labs Tracking View Counter" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" class="heatlabs-tracking-pixel" data-page="brackets">
     <!-- Main Content -->
-    <div class="content-wrapper">
-      <section class="section py-8">
-        <div class="container mx-auto px-4">
-          <div class="tournament-content-wrapper">
-            <!-- Main Content -->
-            <div class="tournament-main-content">
-              <!-- Tournament Bracket Section -->
-              <div class="tournament-bracket-section mb-8">
-                <!-- Bracket Canvas Container -->
-                <div class="tournament-bracket-canvas-container" id="tournament-bracket-container">
-                  <!-- Brackets Viewer Container -->
-                  <div class="brackets-viewer" id="brackets-viewer">
-                    <div class="tournament-bracket-loading">
-                      <i class="fas fa-spinner fa-spin"></i>
-                      <p>Loading tournament bracket...</p>
-                    </div>
+    <section class="section">
+      <div class="container">
+        <div class="tournament-content-wrapper">
+          <!-- Main Content -->
+          <div class="tournament-main-content">
+            <!-- Tournament Bracket Section -->
+            <div class="tournament-bracket-section">
+              <!-- Bracket Canvas Container -->
+              <div class="tournament-bracket-canvas-container" id="tournament-bracket-container">
+                <!-- Brackets Viewer Container -->
+                <div class="brackets-viewer" id="brackets-viewer">
+                  <div class="tournament-bracket-loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading tournament bracket...</p>
                   </div>
-                  <!-- Bracket Controls -->
-                  <div class="tournament-bracket-controls">
-                    <button class="tournament-control-btn" id="zoom-in" title="Zoom In">
-                      <i class="fas fa-search-plus"></i>
-                    </button>
-                    <button class="tournament-control-btn" id="zoom-out" title="Zoom Out">
-                      <i class="fas fa-search-minus"></i>
-                    </button>
-                    <button class="tournament-control-btn" id="reset-zoom" title="Reset Zoom">
-                      <i class="fas fa-undo-alt"></i>
-                    </button>
-                    <button class="tournament-control-btn" id="fullscreen-bracket" title="Fullscreen">
-                      <i class="fas fa-expand"></i>
-                    </button>
-                  </div>
-                  <!-- Fullscreen Close Button (hidden by default) -->
-                  <button class="fullscreen-close" id="fullscreen-close" style="display: none;">
-                    <i class="fas fa-times"></i>
+                </div>
+                <!-- Bracket Controls -->
+                <div class="tournament-bracket-controls">
+                  <button class="tournament-control-btn" id="zoom-in" title="Zoom In">
+                    <i class="fas fa-search-plus"></i>
+                  </button>
+                  <button class="tournament-control-btn" id="zoom-out" title="Zoom Out">
+                    <i class="fas fa-search-minus"></i>
+                  </button>
+                  <button class="tournament-control-btn" id="reset-zoom" title="Reset Zoom">
+                    <i class="fas fa-undo-alt"></i>
+                  </button>
+                  <button class="tournament-control-btn theme-toggle" id="theme-toggle" title="Switch Theme">
+                    <i class="fas fa-moon"></i>
                   </button>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
     <script src="../assets/js/main.js"></script>
     <script src="../assets/js/misc.js"></script>
     <script src="../assets/js/libraries/brackets-viewer.min.js"></script>
