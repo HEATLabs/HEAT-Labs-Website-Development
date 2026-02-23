@@ -1,5 +1,8 @@
 // Tournament Bracket Page
 document.addEventListener('DOMContentLoaded', function() {
+    // Check for URL parameters first
+    checkUrlParameters();
+
     // Fetch tournaments list and initialize
     fetchTournamentsList();
 
@@ -30,11 +33,87 @@ let dragWrapper = null;
 let bracketsViewer = null;
 let panIndicator = null;
 
+// Function to check URL parameters
+function checkUrlParameters() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const key = urlParams.get('key');
+
+    if (key) {
+        // Parse the key (format: "TOURNAMENT-ID-winner" or "TOURNAMENT-ID-loser")
+        const lastHyphenIndex = key.lastIndexOf('-');
+        if (lastHyphenIndex !== -1) {
+            const tournamentId = key.substring(0, lastHyphenIndex);
+            const bracketType = key.substring(lastHyphenIndex + 1);
+
+            // Validate bracket type
+            if (bracketType === 'winner' || bracketType === 'loser') {
+                // Store the requested tournament info to load after tournaments list is fetched
+                sessionStorage.setItem('requestedTournament', JSON.stringify({
+                    tournamentId: tournamentId,
+                    bracketType: bracketType
+                }));
+            }
+        }
+    }
+}
+
+// Function to load tournament from URL parameter
+async function loadTournamentFromParameter() {
+    const requestedData = sessionStorage.getItem('requestedTournament');
+    if (!requestedData || availableTournaments.length === 0) return;
+
+    try {
+        const {
+            tournamentId,
+            bracketType
+        } = JSON.parse(requestedData);
+
+        // Find the tournament with matching tournament-id
+        const tournament = availableTournaments.find(t => t['tournament-id'] === tournamentId);
+
+        if (tournament && tournament['tournament-brackets'] && tournament['tournament-brackets'][bracketType]) {
+            const bracketUrl = tournament['tournament-brackets'][bracketType];
+
+            // Find and select the corresponding dropdown item
+            const items = document.querySelectorAll('.dropdown-item');
+            let foundItem = null;
+
+            items.forEach(item => {
+                const itemUrl = item.dataset.url;
+                if (itemUrl === bracketUrl) {
+                    foundItem = item;
+                }
+            });
+
+            if (foundItem) {
+                // Simulate click on the dropdown item
+                foundItem.click();
+
+                // Update dropdown button text
+                const selectedText = document.getElementById('selected-text');
+                const itemContent = foundItem.querySelector('.dropdown-item-title').textContent;
+                const itemSubtitle = foundItem.querySelector('.dropdown-item-subtitle').textContent;
+                selectedText.textContent = `${itemContent} - ${itemSubtitle}`;
+
+                // Clear the stored request
+                sessionStorage.removeItem('requestedTournament');
+            } else {
+                console.error('Could not find matching dropdown item for bracket URL:', bracketUrl);
+            }
+        } else {
+            console.error('Tournament or bracket not found:', tournamentId, bracketType);
+        }
+    } catch (error) {
+        console.error('Error loading tournament from parameter:', error);
+    }
+}
+
 // Function to fetch tournaments list from config
 async function fetchTournamentsList() {
     try {
-        const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/tournaments-dev.json');
-        // const response = await fetch('../HEAT-Labs-Configs/tournaments-dev-local.json');
+        // Uncomment the line below for production
+        // const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/tournaments-dev.json');
+        const response = await fetch('../HEAT-Labs-Configs/tournaments-dev-local.json');
         if (!response.ok) {
             throw new Error(`Failed to fetch tournaments list: ${response.status}`);
         }
@@ -50,6 +129,11 @@ async function fetchTournamentsList() {
 
         // Populate dropdown
         populateTournamentDropdown(availableTournaments);
+
+        // After dropdown is populated, try to load tournament from URL parameter
+        setTimeout(() => {
+            loadTournamentFromParameter();
+        }, 100); // Small delay to ensure dropdown is rendered
 
     } catch (error) {
         console.error('Error fetching tournaments list:', error);
@@ -82,6 +166,7 @@ function populateTournamentDropdown(tournaments) {
     let items = [];
     tournaments.forEach((tournament, tournamentIndex) => {
         const brackets = tournament['tournament-brackets'];
+        const tournamentId = tournament['tournament-id'];
 
         // Add winners bracket option if available
         if (brackets.winner) {
@@ -89,6 +174,7 @@ function populateTournamentDropdown(tournaments) {
                 id: `${tournamentIndex}-winner`,
                 url: brackets.winner,
                 type: 'winner',
+                tournamentId: tournamentId,
                 tournamentName: tournament.name,
                 bracketType: 'Winners Bracket',
                 displayText: `${tournament.name} - Winners Bracket`
@@ -101,6 +187,7 @@ function populateTournamentDropdown(tournaments) {
                 id: `${tournamentIndex}-loser`,
                 url: brackets.loser,
                 type: 'loser',
+                tournamentId: tournamentId,
                 tournamentName: tournament.name,
                 bracketType: 'Losers Bracket',
                 displayText: `${tournament.name} - Losers Bracket`
@@ -121,7 +208,7 @@ function populateTournamentDropdown(tournaments) {
             </button>
             <div class="dropdown-menu" id="dropdown-menu">
                 ${items.map(item => `
-                    <div class="dropdown-item" data-id="${item.id}" data-url="${item.url}" data-type="${item.type}">
+                    <div class="dropdown-item" data-id="${item.id}" data-url="${item.url}" data-type="${item.type}" data-tournament-id="${item.tournamentId}">
                         <div class="dropdown-item-content">
                             <span class="dropdown-item-title">${item.tournamentName}</span>
                             <span class="dropdown-item-subtitle">${item.bracketType}</span>
@@ -174,6 +261,12 @@ function initializeCustomDropdown(items) {
             const itemId = this.dataset.id;
             const itemUrl = this.dataset.url;
             const itemType = this.dataset.type;
+            const tournamentId = this.dataset.tournamentId;
+
+            // Update URL with the key parameter without reloading
+            const url = new URL(window.location);
+            url.searchParams.set('key', `${tournamentId}-${itemType}`);
+            window.history.replaceState({}, '', url);
 
             // Show loading state
             showLoading('Loading tournament bracket...');
