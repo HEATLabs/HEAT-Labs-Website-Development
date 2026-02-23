@@ -133,17 +133,6 @@ body {
 	box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.5);
 }
 
-/* Theme toggle specific styling */
-.tournament-control-btn.theme-toggle {
-	background-color: var(--bg-secondary, #3d3d3d);
-	color: var(--text-primary, #ffffff);
-}
-
-.tournament-control-btn.theme-toggle:hover {
-	background-color: var(--accent-color, #4a90e2);
-	color: white;
-}
-
 /* Bracket viewer custom styles */
 .brackets-viewer h3 {
 	color: var(--text-primary, #ffffff) !important;
