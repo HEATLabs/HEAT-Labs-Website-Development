@@ -207,7 +207,6 @@
   <body>
     <!-- Custom Privacy-Focused Tracking Pixel -->
     <img src="https://views.heatlabs.net/api/track/pcwstats-tracker-pixel-brackets.png" alt="HEAT Labs Tracking View Counter" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" class="heatlabs-tracking-pixel" data-page="brackets">
-    <!-- Main Content -->
     <section class="section">
       <div class="container">
         <div class="tournament-content-wrapper">
@@ -217,11 +216,15 @@
             <div class="tournament-bracket-section">
               <!-- Bracket Canvas Container -->
               <div class="tournament-bracket-canvas-container" id="tournament-bracket-container">
+                <!-- Tournament Dropdown -->
+                <div class="tournament-dropdown-container" id="tournament-dropdown-container">
+                  <!-- Dropdown will be populated by JavaScript -->
+                </div>
                 <!-- Brackets Viewer Container -->
                 <div class="brackets-viewer" id="brackets-viewer">
                   <div class="tournament-bracket-loading">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <p>Loading tournament bracket...</p>
+                    <i class="fas fa-trophy"></i>
+                    <p>Select a tournament from the dropdown above</p>
                   </div>
                 </div>
                 <!-- Bracket Controls -->
