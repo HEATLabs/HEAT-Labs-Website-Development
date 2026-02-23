@@ -583,6 +583,10 @@ p {
 	transform: scale(1.1);
 }
 
+.action-buttons a {
+	margin: 0 5px;
+}
+
 /* Mobile Sidebar Content (Show sidebar on desktop) */
 @media (min-width: 1024px) {
 	.tournament-sidebar {
