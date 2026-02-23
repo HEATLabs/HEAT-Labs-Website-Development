@@ -510,6 +510,119 @@ function toggleTheme() {
     }
 }
 
+// Function to show match details in a beautiful popup
+function showMatchDetails(match, participants) {
+    // Remove any existing match details popup
+    const existingPopup = document.querySelector('.match-details-popup');
+    if (existingPopup) {
+        existingPopup.remove();
+    }
+
+    // Get participant names
+    const getParticipantName = (id) => {
+        const participant = participants.find(p => p.id === id);
+        return participant ? participant.name : 'TBD';
+    };
+
+    // Format result text
+    const getResultText = (result) => {
+        if (!result) return '';
+        return result.charAt(0).toUpperCase() + result.slice(1);
+    };
+
+    // Get match description or create a default one
+    const matchDescription = match.description && match.description !== 'DESCRIPTION PLACEHOLDER' ?
+        match.description :
+        'No additional match details available.';
+
+    // Create popup element
+    const popup = document.createElement('div');
+    popup.className = 'match-details-popup';
+
+    // Determine winner for styling
+    const winner1 = match.opponent1?.result === 'win';
+    const winner2 = match.opponent2?.result === 'win';
+
+    popup.innerHTML = `
+        <div class="match-details-content">
+            <div class="match-details-header">
+                <h3>Match Details</h3>
+                <button class="match-details-close">&times;</button>
+            </div>
+            <div class="match-teams">
+                <div class="match-team ${winner1 ? 'winner' : ''} ${match.opponent1?.result === 'loss' ? 'loser' : ''}">
+                    <div class="team-info">
+                        <span class="team-name">${getParticipantName(match.opponent1?.id)}</span>
+                    </div>
+                    <div class="team-score-container">
+                        <span class="team-score">${match.opponent1?.score || 0}</span>
+                        ${match.opponent1?.result ? `<span class="team-result ${match.opponent1.result}">${getResultText(match.opponent1.result)}</span>` : ''}
+                    </div>
+                </div>
+                <div class="match-vs">VS</div>
+                <div class="match-team ${winner2 ? 'winner' : ''} ${match.opponent2?.result === 'loss' ? 'loser' : ''}">
+                    <div class="team-info">
+                        <span class="team-name">${getParticipantName(match.opponent2?.id)}</span>
+                    </div>
+                    <div class="team-score-container">
+                        <span class="team-score">${match.opponent2?.score || 0}</span>
+                        ${match.opponent2?.result ? `<span class="team-result ${match.opponent2.result}">${getResultText(match.opponent2.result)}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+
+            <div class="match-info">
+                <div class="match-info-item">
+                    <span class="info-label">Match Number:</span>
+                    <span class="info-value">#${match.id}</span>
+                </div>
+                <div class="match-info-item">
+                    <span class="info-label">Round:</span>
+                    <span class="info-value">Round ${match.round_id || 'N/A'}</span>
+                </div>
+                <div class="match-info-item">
+                    <span class="info-label">Status:</span>
+                    <span class="info-value status-${match.status}">${getMatchStatus(match.status)}</span>
+                </div>
+            </div>
+
+            <div class="match-description">
+                <h4>Match Description</h4>
+                <p>${matchDescription}</p>
+            </div>
+        </div>
+    `;
+
+    // Add close functionality
+    popup.querySelector('.match-details-close').addEventListener('click', () => {
+        popup.remove();
+    });
+
+    // Close when clicking outside
+    popup.addEventListener('click', (e) => {
+        if (e.target === popup) {
+            popup.remove();
+        }
+    });
+
+    // Append to body
+    document.body.appendChild(popup);
+}
+
+// Helper function to get match status text
+function getMatchStatus(status) {
+    const statusMap = {
+        0: 'Pending',
+        1: 'In Progress',
+        2: 'Completed',
+        3: 'Walkover',
+        4: 'Completed',
+        5: 'No Show',
+        6: 'Disqualified'
+    };
+    return statusMap[status] || 'Unknown';
+}
+
 async function initializeBracketsViewer(tournamentData) {
     const bracketViewer = document.getElementById('brackets-viewer');
 
@@ -542,6 +655,7 @@ async function initializeBracketsViewer(tournamentData) {
         round_id: m.round_id,
         child_count: m.child_count || 1,
         status: m.status || 2,
+        description: m.description,
         opponent1: m.opponent1 ? {
             id: m.opponent1.id,
             score: m.opponent1.score,
@@ -587,7 +701,13 @@ async function initializeBracketsViewer(tournamentData) {
         highlightParticipantOnHover: true,
         onMatchClick: (match) => {
             console.log('Match clicked:', match);
-            // placeholder for details
+            // Find the full match data with description
+            const fullMatch = matches.find(m => m.id === match.id);
+            if (fullMatch) {
+                showMatchDetails(fullMatch, participants);
+            } else {
+                showMatchDetails(match, participants);
+            }
         }
     };
 
