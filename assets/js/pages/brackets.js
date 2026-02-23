@@ -112,8 +112,8 @@ async function loadTournamentFromParameter() {
 async function fetchTournamentsList() {
     try {
         // Uncomment the line below for production
-        // const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/tournaments-dev.json');
-        const response = await fetch('../HEAT-Labs-Configs/tournaments-dev-local.json');
+        const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/tournaments-dev.json');
+        // const response = await fetch('../HEAT-Labs-Configs/tournaments-dev-local.json');
         if (!response.ok) {
             throw new Error(`Failed to fetch tournaments list: ${response.status}`);
         }
