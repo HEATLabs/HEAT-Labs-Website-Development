@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
 async function fetchTournamentData() {
     try {
         // Fetch the tournament data directly (for now (again))
-        const tournamentDataResponse = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Database/refs/heads/main/tournaments/OAT2-brackets-viewer.json');
+        const tournamentDataResponse = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Database/refs/heads/main/tournaments/brackets/OAT2-bracket-winners.json');
         if (!tournamentDataResponse.ok) {
             throw new Error(`Failed to fetch tournament data: ${tournamentDataResponse.status}`);
         }
