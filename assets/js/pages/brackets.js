@@ -32,6 +32,7 @@ let startX, startY;
 let dragWrapper = null;
 let bracketsViewer = null;
 let panIndicator = null;
+let isBracketLoaded = false;
 
 // Function to check URL parameters
 function checkUrlParameters() {
@@ -357,6 +358,9 @@ function clearBracketView() {
             </div>
         `;
     }
+    // Disable bracket interactions
+    isBracketLoaded = false;
+    resetZoom();
 }
 
 // Function to show loading state
@@ -370,6 +374,9 @@ function showLoading(message) {
             </div>
         `;
     }
+    // Disable bracket interactions
+    isBracketLoaded = false;
+    resetZoom();
 }
 
 // Function to show error
@@ -383,6 +390,9 @@ function showError(message) {
             </div>
         `;
     }
+    // Disable bracket interactions
+    isBracketLoaded = false;
+    resetZoom();
 }
 
 // Tournament Bracket Functions
@@ -405,19 +415,25 @@ function initializeTournamentBracket() {
     // Zoom controls
     if (zoomInBtn) {
         zoomInBtn.addEventListener('click', () => {
-            zoom(0.1);
+            if (isBracketLoaded) {
+                zoom(0.1);
+            }
         });
     }
 
     if (zoomOutBtn) {
         zoomOutBtn.addEventListener('click', () => {
-            zoom(-0.1);
+            if (isBracketLoaded) {
+                zoom(-0.1);
+            }
         });
     }
 
     if (resetZoomBtn) {
         resetZoomBtn.addEventListener('click', () => {
-            resetZoom();
+            if (isBracketLoaded) {
+                resetZoom();
+            }
         });
     }
 
@@ -425,6 +441,9 @@ function initializeTournamentBracket() {
     if (themeToggle) {
         themeToggle.addEventListener('click', toggleTheme);
     }
+
+    // Initially disable bracket interactions
+    isBracketLoaded = false;
 }
 
 // Initialize drag to pan functionality
@@ -436,6 +455,8 @@ function initDragPan(element, container) {
 
     // Mouse down handler
     element.addEventListener('mousedown', (e) => {
+        // Only enable dragging if bracket is loaded
+        if (!isBracketLoaded) return;
         if (e.button !== 0) return; // Left click only
 
         isDragging = true;
@@ -458,7 +479,7 @@ function initDragPan(element, container) {
 
     // Mouse move handler
     document.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
+        if (!isDragging || !isBracketLoaded) return;
 
         currentX = e.clientX - startX;
         currentY = e.clientY - startY;
@@ -475,7 +496,7 @@ function initDragPan(element, container) {
     document.addEventListener('mouseup', () => {
         if (isDragging) {
             isDragging = false;
-            element.style.cursor = 'grab';
+            element.style.cursor = isBracketLoaded ? 'grab' : 'default';
             element.classList.remove('dragging');
         }
     });
@@ -484,13 +505,16 @@ function initDragPan(element, container) {
     element.addEventListener('mouseleave', () => {
         if (isDragging) {
             isDragging = false;
-            element.style.cursor = 'grab';
+            element.style.cursor = isBracketLoaded ? 'grab' : 'default';
             element.classList.remove('dragging');
         }
     });
 
     // Wheel zoom handler
     element.addEventListener('wheel', (e) => {
+        // Only enable zoom if bracket is loaded
+        if (!isBracketLoaded) return;
+
         e.preventDefault();
 
         // Get mouse position relative to element
@@ -519,6 +543,9 @@ function initDragPan(element, container) {
     }, {
         passive: false
     });
+
+    // Set initial cursor
+    element.style.cursor = 'default';
 }
 
 // Calculate drag boundaries
@@ -810,6 +837,7 @@ async function initializeBracketsViewer(tournamentData) {
 
         // Set cursor to grab
         bracketViewer.style.cursor = 'grab';
+        isBracketLoaded = true;
 
         // Render the brackets
         await window.bracketsViewer.render(data, config);
@@ -819,6 +847,7 @@ async function initializeBracketsViewer(tournamentData) {
     } catch (error) {
         console.error('Error rendering bracket:', error);
         showError('Error rendering tournament bracket. Please try again later.');
+        isBracketLoaded = false;
     }
 }
 
