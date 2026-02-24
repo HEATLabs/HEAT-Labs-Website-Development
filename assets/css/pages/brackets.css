@@ -224,6 +224,23 @@ body {
 	max-width: 300px !important;
 }
 
+/* Remove built-in connection lines */
+.brackets-viewer .match::after,
+.brackets-viewer .opponents::before,
+.brackets-viewer .match.connect-next::after,
+.brackets-viewer .opponents.connect-previous::before,
+.brackets-viewer .match.straight::after,
+.brackets-viewer .opponents.straight::before,
+.brackets-viewer .connector-color,
+.brackets-viewer .connector {
+	display: none !important;
+	content: none !important;
+	opacity: 0 !important;
+	visibility: hidden !important;
+	border: none !important;
+	background: none !important;
+}
+
 /* Loading and error states */
 .tournament-bracket-loading,
 .tournament-bracket-error {
