@@ -369,7 +369,7 @@ body {
 	-webkit-backdrop-filter: blur(10px);
 	border: 1px solid rgba(255, 255, 255, 0.1);
 	border-radius: 3rem;
-	color: var(--text-primary, #ffffff);
+	color: #ffffff;
 	font-size: 1rem;
 	cursor: pointer;
 	display: flex;
@@ -460,7 +460,7 @@ body {
 .dropdown-item {
 	padding: 1rem 1.5rem;
 	cursor: pointer;
-	color: var(--text-primary, #ffffff);
+	color: #ffffff;
 	font-size: 0.95rem;
 	transition: all 0.2s ease;
 	border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -493,7 +493,7 @@ body {
 
 .dropdown-item-subtitle {
 	font-size: 0.8rem;
-	color: var(--text-secondary, #b0b0b0);
+	color: #b0b0b0;
 }
 
 /* Empty state */
