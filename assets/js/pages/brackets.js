@@ -443,10 +443,12 @@ function initDragPan(element, container) {
     updateTransform(element);
 
     // Mouse down handler
-    element.addEventListener('mousedown', (e) => {
+    container.addEventListener('mousedown', (e) => {
         // Only enable dragging if bracket is loaded
         if (!isBracketLoaded) return;
         if (e.button !== 0) return; // Left click only
+
+        e.preventDefault();
 
         isDragging = true;
         startX = e.clientX - targetX;
@@ -455,12 +457,14 @@ function initDragPan(element, container) {
         element.style.cursor = 'grabbing';
         element.classList.add('dragging');
 
-        e.preventDefault();
+        document.body.classList.add('dragging-active');
     });
 
     // Mouse move handler
     document.addEventListener('mousemove', (e) => {
         if (!isDragging || !isBracketLoaded) return;
+
+        e.preventDefault();
 
         lastMouseX = e.clientX;
         lastMouseY = e.clientY;
@@ -478,22 +482,29 @@ function initDragPan(element, container) {
     document.addEventListener('mouseup', () => {
         if (isDragging) {
             isDragging = false;
-            element.style.cursor = isBracketLoaded ? 'grab' : 'default';
-            element.classList.remove('dragging');
+            if (bracketsViewer) {
+                bracketsViewer.style.cursor = isBracketLoaded ? 'grab' : 'default';
+                bracketsViewer.classList.remove('dragging');
+            }
+            // Remove dragging class from body
+            document.body.classList.remove('dragging-active');
         }
     });
 
     // Mouse leave handler
-    element.addEventListener('mouseleave', () => {
+    window.addEventListener('blur', () => {
         if (isDragging) {
             isDragging = false;
-            element.style.cursor = isBracketLoaded ? 'grab' : 'default';
-            element.classList.remove('dragging');
+            if (bracketsViewer) {
+                bracketsViewer.style.cursor = isBracketLoaded ? 'grab' : 'default';
+                bracketsViewer.classList.remove('dragging');
+            }
+            document.body.classList.remove('dragging-active');
         }
     });
 
     // Wheel zoom handler with smooth animation
-    element.addEventListener('wheel', (e) => {
+    container.addEventListener('wheel', (e) => {
         // Only enable zoom if bracket is loaded
         if (!isBracketLoaded) return;
 
