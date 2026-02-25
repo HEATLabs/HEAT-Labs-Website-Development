@@ -557,11 +557,18 @@ function getDragBounds(element) {
     const viewportWidth = parentRect.width;
     const viewportHeight = parentRect.height;
 
+    // Calculate the maximum allowed drag distances
+    const maxLeft = 1000;
+    const maxRight = viewportWidth - contentWidth;
+
+    const maxTop = 1000;
+    const maxBottom = viewportHeight - contentHeight;
+
     return {
-        minX: Math.min(0, viewportWidth - contentWidth),
-        maxX: Math.max(0, viewportWidth - contentWidth),
-        minY: Math.min(0, viewportHeight - contentHeight),
-        maxY: Math.max(0, viewportHeight - contentHeight)
+        minX: Math.min(maxRight, maxLeft),
+        maxX: Math.max(maxRight, maxLeft),
+        minY: Math.min(maxBottom, maxTop),
+        maxY: Math.max(maxBottom, maxTop)
     };
 }
 
