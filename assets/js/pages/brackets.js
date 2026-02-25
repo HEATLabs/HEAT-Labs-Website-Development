@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
 let availableTournaments = [];
 let currentBracketData = null;
 let selectedItem = null;
+let currentParticipants = [];
 
 // Pan and zoom variables
 let currentZoom = 1;
@@ -294,40 +295,6 @@ function closeDropdown() {
     }
 }
 
-// Function to handle tournament selection (backward compatibility)
-async function handleTournamentSelection(event) {
-    const selectedValue = event.target.value;
-
-    if (!selectedValue) {
-        // Clear the bracket view
-        clearBracketView();
-        return;
-    }
-
-    // Parse the selected value to get tournament index and bracket type
-    const [tournamentIndex, bracketType] = selectedValue.split('-');
-
-    // Get the selected option element to access data attributes
-    const selectedOption = event.target.options[event.target.selectedIndex];
-    const bracketUrl = selectedOption.dataset.url;
-
-    if (!bracketUrl) {
-        showError('No bracket URL available for this selection.');
-        return;
-    }
-
-    // Show loading state
-    showLoading('Loading tournament bracket...');
-
-    try {
-        await fetchBracketData(bracketUrl);
-        // Loading state will be cleared by fetchBracketData when successful
-    } catch (error) {
-        console.error('Error loading bracket:', error);
-        showError('Failed to load bracket data. Please try again.');
-    }
-}
-
 // Function to fetch bracket data
 async function fetchBracketData(bracketUrl) {
     if (!bracketUrl) {
@@ -341,6 +308,11 @@ async function fetchBracketData(bracketUrl) {
 
     const tournamentData = await response.json();
     currentBracketData = tournamentData;
+
+    // Store participants with their images
+    if (tournamentData.participants) {
+        currentParticipants = tournamentData.participants;
+    }
 
     // Initialize bracket viewer with tournament data
     if (window.bracketsViewer && tournamentData) {
@@ -466,14 +438,6 @@ function initDragPan(element, container) {
 
         element.style.cursor = 'grabbing';
         element.classList.add('dragging');
-
-        // Show pan indicator
-        if (panIndicator) {
-            panIndicator.classList.add('visible');
-            setTimeout(() => {
-                panIndicator.classList.remove('visible');
-            }, 2000);
-        }
 
         e.preventDefault();
     });
@@ -631,6 +595,13 @@ function toggleTheme() {
     }
 }
 
+// Function to get participant image
+function getParticipantImage(participantId, participants) {
+    if (!participantId || !participants) return null;
+    const participant = participants.find(p => p.id === participantId);
+    return participant ? participant.image || 'https://cdn13.heatlabs.net/tournament-team-logos/no-logo.webp' : null;
+}
+
 // Function to show match details in a beautiful popup
 function showMatchDetails(match, participants) {
     // Remove any existing match details popup
@@ -639,10 +610,13 @@ function showMatchDetails(match, participants) {
         existingPopup.remove();
     }
 
-    // Get participant names
-    const getParticipantName = (id) => {
+    // Get participant names and images
+    const getParticipantInfo = (id) => {
         const participant = participants.find(p => p.id === id);
-        return participant ? participant.name : 'TBD';
+        return {
+            name: participant ? participant.name : 'TBD',
+            image: participant ? (participant.image || 'https://cdn13.heatlabs.net/tournament-team-logos/no-logo.webp') : null
+        };
     };
 
     // Format result text
@@ -655,6 +629,10 @@ function showMatchDetails(match, participants) {
     const matchDescription = match.description && match.description !== 'DESCRIPTION PLACEHOLDER' ?
         match.description :
         'No additional match details available.';
+
+    // Get participant info for both teams
+    const team1Info = getParticipantInfo(match.opponent1?.id);
+    const team2Info = getParticipantInfo(match.opponent2?.id);
 
     // Create popup element
     const popup = document.createElement('div');
@@ -673,7 +651,8 @@ function showMatchDetails(match, participants) {
             <div class="match-teams">
                 <div class="match-team ${winner1 ? 'winner' : ''} ${match.opponent1?.result === 'loss' ? 'loser' : ''}">
                     <div class="team-info">
-                        <span class="team-name">${getParticipantName(match.opponent1?.id)}</span>
+                        ${team1Info.image ? `<img src="${team1Info.image}" alt="${team1Info.name}" class="team-logo">` : ''}
+                        <span class="team-name">${team1Info.name}</span>
                     </div>
                     <div class="team-score-container">
                         <span class="team-score">${match.opponent1?.score || 0}</span>
@@ -683,7 +662,8 @@ function showMatchDetails(match, participants) {
                 <div class="match-vs">VS</div>
                 <div class="match-team ${winner2 ? 'winner' : ''} ${match.opponent2?.result === 'loss' ? 'loser' : ''}">
                     <div class="team-info">
-                        <span class="team-name">${getParticipantName(match.opponent2?.id)}</span>
+                        ${team2Info.image ? `<img src="${team2Info.image}" alt="${team2Info.name}" class="team-logo">` : ''}
+                        <span class="team-name">${team2Info.name}</span>
                     </div>
                     <div class="team-score-container">
                         <span class="team-score">${match.opponent2?.score || 0}</span>
@@ -742,6 +722,36 @@ function getMatchStatus(status) {
         6: 'Disqualified'
     };
     return statusMap[status] || 'Unknown';
+}
+
+// Custom renderer for participants with images
+function enhanceBracketWithImages() {
+    // Find all participant containers
+    const participantContainers = document.querySelectorAll('.brackets-viewer .participant');
+
+    participantContainers.forEach(container => {
+        // Get participant ID from data attribute
+        const participantId = container.getAttribute('data-participant-id');
+        if (!participantId) return;
+
+        // Find participant in our stored data
+        const participant = currentParticipants.find(p => p.id.toString() === participantId);
+        if (!participant) return;
+
+        // Find the name container
+        const nameContainer = container.querySelector('.name');
+        if (!nameContainer) return;
+
+        // Check if image already exists to avoid duplicates
+        if (!nameContainer.querySelector('img')) {
+            // Create and insert image element at the beginning
+            const img = document.createElement('img');
+            img.src = participant.image || 'https://cdn13.heatlabs.net/tournament-team-logos/no-logo.webp';
+            img.alt = participant.name;
+            img.className = 'participant-logo';
+            nameContainer.insertBefore(img, nameContainer.firstChild);
+        }
+    });
 }
 
 async function initializeBracketsViewer(tournamentData) {
@@ -842,6 +852,9 @@ async function initializeBracketsViewer(tournamentData) {
 
         // Render the brackets
         await window.bracketsViewer.render(data, config);
+
+        // Add images to participants
+        enhanceBracketWithImages();
 
         // Ensure bracket connections aligned
         setTimeout(fixBracketConnections, 100);
