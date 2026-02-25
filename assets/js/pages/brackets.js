@@ -26,14 +26,27 @@ let currentParticipants = [];
 
 // Pan and zoom variables
 let currentZoom = 1;
+let targetZoom = 1;
 let currentX = 0;
+let targetX = 0;
 let currentY = 0;
+let targetY = 0;
 let isDragging = false;
+let isAnimating = false;
 let startX, startY;
 let dragWrapper = null;
 let bracketsViewer = null;
 let panIndicator = null;
 let isBracketLoaded = false;
+let animationFrame = null;
+let lastMouseX = 0;
+let lastMouseY = 0;
+
+// Smooth zoom settings
+const ZOOM_SMOOTHING = 0.15;
+const ZOOM_MIN = 0.3;
+const ZOOM_MAX = 3;
+const ZOOM_STEP = 0.1;
 
 // Function to check URL parameters
 function checkUrlParameters() {
@@ -389,7 +402,7 @@ function initializeTournamentBracket() {
     if (zoomInBtn) {
         zoomInBtn.addEventListener('click', () => {
             if (isBracketLoaded) {
-                zoom(0.1);
+                smoothZoom(ZOOM_STEP);
             }
         });
     }
@@ -397,7 +410,7 @@ function initializeTournamentBracket() {
     if (zoomOutBtn) {
         zoomOutBtn.addEventListener('click', () => {
             if (isBracketLoaded) {
-                zoom(-0.1);
+                smoothZoom(-ZOOM_STEP);
             }
         });
     }
@@ -405,7 +418,7 @@ function initializeTournamentBracket() {
     if (resetZoomBtn) {
         resetZoomBtn.addEventListener('click', () => {
             if (isBracketLoaded) {
-                resetZoom();
+                smoothResetZoom();
             }
         });
     }
@@ -417,6 +430,9 @@ function initializeTournamentBracket() {
 
     // Initially disable bracket interactions
     isBracketLoaded = false;
+
+    // Start animation loop
+    startAnimationLoop();
 }
 
 // Initialize drag to pan functionality
@@ -433,8 +449,8 @@ function initDragPan(element, container) {
         if (e.button !== 0) return; // Left click only
 
         isDragging = true;
-        startX = e.clientX - currentX;
-        startY = e.clientY - currentY;
+        startX = e.clientX - targetX;
+        startY = e.clientY - targetY;
 
         element.style.cursor = 'grabbing';
         element.classList.add('dragging');
@@ -446,15 +462,16 @@ function initDragPan(element, container) {
     document.addEventListener('mousemove', (e) => {
         if (!isDragging || !isBracketLoaded) return;
 
-        currentX = e.clientX - startX;
-        currentY = e.clientY - startY;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+
+        targetX = e.clientX - startX;
+        targetY = e.clientY - startY;
 
         // Add boundaries to prevent dragging too far
         const bounds = getDragBounds(element);
-        currentX = Math.min(Math.max(currentX, bounds.minX), bounds.maxX);
-        currentY = Math.min(Math.max(currentY, bounds.minY), bounds.maxY);
-
-        updateTransform(element);
+        targetX = Math.min(Math.max(targetX, bounds.minX), bounds.maxX);
+        targetY = Math.min(Math.max(targetY, bounds.minY), bounds.maxY);
     });
 
     // Mouse up handler
@@ -475,35 +492,33 @@ function initDragPan(element, container) {
         }
     });
 
-    // Wheel zoom handler
+    // Wheel zoom handler with smooth animation
     element.addEventListener('wheel', (e) => {
         // Only enable zoom if bracket is loaded
         if (!isBracketLoaded) return;
 
         e.preventDefault();
 
-        // Get mouse position relative to element
+        // Store mouse position for zoom towards point
         const rect = element.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
+        lastMouseX = e.clientX - rect.left;
+        lastMouseY = e.clientY - rect.top;
 
         // Calculate zoom delta
-        const delta = e.deltaY > 0 ? -0.1 : 0.1;
-        const newZoom = Math.min(Math.max(currentZoom + delta, 0.3), 3);
+        const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+        const newZoom = Math.min(Math.max(targetZoom + delta, ZOOM_MIN), ZOOM_MAX);
 
-        if (newZoom !== currentZoom) {
-            // Adjust position to zoom towards mouse
-            const scale = newZoom / currentZoom;
-            currentX = mouseX - (mouseX - currentX) * scale;
-            currentY = mouseY - (mouseY - currentY) * scale;
-            currentZoom = newZoom;
+        if (newZoom !== targetZoom) {
+            // Calculate zoom towards mouse position
+            const scale = newZoom / targetZoom;
 
-            // Add boundaries
-            const bounds = getDragBounds(element);
-            currentX = Math.min(Math.max(currentX, bounds.minX), bounds.maxX);
-            currentY = Math.min(Math.max(currentY, bounds.minY), bounds.maxY);
+            // Adjust target position to zoom towards mouse
+            targetX = lastMouseX - (lastMouseX - targetX) * scale;
+            targetY = lastMouseY - (lastMouseY - targetY) * scale;
+            targetZoom = newZoom;
 
-            updateTransform(element);
+            // Apply boundaries
+            applyBoundaries(element);
         }
     }, {
         passive: false
@@ -513,14 +528,21 @@ function initDragPan(element, container) {
     element.style.cursor = 'default';
 }
 
+// Apply boundaries to target position
+function applyBoundaries(element) {
+    const bounds = getDragBounds(element);
+    targetX = Math.min(Math.max(targetX, bounds.minX), bounds.maxX);
+    targetY = Math.min(Math.max(targetY, bounds.minY), bounds.maxY);
+}
+
 // Calculate drag boundaries
 function getDragBounds(element) {
     const rect = element.getBoundingClientRect();
     const parentRect = element.parentElement.getBoundingClientRect();
 
     // Calculate bounds based on zoom level
-    const contentWidth = element.scrollWidth * currentZoom;
-    const contentHeight = element.scrollHeight * currentZoom;
+    const contentWidth = element.scrollWidth * targetZoom;
+    const contentHeight = element.scrollHeight * targetZoom;
     const viewportWidth = parentRect.width;
     const viewportHeight = parentRect.height;
 
@@ -537,43 +559,84 @@ function updateTransform(element) {
     element.style.transform = `translate(${currentX}px, ${currentY}px) scale(${currentZoom})`;
 }
 
-// Zoom function
-function zoom(delta) {
-    const newZoom = Math.min(Math.max(currentZoom + delta, 0.3), 3);
+// Smooth zoom function
+function smoothZoom(delta) {
+    const newZoom = Math.min(Math.max(targetZoom + delta, ZOOM_MIN), ZOOM_MAX);
 
-    if (newZoom !== currentZoom) {
+    if (newZoom !== targetZoom) {
         // Zoom towards center of viewport
         const element = bracketsViewer;
         const rect = element.getBoundingClientRect();
         const viewportWidth = element.parentElement.clientWidth;
         const viewportHeight = element.parentElement.clientHeight;
 
-        const centerX = viewportWidth / 2 - rect.left;
-        const centerY = viewportHeight / 2 - rect.top;
+        const centerX = viewportWidth / 2;
+        const centerY = viewportHeight / 2;
 
-        const scale = newZoom / currentZoom;
-        currentX = centerX - (centerX - currentX) * scale;
-        currentY = centerY - (centerY - currentY) * scale;
-        currentZoom = newZoom;
+        const scale = newZoom / targetZoom;
 
-        // Add boundaries
-        const bounds = getDragBounds(element);
-        currentX = Math.min(Math.max(currentX, bounds.minX), bounds.maxX);
-        currentY = Math.min(Math.max(currentY, bounds.minY), bounds.maxY);
+        // Adjust target position to zoom towards center
+        targetX = centerX - (centerX - targetX) * scale;
+        targetY = centerY - (centerY - targetY) * scale;
+        targetZoom = newZoom;
 
-        updateTransform(element);
+        // Apply boundaries
+        applyBoundaries(element);
     }
+}
+
+// Smooth reset zoom function
+function smoothResetZoom() {
+    targetZoom = 1;
+    targetX = 0;
+    targetY = 0;
 }
 
 // Reset zoom function
 function resetZoom() {
     currentZoom = 1;
+    targetZoom = 1;
     currentX = 0;
+    targetX = 0;
     currentY = 0;
+    targetY = 0;
 
     if (bracketsViewer) {
         updateTransform(bracketsViewer);
     }
+}
+
+// Start animation loop for smooth transitions
+function startAnimationLoop() {
+    function animate() {
+        let needsUpdate = false;
+
+        // Smooth zoom animation
+        if (Math.abs(currentZoom - targetZoom) > 0.001) {
+            currentZoom += (targetZoom - currentZoom) * ZOOM_SMOOTHING;
+            needsUpdate = true;
+        } else {
+            currentZoom = targetZoom;
+        }
+
+        // Smooth pan animation
+        if (Math.abs(currentX - targetX) > 0.1 || Math.abs(currentY - targetY) > 0.1) {
+            currentX += (targetX - currentX) * ZOOM_SMOOTHING;
+            currentY += (targetY - currentY) * ZOOM_SMOOTHING;
+            needsUpdate = true;
+        } else {
+            currentX = targetX;
+            currentY = targetY;
+        }
+
+        if (needsUpdate && bracketsViewer) {
+            updateTransform(bracketsViewer);
+        }
+
+        animationFrame = requestAnimationFrame(animate);
+    }
+
+    animationFrame = requestAnimationFrame(animate);
 }
 
 // Toggle theme
