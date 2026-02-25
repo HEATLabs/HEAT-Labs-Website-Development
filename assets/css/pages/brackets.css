@@ -66,7 +66,6 @@ body {
 	padding: 90px 20px 80px 20px !important;
 	overflow: visible !important;
 	position: relative;
-	transform-origin: 0 0;
 	box-sizing: border-box;
 	min-width: 100%;
 	min-height: 100%;
