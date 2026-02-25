@@ -193,7 +193,6 @@ body {
 	color: var(--text-primary, #ffffff) !important;
 	background: var(--bg-secondary, #3d3d3d) !important;
 	padding: 0.75rem 1rem !important;
-	border-radius: 0.5rem !important;
 	margin: 1rem 0 !important;
 	width: 150px;
 	text-align: center;
@@ -207,7 +206,6 @@ body {
 	display: flex;
 	align-items: center;
 	min-height: 32px;
-	padding: 4px var(--match-horizontal-padding, 8px);
 }
 
 .brackets-viewer .participant .name {
@@ -225,7 +223,6 @@ body {
 	width: 18px;
 	height: 18px;
 	object-fit: cover;
-	border-radius: 4px;
 	flex-shrink: 0;
 	display: inline-block;
 	vertical-align: middle;
@@ -263,10 +260,8 @@ body {
 }
 
 .brackets-viewer .opponents {
-	border-color: var(--border-color, #4d4d4d) !important;
 	background: var(--bg-secondary, #3d3d3d) !important;
 	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-	border-radius: 0.5rem;
 	overflow: hidden;
 }
 
@@ -275,7 +270,6 @@ body {
 	color: var(--text-secondary, #b0b0b0);
 	font-size: 0.8em;
 	padding: 2px 6px;
-	border-radius: 3px;
 }
 
 .brackets-viewer .connector-color {
@@ -287,8 +281,6 @@ body {
 .brackets-viewer [popover] {
 	background: var(--card-bg, #2d2d2d) !important;
 	color: var(--text-primary, #ffffff) !important;
-	border: 1px solid var(--border-color, #4d4d4d) !important;
-	border-radius: 0.75rem !important;
 	padding: 1rem !important;
 	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
 	max-width: 300px !important;
