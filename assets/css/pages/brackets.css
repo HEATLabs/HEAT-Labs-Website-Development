@@ -102,6 +102,11 @@ body {
 	z-index: 1;
 }
 
+/* Hide match labels */
+.brackets-viewer .opponents > span {
+    display: none !important;
+}
+
 /* Hide round header */
 .brackets-viewer h1,
 .brackets-viewer h2 {
