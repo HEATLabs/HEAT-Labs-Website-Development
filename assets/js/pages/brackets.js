@@ -1,5 +1,22 @@
 // Tournament Bracket Page
 document.addEventListener('DOMContentLoaded', function() {
+    // Check maintenance status first
+    fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/maintenance.json')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch maintenance data');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.maintenance) {
+                window.location.href = 'https://heatlabs.net/maintenance';
+            }
+        })
+        .catch(error => {
+            console.error('Error checking maintenance status:', error);
+        });
+
     // Check for URL parameters first
     checkUrlParameters();
 
