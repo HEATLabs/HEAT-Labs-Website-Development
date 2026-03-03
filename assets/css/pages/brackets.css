@@ -249,7 +249,7 @@ body {
 }
 
 .brackets-viewer .participant.hover {
-	background: rgb(from var(--match-glow, #8bb9ff) r g b / 0.45) !important;
+	background: rgb(from var(--text-light) r g b / 0.5) !important;
 }
 
 .brackets-viewer .participant .result {
