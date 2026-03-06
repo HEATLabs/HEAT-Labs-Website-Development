@@ -9,7 +9,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // State
     let memesData = [];
-    let observer = null;
+    let isLoading = false;
+    let imagesLoaded = 0;
+    let totalImages = 0;
 
     // Initialize
     initMemesGallery();
@@ -18,11 +20,26 @@ document.addEventListener('DOMContentLoaded', function() {
     function initMemesGallery() {
         loadMemes();
         initEventListeners();
-        initIntersectionObserver();
+        initResizeHandler();
+    }
+
+    // Handle window resize for responsive grid
+    function initResizeHandler() {
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (memesData.length > 0) {
+                    renderMemes();
+                }
+            }, 250);
+        });
     }
 
     // Load memes from JSON
     async function loadMemes() {
+        if (isLoading) return;
+        isLoading = true;
         showLoading();
 
         try {
@@ -38,7 +55,34 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error('Error loading memes:', error);
             showError();
+        } finally {
+            isLoading = false;
         }
+    }
+
+    // Get number of columns based on screen width
+    function getColumnCount() {
+        const width = window.innerWidth;
+        if (width <= 480) return 1;
+        if (width <= 768) return 2;
+        if (width <= 1200) return 3;
+        return 4;
+    }
+
+    // Distribute memes into columns for horizontal flow
+    function distributeMemesIntoColumns() {
+        const columnCount = getColumnCount();
+        const columns = Array.from({
+            length: columnCount
+        }, () => []);
+
+        // Distribute memes horizontally (row by row)
+        memesData.forEach((meme, index) => {
+            const columnIndex = index % columnCount;
+            columns[columnIndex].push(meme);
+        });
+
+        return columns;
     }
 
     // Create meme card HTML
@@ -47,80 +91,119 @@ document.addEventListener('DOMContentLoaded', function() {
         card.className = 'meme-card';
         card.setAttribute('data-name', meme.name.toLowerCase());
         card.setAttribute('data-author', meme.author.toLowerCase());
+        card.setAttribute('data-index', meme.path);
 
-        card.innerHTML = `
-            <div class="meme-img-container">
-                <img
-                    src="${meme.path}"
-                    alt="${meme.name}"
-                    class="meme-img"
-                    loading="lazy"
-                    decoding="async"
-                    onerror="this.src='https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/placeholder/imagefailedtoload.webp'"
-                >
-            </div>
-            <div class="meme-info">
-                <h3>${meme.name}</h3>
-                <div class="meme-author">
-                    <i class="fas fa-user"></i>
-                    <span>${meme.author}</span>
-                </div>
+        // Create image container with placeholder
+        const imgContainer = document.createElement('div');
+        imgContainer.className = 'meme-img-container';
+
+        const img = document.createElement('img');
+        img.className = 'meme-img';
+        img.alt = meme.name;
+        img.loading = 'lazy';
+        img.decoding = 'async';
+
+        // Set low-quality placeholder or transparent pixel
+        img.src = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 1 1\'%3E%3C/svg%3E';
+        img.dataset.src = meme.path;
+
+        img.onerror = function() {
+            this.src = 'https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/placeholder/imagefailedtoload.webp';
+            this.classList.add('loaded');
+        };
+
+        img.onload = function() {
+            this.classList.add('loaded');
+            card.style.height = 'auto';
+        };
+
+        imgContainer.appendChild(img);
+
+        // Create info section
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'meme-info';
+        infoDiv.innerHTML = `
+            <h3>${meme.name}</h3>
+            <div class="meme-author">
+                <i class="fas fa-user"></i>
+                <span>${meme.author}</span>
             </div>
         `;
+
+        card.appendChild(imgContainer);
+        card.appendChild(infoDiv);
 
         // Add click event for modal preview
         card.addEventListener('click', () => openMemeModal(meme));
 
-        // Lazy load image with Intersection Observer
-        const img = card.querySelector('.meme-img');
-        if (observer) {
-            observer.observe(img);
-        }
-
         return card;
     }
 
-    // Render all memes to the grid
+    // Render memes in horizontal grid layout
     function renderMemes() {
         memesGrid.innerHTML = '';
+        memesGrid.style.opacity = '1';
 
         if (memesData.length === 0) {
             showNoResults();
             return;
         }
 
-        memesData.forEach((meme, index) => {
-            const card = createMemeCard(meme);
-            memesGrid.appendChild(card);
+        // Get columns with distributed memes
+        const columns = distributeMemesIntoColumns();
 
-            // Animate card entrance
-            setTimeout(() => {
-                card.classList.add('animated');
-            }, index * 50);
+        // Create column containers
+        columns.forEach((columnMemes, columnIndex) => {
+            const columnDiv = document.createElement('div');
+            columnDiv.className = 'meme-column';
+            columnDiv.style.cssText = `
+                display: flex;
+                flex-direction: column;
+                gap: 1.5rem;
+                flex: 1;
+                min-width: 0;
+            `;
+
+            // Add memes to column
+            columnMemes.forEach((meme, memeIndex) => {
+                const card = createMemeCard(meme);
+                columnDiv.appendChild(card);
+
+                // Stagger animation based on overall position
+                const animationDelay = (columnIndex * 50) + (memeIndex * 30);
+                setTimeout(() => {
+                    card.classList.add('animated');
+                }, animationDelay);
+            });
+
+            memesGrid.appendChild(columnDiv);
         });
 
-        // Reset columns after rendering
-        setTimeout(() => {
-            memesGrid.style.opacity = '1';
-        }, 100);
+        // Initialize lazy loading after render
+        initLazyLoading();
     }
 
-    // Initialize Intersection Observer for lazy loading
-    function initIntersectionObserver() {
-        observer = new IntersectionObserver((entries) => {
+    // Initialize lazy loading for images
+    function initLazyLoading() {
+        const imageObserver = new IntersectionObserver((entries, observer) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     const img = entry.target;
-                    img.src = img.dataset.src || img.src;
-                    img.onload = () => {
-                        img.classList.add('loaded');
-                    };
+                    if (img.dataset.src) {
+                        img.src = img.dataset.src;
+                        img.removeAttribute('data-src');
+                    }
                     observer.unobserve(img);
                 }
             });
         }, {
-            rootMargin: '50px',
-            threshold: 0.1
+            rootMargin: '100px 0px',
+            threshold: 0.01
+        });
+
+        // Observe all images with data-src
+        document.querySelectorAll('.meme-img[data-src]').forEach(img => {
+            imageObserver.observe(img);
         });
     }
 
@@ -136,6 +219,19 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.key === 'Escape') {
                 closeMemeModal();
             }
+        });
+
+        // Smooth scroll handling
+        let scrollTimeout;
+        window.addEventListener('scroll', () => {
+            document.body.classList.add('is-scrolling');
+
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                document.body.classList.remove('is-scrolling');
+            }, 150);
+        }, {
+            passive: true
         });
     }
 
@@ -207,7 +303,7 @@ document.addEventListener('DOMContentLoaded', function() {
         loadingIndicator.classList.remove('hidden');
         errorMessage.classList.add('hidden');
         noResults.classList.add('hidden');
-        memesGrid.style.opacity = '0.3';
+        memesGrid.style.opacity = '0.5';
     }
 
     function hideLoading() {
