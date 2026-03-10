@@ -976,84 +976,63 @@ async function initializeBracketsViewer(tournamentData) {
 
 // Fix bracket connection lines
 function fixBracketConnections() {
-    const brackets = document.querySelectorAll('.brackets-viewer .bracket');
+    // Remove old connectors
+    document.querySelectorAll('.bracket-connectors').forEach(el => el.remove());
 
-    brackets.forEach(bracket => {
-        const rounds = bracket.querySelectorAll('.round');
+    let drawCount = 0;
+    const container = document.getElementById('brackets-viewer');
+    if (!container) return;
 
-        rounds.forEach((round, roundIndex) => {
-            if (roundIndex === rounds.length - 1) return; // Skip last round
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "bracket-connectors");
+    svg.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 100;
+    `;
+    container.appendChild(svg);
 
-            const matches = round.querySelectorAll('.match');
-            const nextRound = rounds[roundIndex + 1];
-            const nextMatches = nextRound.querySelectorAll('.match');
+    const containerRect = container.getBoundingClientRect();
 
-            matches.forEach((match, matchIndex) => {
+    connectorData.forEach(connector => {
+        const sourceID = parseInt(Object.keys(connector)[0]);
+        const targetID = connector[sourceID];
 
-                const container = document.getElementById('brackets-viewer');
-                const containerRect = container.getBoundingClientRect();
+        const sourceMatch = document.querySelector(`.brackets-viewer .match[data-match-id="${sourceID}"]`);
+        const targetMatch = document.querySelector(`.brackets-viewer .match[data-match-id="${targetID}"]`);
 
-                const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                svg.setAttribute("class", "bracket-connectors");
-                svg.style.cssText = `
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                pointer-events: none;
-                z-index: 100;
-                `;
-                container.appendChild(svg);
+        if (sourceMatch && targetMatch) {
+            const sourceRect = sourceMatch.getBoundingClientRect();
+            const targetRect = targetMatch.getBoundingClientRect();
 
-                let drawCount= 0;
-                connectorData.forEach(connector => {
-                    const sourceID = parseInt(Object.keys(connector)[0]);
-                    const targetID = connector[sourceID];
-                    //console.log("Source: ", sourceID, " Target: ", targetID);
+            const startX = sourceRect.right - containerRect.left;
+            const startY = sourceRect.top + sourceRect.height / 2 - containerRect.top;
+            const endX = targetRect.left - containerRect.left;
+            const endY = targetRect.top + targetRect.height / 2 - containerRect.top;
 
-                    const sourceMatch = document.querySelector(`.brackets-viewer .match[data-match-id="${sourceID}"]`);
-                    const targetMatch = document.querySelector(`.brackets-viewer .match[data-match-id="${targetID}"]`);
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", startX.toString());
+            line.setAttribute("y1", startY.toString());
+            line.setAttribute("x2", endX.toString());
+            line.setAttribute("y2", endY.toString());
+            line.setAttribute("stroke", "var(--match-glow)");
+            line.setAttribute("stroke-width", "2");
 
-                    //console.log(sourceMatch, targetMatch);
-
-                    if (sourceMatch && targetMatch) {
-
-                        const sourceRect = sourceMatch.getBoundingClientRect();
-                        const targetRect = targetMatch.getBoundingClientRect();
-
-                        //console.log(sourceRect, targetRect);
-
-                        const startX = sourceRect.right - containerRect.left;
-                        const startY = sourceRect.top + sourceRect.height/2 - containerRect.top;
-                        const endX = targetRect.left - containerRect.left;
-                        const endY = targetRect.top + targetRect.height/2 - containerRect.top;
-                        //console.log("startX: ", startX,"startY: ", startY,"endX: ", endX,"endY: ", endY);
-
-                        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                        line.setAttribute("x1", startX.toString());
-                        line.setAttribute("y1", startY.toString());
-                        line.setAttribute("x2", endX.toString());
-                        line.setAttribute("y2", endY.toString());
-                        line.setAttribute("stroke", "var(--match-glow)");
-                        line.setAttribute("stroke-width", "2");
-                        svg.appendChild(line);
-                        drawCount++;
-
-                        console.log(drawCount);
-
-                    } else {
-                        console.warn(`Missing match: ${sourceMatch ? targetID : sourceID}`);
-                    }
-
-                    /* To do:
-                    Find the right middle position of each match: DONE
-                    Find the left position of each match: DONE
-                    Draw line between each point: Kinda works
-                     */
-                })
-
-            });
-        });
+            svg.appendChild(line);
+            drawCount++;
+        } else {
+            console.warn(`Missing match: ${sourceMatch ? targetID : sourceID}`);
+        }
     });
+
+    console.log(`Drew ${drawCount} connectors`);
+    /* To do:
+    Draw line between each point: Kinda works
+     */
 }
+
+setTimeout(fixBracketConnections, 1000);
