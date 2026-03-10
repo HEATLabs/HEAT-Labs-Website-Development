@@ -966,7 +966,12 @@ async function initializeBracketsViewer(tournamentData) {
         enhanceBracketWithImages();
 
         // Ensure bracket connections aligned
-        setTimeout(fixBracketConnections, 100);
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+            setTimeout(fixBracketConnections, 100);
+        })
+        }
+    )
     } catch (error) {
         console.error('Error rendering bracket:', error);
         showError('Error rendering tournament bracket. Please try again later.');
@@ -985,15 +990,6 @@ function fixBracketConnections() {
 
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("class", "bracket-connectors");
-    svg.style.cssText = `
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        z-index: 100;
-    `;
     container.appendChild(svg);
 
     const containerRect = container.getBoundingClientRect();
@@ -1030,9 +1026,4 @@ function fixBracketConnections() {
     });
 
     console.log(`Drew ${drawCount} connectors`);
-    /* To do:
-    Draw line between each point: Kinda works
-     */
 }
-
-setTimeout(fixBracketConnections, 1000);

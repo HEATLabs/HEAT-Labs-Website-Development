@@ -319,6 +319,17 @@ body {
 	background: none !important;
 }
 
+/* Custom bracket lines */
+.bracket-connectors {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100vmax;
+	height: 100vmax;
+	pointer-events: none;
+	z-index: 100;
+}
+
 /* Loading and error states */
 .tournament-bracket-loading,
 .tournament-bracket-error {
