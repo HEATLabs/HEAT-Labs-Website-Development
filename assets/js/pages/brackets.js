@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize tournament bracket controls
     initializeTournamentBracket();
 
+
     // Close dropdown when clicking outside
     document.addEventListener('click', function(event) {
         const dropdown = document.querySelector('.custom-dropdown');
@@ -58,6 +59,8 @@ let isBracketLoaded = false;
 let animationFrame = null;
 let lastMouseX = 0;
 let lastMouseY = 0;
+
+let connectorData = [];
 
 // Smooth zoom settings
 const ZOOM_SMOOTHING = 0.15;
@@ -166,6 +169,7 @@ async function fetchTournamentsList() {
         // After dropdown is populated, try to load tournament from URL parameter
         setTimeout(() => {
             loadTournamentFromParameter();
+
         }, 100); // Small delay to ensure dropdown is rendered
 
     } catch (error) {
@@ -342,6 +346,13 @@ async function fetchBracketData(bracketUrl) {
     // Store participants with their images
     if (tournamentData.participants) {
         currentParticipants = tournamentData.participants;
+    }
+
+    // Store connector data
+    if (tournamentData.connectors) {
+        connectorData = tournamentData.connectors;
+    } else {
+        connectorData = [];
     }
 
     // Initialize bracket viewer with tournament data
@@ -978,15 +989,70 @@ function fixBracketConnections() {
             const nextMatches = nextRound.querySelectorAll('.match');
 
             matches.forEach((match, matchIndex) => {
-                // Ensure connection classes are properly set
-                if (nextMatches[matchIndex * 2] || nextMatches[matchIndex * 2 + 1]) {
-                    match.classList.add('connect-next');
 
-                    // Add straight class for finals
-                    if (rounds.length - roundIndex <= 2) {
-                        match.classList.add('straight');
+                const container = document.getElementById('brackets-viewer');
+                const containerRect = container.getBoundingClientRect();
+
+                const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                svg.setAttribute("class", "bracket-connectors");
+                svg.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                z-index: 100;
+                `;
+                container.appendChild(svg);
+
+                let drawCount= 0;
+                connectorData.forEach(connector => {
+                    const sourceID = parseInt(Object.keys(connector)[0]);
+                    const targetID = connector[sourceID];
+                    //console.log("Source: ", sourceID, " Target: ", targetID);
+
+                    const sourceMatch = document.querySelector(`.brackets-viewer .match[data-match-id="${sourceID}"]`);
+                    const targetMatch = document.querySelector(`.brackets-viewer .match[data-match-id="${targetID}"]`);
+
+                    //console.log(sourceMatch, targetMatch);
+
+                    if (sourceMatch && targetMatch) {
+
+                        const sourceRect = sourceMatch.getBoundingClientRect();
+                        const targetRect = targetMatch.getBoundingClientRect();
+
+                        //console.log(sourceRect, targetRect);
+
+                        const startX = sourceRect.right - containerRect.left;
+                        const startY = sourceRect.top + sourceRect.height/2 - containerRect.top;
+                        const endX = targetRect.left - containerRect.left;
+                        const endY = targetRect.top + targetRect.height/2 - containerRect.top;
+                        //console.log("startX: ", startX,"startY: ", startY,"endX: ", endX,"endY: ", endY);
+
+                        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                        line.setAttribute("x1", startX.toString());
+                        line.setAttribute("y1", startY.toString());
+                        line.setAttribute("x2", endX.toString());
+                        line.setAttribute("y2", endY.toString());
+                        line.setAttribute("stroke", "var(--match-glow)");
+                        line.setAttribute("stroke-width", "2");
+                        svg.appendChild(line);
+                        drawCount++;
+
+                        console.log(drawCount);
+
+                    } else {
+                        console.warn(`Missing match: ${sourceMatch ? targetID : sourceID}`);
                     }
-                }
+
+                    /* To do:
+                    Find the right middle position of each match: DONE
+                    Find the left position of each match: DONE
+                    Draw line between each point: Kinda works
+                     */
+                })
+
             });
         });
     });
