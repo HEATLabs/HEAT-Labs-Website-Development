@@ -1,0 +1,10 @@
+.logo-container{
+    height: 100vh;
+    width: 100vw;
+    position: relative;
+}
+.logo-dvd{
+    width: 96px;
+    height: 96px;
+    position: absolute;
+}
