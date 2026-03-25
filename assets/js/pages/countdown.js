@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     // const targetDate = new Date(Date.UTC(2026, 1, 15, 12, 0, 0)); // February 15, 2026 at 12:00:00 UTC (First prediction)
-    const targetDate = new Date(Date.UTC(2026, 2, 26, 12, 0, 0)); // March 26, 2026 at 12:00:00 UTC (Second prediction)
+    // const targetDate = new Date(Date.UTC(2026, 2, 26, 12, 0, 0)); // March 26, 2026 at 12:00:00 UTC (Second prediction)
+    const targetDate = new Date(Date.UTC(2026, 4, 14, 12, 0, 0)); // May 14, 2026 at 12:00:00 UTC (Third prediction)
     const GAME_RELEASED = false;
 
     // Initialize variables for DOM elements
