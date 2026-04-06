@@ -545,3 +545,37 @@ body {
 		justify-content: center;
 	}
 }
+
+/* Tournament load error */
+.tournament-error-grid {
+	display: grid;
+	gap: 2rem;
+}
+.tournament-load-error {
+	position: static;
+	text-align: center;
+	color: var(--text-secondary, #b0b0b0);
+	z-index: 10;
+}
+
+.tournament-load-error i {
+	font-size: 4rem;
+	margin-bottom: 1.5rem;
+	display: block;
+}
+
+.tournament-load-error p {
+	font-size: 1.2rem;
+	margin: 0;
+}
+
+.tournament-load-error i {
+	color: #F44336;
+}
+
+.tournament-load-error {
+	background: rgba(244, 67, 54, 0.1);
+	padding: 2rem;
+	border-radius: 1rem;
+	border: 1px solid rgba(244, 67, 54, 0.3);
+}

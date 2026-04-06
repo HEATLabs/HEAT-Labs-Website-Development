@@ -176,7 +176,7 @@ async function fetchTournamentData() {
 
         const response = await fetch(dataURL);
         if (!response.ok) {
-            throw new Error('Failed to load tournament data');
+            showError('Failed to load tournament data. Please try again later.')
         }
         const data = await response.json();
         window.tournamentData = data; // Store globally
@@ -350,7 +350,7 @@ async function renderTournamentCards() {
     tournamentGrid.innerHTML = ''; // Clear existing cards
 
     if (!tournaments || tournaments.length === 0) {
-        tournamentGrid.innerHTML = '<p class="text-center py-10">Failed to load tournament data. Please try again later.</p>';
+        showError('Failed to render tournament data. Data is empty!')
         return;
     }
 
@@ -374,6 +374,31 @@ async function renderTournamentCards() {
     // Update view counters after all cards are rendered
     await updateTournamentViewCounters();
 }
+
+// Function to show error
+function showError(message) {
+    document.getElementById('tournament-grid').remove();
+
+    let errorGrid = document.createElement('div')
+    errorGrid.classList.add('tournament-error-grid');
+    errorGrid.classList.add('place-items-center');
+    errorGrid.id = 'tournament-error-grid';
+    document.getElementById('container').appendChild(errorGrid);
+
+    const tournamentViewer = document.getElementById('tournament-error-grid');
+    console.log('Show error test: ', tournamentViewer);
+    if (tournamentViewer) {
+        tournamentViewer.innerHTML = `
+        <div class="place-items-center">
+            <div class="tournament-load-error">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>${message}</p>
+            </div>
+        </div>
+        `;
+    }
+}
+
 
 // Initialize tournament functionality
 document.addEventListener('DOMContentLoaded', function() {
