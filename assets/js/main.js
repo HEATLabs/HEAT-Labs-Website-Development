@@ -11,6 +11,9 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.maintenance) {
                 // Redirect to maintenance page
+                if (window.location.hostname === 'localhost' || window.location.hostname === 'status' || window.location.hostname === 'changelog' || window.location.hostname === 'statistics') {
+                    return;
+                }
                 window.location.href = 'https://dev.heatlabs.net/maintenance';
                 return;
             }
