@@ -30,7 +30,8 @@ function fixLocalLinks() {
 
 // Wait for DOM to be fully loaded
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', fixLocalLinks);
+    //document.addEventListener('DOMContentLoaded', fixLocalLinks);
+    setTimeout(fixLocalLinks, 2000);
 } else {
-    fixLocalLinks();
+   setTimeout(fixLocalLinks, 2000);
 }
