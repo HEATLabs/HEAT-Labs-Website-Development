@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const filters = {
         nation: [],
         type: [],
-        status: []
+        status: ['Available Now']
     };
 
     document.addEventListener('click', function(event) {
@@ -329,6 +329,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Update sidebar after tanks are loaded
         updateComparisonSidebar();
+
+        // Apply default filter
+        filterTanks();
     }
 
     // Initialize filter buttons
@@ -619,5 +622,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.location.href = 'check-compare';
             }
         });
+    }
+    const availableNowBtn = document.querySelector('.status-filter[data-status="Available Now"]');
+    if (availableNowBtn) {
+        availableNowBtn.classList.add('active');
+        filters.status = ["Available Now"];
     }
 });
