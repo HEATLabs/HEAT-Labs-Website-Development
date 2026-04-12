@@ -24,7 +24,8 @@ document.addEventListener('DOMContentLoaded', function() {
             'hamburger-menu',
             'no-external-warning',
             'brand-logo',
-            'system-status'
+            'system-status',
+            'gallery-thumbnail'
         ],
         rememberChoiceKey: 'heatlabs_external_links',
         maxRememberedChoices: 50,
