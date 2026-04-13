@@ -91,6 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <h3>${agent.name}</h3>
                 <div class="agent-meta">
                     <span><i class="fa-solid fa-bolt"></i> ${agent.specialty}</span>
+                    <span><i class="fa-solid fa-dna"></i> ${agent.trait}</span>
                     <span><i class="fa-solid fa-gear"></i> ${tankText}</span>
                 </div>
                 <div class="agent-buttons">
