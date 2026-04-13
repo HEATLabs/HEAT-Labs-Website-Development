@@ -202,6 +202,12 @@ function populateAbilities(abilitiesData) {
         });
     }
 
+    if (abilitiesData.agentTrait && abilitiesData.agentTrait.length > 0) {
+        abilitiesData.agentTrait.forEach(ability => {
+            abilitiesContainer.appendChild(createAbilityCard(ability, 'Agent Trait'));
+        });
+    }
+
     if (abilitiesData.primaryAttack && abilitiesData.primaryAttack.length > 0) {
         abilitiesData.primaryAttack.forEach(ability => {
             abilitiesContainer.appendChild(createAbilityCard(ability, 'Primary Attack'));
@@ -300,6 +306,15 @@ function initializeAbilityModals() {
                         if (found) {
                             ability = found;
                             abilityType = 'Agent Ability';
+                        }
+                    }
+
+                    // Check agent trait
+                    if (abilitiesData.agentTrait) {
+                        const found = abilitiesData.agentTrait.find(a => a.name === abilityName);
+                        if (found) {
+                            ability = found;
+                            abilityType = 'Agent Trait';
                         }
                     }
 
