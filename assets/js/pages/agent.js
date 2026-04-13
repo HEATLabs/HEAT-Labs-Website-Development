@@ -90,6 +90,11 @@ async function fetchAgentData(agentId) {
             populateAbilities(agent);
         }
 
+        // Populate trait if available
+        if (agent.trait) {
+            populateTrait(agent);
+        }
+
         // Populate compatible tanks if available
         if (agent.compatibleTanks) {
             populateCompatibleTanks(agent.compatibleTanks);
@@ -119,6 +124,27 @@ function populateAbilities(agent) {
     `;
 
     abilitiesContainer.appendChild(abilityCard);
+}
+
+function populateTrait(agent) {
+    const traitContainer = document.getElementById('trait-container');
+    if (!traitContainer) return;
+
+    // Clear existing content
+    traitContainer.innerHTML = '';
+
+    // Create ability card
+    const traitCard = document.createElement('div');
+    traitCard.className = 'trait-card';
+
+    traitCard.innerHTML = `
+        <div class="trait-info text-center">
+            <h4>${agent.trait}</h4>
+            <p class="trait-description">${agent.trait_description}</p>
+        </div>
+    `;
+
+    traitContainer.appendChild(traitCard);
 }
 
 function populateCompatibleTanks(tanks) {

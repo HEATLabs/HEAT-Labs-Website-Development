@@ -356,6 +356,37 @@ p {
 	color: var(--text-secondary);
 }
 
+/* Trait Cards */
+.trait-card {
+	background-color: var(--card-bg);
+	border-radius: 0.75rem;
+	overflow: hidden;
+	box-shadow: var(--shadow);
+	border: 1px solid var(--border-color);
+	transition: transform 0.3s ease;
+}
+
+.trait-info {
+	padding: 1.25rem;
+}
+
+.trait-info h4 {
+	margin: 0 0 0.5rem;
+	font-size: 1.1rem;
+}
+
+.trait-info p {
+	margin: 0.25rem 0;
+	font-size: 0.9rem;
+	color: var(--text-secondary);
+}
+
+.trait-description {
+	margin-top: 0.5rem !important;
+	font-size: 0.95rem !important;
+	color: var(--text-secondary);
+}
+
 /* Video Cards */
 .video-card {
 	background-color: var(--card-bg);
