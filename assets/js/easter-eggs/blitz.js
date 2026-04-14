@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Preload the sound when page loads
     function preloadSound() {
-        sound = new Audio('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images-Database/refs/heads/main/sounds/blitz.wav');
+        sound = new Audio('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Database/refs/heads/main/sounds/blitz.wav');
         sound.load();
     }
     preloadSound();
