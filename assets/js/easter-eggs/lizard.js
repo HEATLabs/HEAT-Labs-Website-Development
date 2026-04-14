@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
     video.controls = false;
     video.loop = false;
     video.muted = false;
-    video.autoplay = true; // Add autoplay
+    video.autoplay = false; // Stop audio from playing on page load??
 
     function hideEasterEgg() {
         easterEgg.style.opacity = '0';
