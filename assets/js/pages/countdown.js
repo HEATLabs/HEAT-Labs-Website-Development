@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const disclaimerSection = document.querySelector('.footer .text-center.text-sm.text-gray-500.space-y-1');
 
     // State variables
-    let simpleCountdownMode = false;
+    let simpleCountdownMode = true;
     let countdownInterval;
     let isPast = false;
 
