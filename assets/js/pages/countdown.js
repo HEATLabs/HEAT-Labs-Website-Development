@@ -36,14 +36,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event listeners for notification
     closeNoticeBtn.addEventListener('click', closeNotification);
 
-    // Track typed characters for "alpha3"
+    // Track typed characters for "beta"
     let typedChars = [];
     document.addEventListener('keydown', function(e) {
         typedChars.push(e.key.toLowerCase());
         if (typedChars.length > 6) {
             typedChars.shift();
         }
-        if (typedChars.join('').includes('alpha3')) {
+        if (typedChars.join('').includes('beta')) {
             toggleCountdownMode();
             typedChars = [];
         }
