@@ -14,9 +14,9 @@ class ModelLoader {
         this.model = null;
 
         // Prod Model
-        this.model = 'https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Models/refs/heads/main/glb-test-models/trafficCone.fbx';
+        this.modelPath = "https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Models/refs/heads/main/glb-test-models/trafficCone.glb";
         // Local model
-        // this.modelPath = "../../../t62-Blitz.glb";
+        // this.modelPath = "../../HEAT-Labs-Models/glb-test-models/trafficCone.glb";
 
         // Animation state (or just the helicopter mode)
         this.isRotating = false;
