@@ -56,7 +56,6 @@ class ModelLoader {
         this.init();
     }
 
-    init() {
     async init() {
         this.setupScene();
         this.setupCamera();
