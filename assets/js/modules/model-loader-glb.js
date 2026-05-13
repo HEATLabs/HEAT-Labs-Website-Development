@@ -14,9 +14,11 @@ class ModelLoader {
         this.model = null;
 
         // Prod Model
-        this.modelPath = "https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Models/refs/heads/main/glb-test-models/m1e1-module-placeholder.glb";
+        this.modelPath = "https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Models/refs/heads/main/glb-test-models/trafficCone.glb";
         // Local model
-        // this.modelPath = "../../HEAT-Labs-Models/glb-test-models/t62.glb";
+        // this.modelPath = "../../../abrams.glb";
+
+        this.tankId = document.querySelector('meta[name="tank-id"]').content;
 
         // Animation state (or just the helicopter mode)
         this.isRotating = false;
@@ -49,13 +51,13 @@ class ModelLoader {
 
         // Toggle XRay
         this.xray = false;
-
         this.boundingBoxes = [];
 
         this.init();
     }
 
     init() {
+    async init() {
         this.setupScene();
         this.setupCamera();
         this.setupRenderer();
@@ -63,6 +65,7 @@ class ModelLoader {
         this.setupLighting();
         this.setupGrid();
         this.createControlsUI();
+        await this.fetchModel(this.tankId);
         this.loadModel();
         this.animate();
     }
@@ -214,6 +217,18 @@ class ModelLoader {
         controlsContainer.appendChild(fullscreenBtn);
 
         this.container.appendChild(controlsContainer);
+    }
+
+    async fetchModel(id) {
+        const tanksResponse = await fetch('../../HEAT-Labs-Configs/tanks.json');
+        const tanksData = await tanksResponse.json();
+
+        const tank = tanksData.find(t => t.id.toString() === id.toString());
+        if (!tank) {
+            console.error('Tank model not found with ID:', id);
+            return;
+        }
+        this.modelPath = tank.model;
     }
 
     async loadModel(){
