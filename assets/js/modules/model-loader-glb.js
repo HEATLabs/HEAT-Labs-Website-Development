@@ -50,6 +50,7 @@ class ModelLoader {
         // Toggle XRay
         this.xray = false;
 
+        this.boundingBoxes = [];
 
         this.init();
     }
@@ -300,6 +301,60 @@ class ModelLoader {
         }
     }
 
+    drawBoundingBox(child, mat){
+        mat.transparent = true;
+        mat.opacity = 0.3;
+        mat.depthWrite = true;
+        mat.depthTest = true;
+        mat.renderOrder = 999;
+        mat.needsUpdate = true;
+
+
+       // Get size from geometry
+        child.geometry.computeBoundingBox();
+        const size = new THREE.Vector3();
+        child.geometry.boundingBox.getSize(size);
+
+        // Apply mesh's local scale
+        const localScale = new THREE.Vector3();
+        child.getWorldScale(localScale);
+        size.multiply(localScale);
+
+        const geom = new THREE.BoxGeometry(size.x, size.y, size.z);
+        const edges = new THREE.EdgesGeometry(geom);
+        const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({
+            color: child.material.color.getHex()
+        }));
+
+        child.getWorldPosition(line.position);
+        const quat = new THREE.Quaternion();
+        child.getWorldQuaternion(quat);
+        line.setRotationFromQuaternion(quat);
+
+        line.userData.child = child;
+        this.scene.add(line);
+        this.boundingBoxes.push(line);
+
+
+
+        // let colorRGB = new THREE.Color(mat.color.r, mat.color.g, mat.color.b).getHexString();
+        // const box = new THREE.Box3().setFromObject(child);
+        // const helper = new THREE.Box3Helper(box, parseInt('0x'+colorRGB));
+        // // let box = new THREE.BoxHelper(child, parseInt('0x'+colorRGB))
+        // this.scene.add(helper)
+        // this.boundingBoxes.push(helper);
+        // colorRGB = null;
+    }
+
+    removeBoundingBox(){
+        this.boundingBoxes.forEach(box => {
+            this.scene.remove(box);
+            if (box.geometry) box.geometry.dispose();
+            if (box.material) box.material.dispose();
+        })
+        this.boundingBoxes = [];
+    }
+
     toggleXRay() {
         this.xray = !this.xray;
 
@@ -308,13 +363,32 @@ class ModelLoader {
                 if (child.isMesh && child.material) {
                     const materials = Array.isArray(child.material) ? child.material : [child.material];
                     materials.forEach(mat => {
-                        mat.transparent = true;
-                        mat.opacity = 0.23;
-                        mat.depthWrite = false;
-                        mat.needsUpdate = true;
+                        if (child.name.toLowerCase().includes('crew')) {
+                            this.drawBoundingBox(child, mat);
+                        }
+                        if (child.name.toLowerCase().includes('electronics')) {
+                            this.drawBoundingBox(child, mat);
+                        }
+                        if (child.name.toLowerCase().includes('fuel')) {
+                            this.drawBoundingBox(child, mat);
+                        }
+                        if (child.name.toLowerCase().includes('engine')) {
+                            this.drawBoundingBox(child, mat);
+                        }
+                        if (child.name.toLowerCase().includes('ammo')){
+                            this.drawBoundingBox(child, mat);
+                        } else {
+                            mat.transparent = true;
+                            mat.opacity = 0.15;
+                            mat.depthWrite = false;
+                            mat.depthTest = true;
+                            mat.renderOrder = -1;
+                            mat.needsUpdate = true;
+                        }
                     })
                 }
             })
+            this.renderer.sortObjects = true;
         } else {
             this.model.traverse((child) => {
                 if (child.isMesh && child.material) {
@@ -324,6 +398,7 @@ class ModelLoader {
                         mat.opacity = 1;
                         mat.depthWrite = true;
                         mat.needsUpdate = true;
+                        this.removeBoundingBox();
                     })
                 }
             })
@@ -540,7 +615,11 @@ class ModelLoader {
             // Uncomment line below for fan meme
             // this.model.children[9].rotation.y -= THREE.MathUtils.degToRad(this.rotationSpeed) * delta;
             this.model.rotation.y += THREE.MathUtils.degToRad(this.rotationSpeed) * delta;
-
+            this.boundingBoxes.forEach(line => {
+                const child = line.userData.child;
+                child.getWorldPosition(line.position);
+                child.getWorldQuaternion(line.quaternion);
+            })
         }
 
         if (this.controls) {
