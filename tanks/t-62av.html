@@ -421,9 +421,11 @@
           <div class="tank-content-wrapper">
             <!-- Main Content -->
             <div class="tank-main-content">
-              <!-- Tank Image -->
-              <div class="tank-image mb-8">
-                <img src="https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/placeholder/imagecomingsoon.webp" alt="M1E1 Tank" class="rounded-lg shadow-lg">
+              <!-- 3D Tank Model Viewer -->
+              <div class="tank-model-viewer mb-8">
+                <div class="model-viewer-container" id="tank-model-viewer">
+                  <!-- 3D model will be rendered here by JavaScript -->
+                </div>
               </div>
               <!-- Ability Overview -->
               <div class="mb-12">
@@ -1377,10 +1379,10 @@
     <script src="../assets/js/libraries/chart.js"></script>
     <script src="../assets/js/libraries/three.js"></script>
     <script src="../assets/js/libraries/OrbitControls.js"></script>
-    <script src="../assets/js/libraries/FBXLoader.js"></script>
-    <script src="../assets/js/libraries/DDSLoader.js"></script>
+    <script src="../assets/js/libraries/GLTFLoader.js"></script>
+<!--    <script src="../assets/js/libraries/DDSLoader.js"></script>-->
     <script src="../assets/js/libraries/fflate.js"></script>
-    <script src="../assets/js/modules/model-loader-fbx.js"></script>
+    <script src="../assets/js/modules/model-loader-glb.js"></script>
     <script src="../assets/js/modules/sidebar.js"></script>
     <script src="../assets/js/modules/theme-loader.js"></script>
     <script src="../assets/js/pages/tank.js"></script>
