@@ -219,15 +219,24 @@ class ModelLoader {
     }
 
     async fetchModel(id) {
-        const tanksResponse = await fetch('../../HEAT-Labs-Configs/tanks.json');
-        const tanksData = await tanksResponse.json();
+        try {
+            const tanksResponse = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/tanks.json');
+            const tanksData = await tanksResponse.json();
 
-        const tank = tanksData.find(t => t.id.toString() === id.toString());
-        if (!tank) {
-            console.error('Tank model not found with ID:', id);
-            return;
+            try {
+                const tank = tanksData.find(t => t.id.toString() === id.toString());
+                if (tank) {
+                    this.modelPath = tank.model;
+                }
+            } catch (error){
+                console.error('Error in find ID: ',error);
+            }
+
+        } catch (error) {
+            console.error('Could not fetch tank model with ID:', id);
+            console.error('Fetch Error: ',error);
+
         }
-        this.modelPath = tank.model;
     }
 
     async loadModel(){
