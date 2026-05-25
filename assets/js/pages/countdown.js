@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (typedChars.length > 6) {
             typedChars.shift();
         }
-        if (typedChars.join('').includes('beta')) {
+        if (typedChars.join('').includes('launch')) {
             toggleCountdownMode();
             typedChars = [];
         }
