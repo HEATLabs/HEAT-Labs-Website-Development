@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let simpleCountdownMode = !DETAILED_MODE;
     let countdownInterval;
     let isPast = false;
+    let hasShownReleasedMessage = false;
 
     // Show notification popup
     function showNotification() {
@@ -118,6 +119,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to show released message
     function showReleasedMessage() {
+        if (hasShownReleasedMessage) return;
+        hasShownReleasedMessage = true;
+
         // Hide the countdown timer
         countdownTimer.classList.add('hidden');
         countdownTitle.classList.add('hidden');
@@ -228,11 +232,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // If the countdown is over, switch to counting up
         if (isPast) {
-            difference = Math.abs(difference);
-
-            // Show prediction off message if we just crossed the threshold
             if (!wasPast) {
-                showPredictionOffMessage();
+                showReleasedMessage();
+                return;
+            }
+
+            if (!hasShownReleasedMessage) {
+                difference = Math.abs(difference);
+                if (!wasPast) {
+                    showPredictionOffMessage();
+                }
             }
         } else {
             // Remove prediction message if were back in the future
