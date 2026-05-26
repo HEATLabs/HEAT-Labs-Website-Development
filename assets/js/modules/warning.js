@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Toggle warning modal
-    const WARNING_MODAL_ENABLED = false;
+    const WARNING_MODAL_ENABLED = true;
 
     // If modal is disabled, exit early
     if (!WARNING_MODAL_ENABLED) {
