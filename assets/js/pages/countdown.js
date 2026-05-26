@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const targetDate = new Date(Date.UTC(2026, 4, 26, 7, 0, 0)); // May 26, 2026 at 07:00:00 UTC (Official Release)
 
     const GAME_RELEASED = false;
+    const DETAILED_MODE = true;
 
     // Initialize variables for DOM elements
     const countdownTitle = document.querySelector('.countdown-title');
@@ -17,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const disclaimerSection = document.querySelector('.footer .text-center.text-sm.text-gray-500.space-y-1');
 
     // State variables
-    let simpleCountdownMode = true;
+    let simpleCountdownMode = !DETAILED_MODE;
     let countdownInterval;
     let isPast = false;
 
@@ -39,17 +40,19 @@ document.addEventListener('DOMContentLoaded', function() {
     closeNoticeBtn.addEventListener('click', closeNotification);
 
     // Track typed characters for "beta"
-    let typedChars = [];
-    document.addEventListener('keydown', function(e) {
-        typedChars.push(e.key.toLowerCase());
-        if (typedChars.length > 6) {
-            typedChars.shift();
-        }
-        if (typedChars.join('').includes('launch')) {
-            toggleCountdownMode();
-            typedChars = [];
-        }
-    });
+    if (!DETAILED_MODE) {
+        let typedChars = [];
+        document.addEventListener('keydown', function(e) {
+            typedChars.push(e.key.toLowerCase());
+            if (typedChars.length > 6) {
+                typedChars.shift();
+            }
+            if (typedChars.join('').includes('launch')) {
+                toggleCountdownMode();
+                typedChars = [];
+            }
+        });
+    }
 
     // Function to toggle between simple and detailed countdown
     function toggleCountdownMode() {
@@ -173,6 +176,42 @@ document.addEventListener('DOMContentLoaded', function() {
             stopCountdown();
         } else {
             // Game is not released, start the countdown
+            if (DETAILED_MODE) {
+                // Start in detailed mode
+                countdownTitle.classList.remove('hidden');
+                countdownSubtitle.classList.remove('hidden');
+                countdownTimer.innerHTML = `
+                    <div class="countdown-item">
+                        <div class="countdown-value" id="months">00</div>
+                        <div class="countdown-label">Months</div>
+                    </div>
+                    <div class="countdown-item">
+                        <div class="countdown-value" id="days">00</div>
+                        <div class="countdown-label">Days</div>
+                    </div>
+                    <div class="countdown-item">
+                        <div class="countdown-value" id="hours">00</div>
+                        <div class="countdown-label">Hours</div>
+                    </div>
+                    <div class="countdown-item">
+                        <div class="countdown-value" id="minutes">00</div>
+                        <div class="countdown-label">Minutes</div>
+                    </div>
+                    <div class="countdown-item">
+                        <div class="countdown-value" id="seconds">00</div>
+                        <div class="countdown-label">Seconds</div>
+                    </div>
+                `;
+            } else {
+                // Start in simple mode
+                countdownTitle.classList.add('hidden');
+                countdownSubtitle.classList.add('hidden');
+                countdownTimer.innerHTML = `
+                    <div class="countdown-item">
+                        <div class="countdown-value" id="seconds">00</div>
+                    </div>
+                `;
+            }
             countdownInterval = setInterval(updateCountdown, 1000);
             updateCountdown();
             showNotification();
