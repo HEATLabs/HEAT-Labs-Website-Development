@@ -72,6 +72,7 @@ async function fetchAgentData(agentId) {
     try {
         // First fetch the agents.json to get the agent details
         const agentsResponse = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images-Configs/refs/heads/main/agents.json');
+        const agentsResponse = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/agents.json');
         const agentsData = await agentsResponse.json();
 
         // Find the agent with matching ID
