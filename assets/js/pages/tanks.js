@@ -228,8 +228,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const tankLink = card.querySelector('a.btn-accent');
             if (tankLink) {
                 // Extract the tank name from the href (e.g., "tanks/t-72.html" -> "t-72")
-                const tankName = tankLink.getAttribute('href').split('/').pop().replace('.html', '');
+                let tankName = tankLink.getAttribute('href').split('/').pop().replace('.html', '');
 
+                switch (tankName) {
+                    case 'm60a1':
+                        tankName =  'm60e2';
+                        break;
+                    case 'm551a1':
+                        tankName =  'xm551';
+                        break;
+                    default:
+                        break;
+                }
                 // Fetch the view count
                 const viewsData = await fetchViewCount(tankName);
                 const viewsElement = card.querySelector('.views-count');
