@@ -364,36 +364,42 @@ document.addEventListener('DOMContentLoaded', function() {
     async function loadTanks() {
         const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/tanks.json');
         const data = await response.json();
-        return data.map(tank => ({
-            id: tank.id.toString(), // Ensure ID is string for consistency
-            name: tank.name,
-            image: tank.image,
-            type: 'tank'
-        }));
+        return data
+            .filter(tank => tank.class === "Available Now")
+            .map(tank => ({
+                id: tank.id.toString(),
+                name: tank.name,
+                image: tank.image,
+                type: 'tank'
+            }));
     }
 
     // Load maps data
     async function loadMaps() {
         const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/maps.json');
         const data = await response.json();
-        return data.maps.map(map => ({
-            id: map.id.toString(), // Use the ID from JSON
-            name: map.name,
-            image: map.image,
-            type: 'map'
-        }));
+        return data.maps
+            .filter(map => map.status === "Available Now")
+            .map(map => ({
+                id: map.id.toString(),
+                name: map.name,
+                image: map.image,
+                type: 'map'
+            }));
     }
 
     // Load agents data
     async function loadAgents() {
         const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/agents.json');
         const data = await response.json();
-        return data.agents.map(agent => ({
-            id: agent.id.toString(), // Use the ID from JSON
-            name: agent.name,
-            image: agent.image,
-            type: 'agent'
-        }));
+        return data.agents
+            .filter(agent => agent.status === "Available Now")
+            .map(agent => ({
+                id: agent.id.toString(),
+                name: agent.name,
+                image: agent.image,
+                type: 'agent'
+            }));
     }
 
     // Render the tier list with items
