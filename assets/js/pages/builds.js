@@ -37,7 +37,7 @@ async function fetchTankData() {
     try {
         showLoader();
         const response = await fetchWithRetry(
-            'https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images-Configs/refs/heads/main/tanks.json',
+            'https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/tanks.json',
             3 // retry 3 times
         );
 
