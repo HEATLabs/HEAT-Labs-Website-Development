@@ -251,6 +251,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Create stat bar
+    function createStatBar(statName, statValue, iconClass) {
+        return `
+            <div class="stat">
+                <span><i class="${iconClass}"></i> ${statName}</span>
+                <div class="stat-bar">
+                    <div class="stat-fill" style="width: ${statValue}%"></div>
+                </div>
+            </div>
+        `;
+    }
+
     // Create tank card HTML
     function createTankCard(tank) {
         const card = document.createElement('div');
@@ -264,6 +276,17 @@ document.addEventListener('DOMContentLoaded', function() {
         // Only show tank class (bubble) if it exists and isn't empty
         const tankClassHTML = tank.class && tank.class.trim() !== '' ?
             `<div class="tank-class">${tank.class}</div>` : '';
+
+        // Create statistics bars
+        const stats = tank.statistics || {};
+        const statsHTML = `
+            <div class="tank-stats">
+                ${createStatBar('Lethality', stats.lethality || 0, 'fas fa-skull-crossbones')}
+                ${createStatBar('Mobility', stats.mobility || 0, 'fas fa-tachometer-alt')}
+                ${createStatBar('Survivability', stats.survivability || 0, 'fas fa-shield-alt')}
+                ${createStatBar('Utility', stats.utility || 0, 'fas fa-microchip')}
+            </div>
+        `;
 
         card.innerHTML = `
             <div class="tank-img-container">
@@ -280,6 +303,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span><i class="fas fa-flag"></i> ${tank.nation}</span>
                     <span><i class="fas fa-layer-group"></i> ${tank.type}</span>
                 </div>
+                ${statsHTML}
                 <div class="tank-buttons">
                     <a href="tanks/${tank.slug}" class="btn-accent">
                         <i class="fas fa-chart-bar mr-2"></i>Statistics
