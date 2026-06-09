@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             // First get the tank info from tanks.json
-            const tanksResponse = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images-Configs/refs/heads/main/tanks.json');
+            const tanksResponse = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/tanks.json');
             const tanksData = await tanksResponse.json();
             const tankInfo = tanksData.find(tank => tank.id == tankId);
 
@@ -37,10 +37,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const stockResponse = await fetch(tankInfo.stock);
             const stockData = await stockResponse.json();
 
+            // Find the stats using tank slug or ID
+            let tankStats = stockData[tankInfo.slug] || stockData[tankInfo.id] || Object.values(stockData)[0];
+
             // Combine the data
             const fullData = {
                 ...tankInfo,
-                stats: stockData[tankInfo.slug] || {}
+                stats: tankStats || {}
             };
 
             tankDetails[tankId] = fullData;
@@ -49,6 +52,72 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error fetching tank details:', error);
             return null;
         }
+    }
+
+    // Map stat names to readable names
+    function getStatMapping() {
+        return {
+            // Firepower stats
+            "MAIN SHELL DAMAGE": "Damage",
+            "MAIN SHELL PENETRATION": "Penetration",
+            "AIMING SPEED": "Aiming Speed",
+            "RELOAD TIME": "Reload Time",
+            "TIME BETWEEN SHOTS": "Time Between Shots",
+            "MAGAZINE SHELL COUNT": "Shells in Magazine",
+            "MAGAZINE COUNT": "Magazine Count",
+            "SHELL LOADING TIME BETWEEN SHOTS": "Time to Load Next Magazine",
+            "RETICLE SIZE MOVING": "Reticle Size, Moving",
+            "RETICLE SIZE STATIONARY": "Reticle Size, Standing",
+            "ACCURACY AFTER SHOT": "Reticle Size, After Shot",
+            "ACCURACY MAX": "Reticle Size, Max",
+            "TURRET TRAVERSE SPEED": "Turret Traverse Speed, Degrees/Second",
+            "GUN DEPRESSION, FRONT": "Gun Depression (Front)",
+            "GUN DEPRESSION, SIDE": "Gun Depression (Side)",
+            "GUN DEPRESSION, REAR": "Gun Depression (Rear)",
+            "GUN ELEVATION, FRONT": "Gun Elevation (Front)",
+            "GUN ELEVATION, SIDE": "Gun Elevation (Side)",
+            "GUN ELEVATION, REAR": "Gun Elevation (Rear)",
+
+            // Survivability stats
+            "HIT POINTS": "Hit Points",
+            "TRACK REPAIR TIME": "Track Repair Time, Seconds",
+            "TRACK HP": "Track Hit Points",
+            "ENGINE HP": "Engine Hit Points",
+            "RECOVERY TIME": "Crew Recovery Time, Seconds",
+            "AMMO CRIT MODIFIER": "Incoming Crit Damage, Ammo Rack",
+            "ENGINE CRIT MODIFIER": "Incoming Crit Damage, Engine",
+            "FUEL CRIT MODIFIER": "Incoming Crit Damage, Fuel Tank",
+            "RAMMING DAMAGE RESISTANCE FRONT": "Ramming Damage Resistance, Front",
+            "RAMMING DAMAGE MULTIPLIER": "Ramming Damage Bonus",
+            "SPACED ARMOR HP": "Spaced Armor HP",
+            "FIRE RESISTANCE": "Fire Resistance",
+            "RADIATION RESISTANCE": "Radiation Resistance",
+            "SHOCK RESISTANCE": "Shock Resistance",
+            "SLOW RESISTANCE": "Slow Resistance",
+
+            // Mobility stats
+            "FORWARD SPEED": "Forward Speed, km/h",
+            "REVERSE SPEED": "Reverse Speed, km/h",
+            "HULL TRAVERSE": "Traverse Speed",
+            "ENGINE POWER": "Engine Power",
+            "HANDBRAKE FORCE": "Handbrake Force",
+            "VEHICLE LATERAL FRICTION": "Vehicle Lateral Friction",
+            "BOOST MODE ENERGY COST": "Sprint Energy Cost",
+            "BOOST MODE ENERGY VOLUME": "Sprint Energy Volume",
+            "BOOST MODE ACCELERATION": "Base Acceleration",
+            "BOOST MODE REGENERATION RATE": "Sprint Regen Rate",
+
+            // Recon stats
+            "SPOTTING RANGE": "Spotting Range, Meters",
+            "BATTLE COMMUINICATION RANGE": "Signal Range, Meters",
+            "ENEMY VISIBILITY SHARE DURATION": "Spotting Duration, Seconds",
+            "VEHICLE CAMOUFLAGE": "Vehicle Camouflage",
+            "VEHICLE OPTICS": "Vehicle Optics",
+
+            // Utility stats
+            "MAX ENERGY": "Energy Points",
+            "ENERGY REGENERATION": "Energy Regeneration"
+        };
     }
 
     // Render the comparison table
@@ -79,6 +148,8 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             return;
         }
+
+        const statMapping = getStatMapping();
 
         // Generate table HTML
         let tableHTML = `
@@ -137,102 +208,121 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         tableHTML += '</tr></thead><tbody>';
 
-        // Add stats rows
+        // Add stats rows for each category
         const statCategories = ['FIREPOWER', 'MOBILITY', 'SURVIVABILITY', 'RECON', 'UTILITY'];
 
-        statCategories.forEach(category => {
-            if (!validTanks[0].stats[category]) return;
+        for (const category of statCategories) {
+            // Check if all tanks have this category
+            if (!validTanks[0].stats[category]) continue;
 
             tableHTML += `<tr class="stat-category"><td colspan="${validTanks.length + 1}">${category}</td></tr>`;
 
-            const stats = Object.keys(validTanks[0].stats[category]);
+            // Get all unique stat keys from all tanks in this category
+            const allStatKeys = new Set();
+            validTanks.forEach(tank => {
+                if (tank.stats[category]) {
+                    Object.keys(tank.stats[category]).forEach(key => allStatKeys.add(key));
+                }
+            });
 
-            stats.forEach(stat => {
+            // Sort stat keys
+            const sortedStatKeys = Array.from(allStatKeys).sort();
+
+            for (const statKey of sortedStatKeys) {
+                // Skip stats that are all zero
                 const values = validTanks.map(tank => {
-                    const rawValue = tank.stats[category][stat];
-                    // Handle string values with + or - signs
-                    if (typeof rawValue === 'string') {
-                        // For depression/elevation values that include + or -
-                        if (rawValue.includes('+') || rawValue.includes('-')) {
-                            return parseFloat(rawValue);
-                        }
-                        // For other numeric values that might be strings
-                        return isNaN(rawValue) ? rawValue : parseFloat(rawValue);
-                    }
-                    return isNaN(rawValue) ? rawValue : parseFloat(rawValue);
+                    const rawValue = tank.stats[category]?.[statKey];
+                    if (rawValue === undefined) return null;
+                    const num = parseFloat(rawValue);
+                    return isNaN(num) ? rawValue : num;
                 });
 
-                // Determine value range for coloring
-                const numericValues = values.filter(v => !isNaN(v));
-                if (numericValues.length > 0) {
-                    // Special handling for gun depression and elevation stats
-                    const isDepression = stat.includes('DEPRESSION');
-                    const isElevation = stat.includes('ELEVATION') && !stat.includes('DEGREES/SECOND');
+                // Skip if all values are null/undefined or all zero
+                const validValues = values.filter(v => v !== null && v !== 0);
+                if (validValues.length === 0) continue;
 
+                // Determine if stat is numeric
+                const isNumeric = validValues.every(v => typeof v === 'number');
+
+                // Get display name for stat
+                const displayName = statMapping[statKey] || formatStatName(statKey);
+
+                if (isNumeric) {
+                    // Check if this is a depression/elevation stat
+                    const isDepression = statKey.includes('DEPRESSION');
+                    const isElevation = statKey.includes('ELEVATION') && !statKey.includes('DEGREES/SECOND');
+
+                    let numericValues = values.filter(v => typeof v === 'number');
                     let maxValue, minValue;
 
                     if (isDepression) {
                         // For depression, lower (more negative) is better
-                        maxValue = Math.min(...numericValues); // Best value (most negative)
-                        minValue = Math.max(...numericValues); // Worst value (least negative)
+                        maxValue = Math.min(...numericValues);
+                        minValue = Math.max(...numericValues);
                     } else if (isElevation) {
                         // For elevation, higher (more positive) is better
-                        maxValue = Math.max(...numericValues); // Best value (most positive)
-                        minValue = Math.min(...numericValues); // Worst value (least positive)
+                        maxValue = Math.max(...numericValues);
+                        minValue = Math.min(...numericValues);
                     } else {
-                        // For all other stats, higher is better (default behavior)
+                        // For all other stats, higher is better
                         maxValue = Math.max(...numericValues);
                         minValue = Math.min(...numericValues);
                     }
 
                     const valueRange = maxValue - minValue;
-                    const step = valueRange / 6; // 7 steps (0-6)
 
-                    tableHTML += `<tr><td>${formatStatName(stat)}</td>`;
+                    tableHTML += `<tr><td>${displayName}</td>`;
 
                     values.forEach((value, i) => {
                         let cellClass = '';
                         let displayValue = value;
 
-                        if (!isNaN(value)) {
-                            if (valueRange > 0) {
-                                let stepIndex;
-                                if (isDepression) {
-                                    // For depression: more negative = better
-                                    stepIndex = Math.floor((maxValue - value) / step);
-                                    cellClass = `stat-${Math.min(6, stepIndex) + 1}`;
-                                } else if (isElevation) {
-                                    // For elevation: more positive = better
-                                    stepIndex = Math.floor((value - minValue) / step);
-                                    cellClass = `stat-${7 - Math.min(6, stepIndex)}`;
-                                } else {
-                                    // Default behavior for other stats
-                                    stepIndex = Math.floor((value - minValue) / step);
-                                    cellClass = `stat-${7 - Math.min(6, stepIndex)}`;
-                                }
+                        if (typeof value === 'number' && valueRange > 0) {
+                            let stepIndex;
+                            if (isDepression) {
+                                stepIndex = Math.floor((maxValue - value) / (valueRange / 6));
+                                cellClass = `stat-${Math.min(6, stepIndex) + 1}`;
+                            } else if (isElevation) {
+                                stepIndex = Math.floor((value - minValue) / (valueRange / 6));
+                                cellClass = `stat-${7 - Math.min(6, stepIndex)}`;
                             } else {
-                                cellClass = 'stat-4'; // All values equal
+                                stepIndex = Math.floor((value - minValue) / (valueRange / 6));
+                                cellClass = `stat-${7 - Math.min(6, stepIndex)}`;
                             }
 
-                            // Format display value with + or - for elevation/depression
-                            if (isDepression || isElevation) {
+                            // Add degree symbol for angle stats
+                            if (statKey.includes('DEPRESSION') || statKey.includes('ELEVATION')) {
                                 displayValue = value >= 0 ? `+${value}` : value.toString();
+                            }
+                        } else if (valueRange === 0 && typeof value === 'number') {
+                            cellClass = 'stat-4';
+                        }
+
+                        let formattedValue = displayValue;
+                        if (typeof displayValue === 'number') {
+                            if (statKey.includes('DAMAGE') || statKey.includes('HIT POINTS') || statKey.includes('HP')) {
+                                formattedValue = Math.round(displayValue);
+                            } else if (statKey.includes('TIME') || statKey.includes('RELOAD')) {
+                                formattedValue = `${displayValue}s`;
+                            } else if (statKey.includes('SPEED') && !statKey.includes('AIMING')) {
+                                formattedValue = `${displayValue} km/h`;
+                            } else if (statKey.includes('RANGE') || statKey.includes('RADIUS')) {
+                                formattedValue = `${displayValue}m`;
                             }
                         }
 
-                        tableHTML += `<td class="${cellClass}">${formatStatValue(stat, displayValue)}</td>`;
+                        tableHTML += `<td class="${cellClass}">${formattedValue !== null ? formattedValue : '-'}</td>`;
                     });
                 } else {
                     // Non-numeric values
-                    tableHTML += `<tr><td>${formatStatName(stat)}</td>`;
+                    tableHTML += `<tr><td>${displayName}</td>`;
                     values.forEach(value => {
-                        tableHTML += `<td>${value}</td>`;
+                        tableHTML += `<td>${value !== null ? value : '-'}</td>`;
                     });
                 }
-
                 tableHTML += '</tr>';
-            });
-        });
+            }
+        }
 
         tableHTML += '</tbody>';
         comparisonTable.innerHTML = tableHTML;
@@ -250,46 +340,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function formatStatName(stat) {
         // Convert from ALL CAPS to Title Case
         return stat.toLowerCase()
-            .split(' ')
+            .split('_')
             .map(word => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');
-    }
-
-    // Format stat values for display
-    function formatStatValue(stat, value) {
-        if (isNaN(value)) return value;
-
-        // For depression/elevation values that already have + or -, just add °
-        if (typeof value === 'string' && (value.includes('+') || value.includes('-'))) {
-            return `${value}°`;
-        }
-
-        // Add units for specific stats
-        if (stat.includes('SPEED') && stat.includes('AIMING')) {
-            return `${value} s`;
-        }
-        if (stat.includes('TRAVERSE SPEED') || stat.includes('TURRET TRAVERSE SPEED')) {
-            return `${value} °/s`;
-        }
-        if (stat.includes('SPEED') || stat.includes('RANGE') || stat.includes('RADIUS')) {
-            return `${value} m`;
-        }
-        if (stat.includes('DEGREES')) {
-            return `${value}°`;
-        }
-        if (stat.includes('SECONDS') || stat.includes('TIME')) {
-            return `${value} s`;
-        }
-        if (stat.includes('DAMAGE') || stat.includes('HIT POINTS')) {
-            return Math.round(value);
-        }
-
-        return value;
     }
 
     // Remove tank from comparison
     function removeTankFromComparison(tankId) {
         comparisonData = comparisonData.filter(id => id != tankId);
+        delete tankDetails[tankId];
         saveComparison();
         renderComparisonTable();
     }
@@ -297,13 +356,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Clear all comparison
     function clearAllComparison() {
         comparisonData = [];
+        tankDetails = {};
         saveComparison();
         renderComparisonTable();
     }
 
     // Initialize
     loadComparison();
-    renderComparisonTable();
 
     // Event listener for clear all button
     if (clearAllBtn) {
