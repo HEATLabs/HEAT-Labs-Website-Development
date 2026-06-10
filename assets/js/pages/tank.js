@@ -1049,7 +1049,7 @@ function populateTankStats(tankStats) {
     function updateStat(category, statName, value) {
         // Find all stat categories
         const categories = document.querySelectorAll('.stats-category, .full-width-stats-category .stats-category');
-        
+
         // Find the matching category
         let targetCategory = null;
         categories.forEach(cat => {
@@ -1091,7 +1091,7 @@ function populateTankStats(tankStats) {
     // Firepower stats
     if (tankStats.FIREPOWER) {
         const fp = tankStats.FIREPOWER;
-        updateStat('Firepower', 'Damage', fp["MAIN SHELL DAMAGE"] || "0");
+        updateStat('Firepower', 'Alpha Damage', fp["MAIN SHELL DAMAGE"] || "0");
         updateStat('Firepower', 'Penetration', fp["MAIN SHELL PENETRATION"] || "0");
         updateStat('Firepower', 'Aiming Speed', fp["AIMING SPEED"] || "0");
         updateStat('Firepower', 'Reload Time', fp["RELOAD TIME"] || "0");
@@ -1139,10 +1139,10 @@ function populateTankStats(tankStats) {
     // Mobility stats
     if (tankStats.MOBILITY) {
         const mob = tankStats.MOBILITY;
-        updateStat('Mobility', 'Forward Speed, km/h', mob["FORWARD SPEED"] || "0");
-        updateStat('Mobility', 'Reverse Speed, km/h', mob["REVERSE SPEED"] || "0");
-        updateStat('Mobility', 'Base Acceleration', mob["BOOST MODE ACCELERATION"] || "0");
+        updateStat('Mobility', 'Forward Speed', mob["FORWARD SPEED"] || "0");
+        updateStat('Mobility', 'Reverse Speed', mob["REVERSE SPEED"] || "0");
         updateStat('Mobility', 'Traverse Speed', mob["HULL TRAVERSE"] || "0");
+        updateStat('Mobility', 'Base Acceleration', mob["BOOST MODE ACCELERATION"] || "0");
         updateStat('Mobility', 'Sprint Energy Cost', mob["BOOST MODE ENERGY COST"] || "0");
         updateStat('Mobility', 'Sprint Energy Volume', mob["BOOST MODE ENERGY VOLUME"] || "0");
         updateStat('Mobility', 'Sprint Regen Rate', mob["BOOST MODE REGENERATION RATE"] || "0");
