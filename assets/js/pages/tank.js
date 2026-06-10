@@ -1091,82 +1091,109 @@ function populateTankStats(tankStats) {
     // Firepower stats
     if (tankStats.FIREPOWER) {
         const fp = tankStats.FIREPOWER;
-        updateStat('Firepower', 'Alpha Damage', fp["MAIN SHELL DAMAGE"] || "0");
-        updateStat('Firepower', 'Penetration', fp["MAIN SHELL PENETRATION"] || "0");
-        updateStat('Firepower', 'Aiming Speed', fp["AIMING SPEED"] || "0");
-        updateStat('Firepower', 'Reload Time', fp["RELOAD TIME"] || "0");
-        updateStat('Firepower', 'Time Between Shots', fp["TIME BETWEEN SHOTS"] || "0");
-        updateStat('Firepower', 'Shells in Magazine', fp["MAGAZINE SHELL COUNT"] || "0");
-        updateStat('Firepower', 'Magazine Count', fp["MAGAZINE COUNT"] || "0");
-        updateStat('Firepower', 'Time to Load Next Magazine', fp["SHELL LOADING TIME BETWEEN SHOTS"] || "0");
-        updateStat('Firepower', 'Reticle Size, Moving', fp["RETICLE SIZE MOVING"] || "0");
-        updateStat('Firepower', 'Reticle Size, Rotating Hull', "0");
-        updateStat('Firepower', 'Reticle Size, Standing', fp["RETICLE SIZE STATIONARY"] || "0");
-        updateStat('Firepower', 'Reticle Size, After Shot', fp["ACCURACY AFTER SHOT"] || "0");
-        updateStat('Firepower', 'Reticle Size, Max', fp["ACCURACY MAX"] || "0");
-        updateStat('Firepower', 'Turret Traverse Speed, Degrees/Second', fp["TURRET TRAVERSE SPEED"] || "0");
-        updateStat('Firepower', 'Gun Elevation Speed, Degrees/Second', "0");
-        updateStat('Firepower', 'Gun Depression (Front)', fp["GUN DEPRESSION, FRONT"] || "-0");
-        updateStat('Firepower', 'Gun Depression (Side)', fp["GUN DEPRESSION, SIDE"] || "-0");
-        updateStat('Firepower', 'Gun Depression (Rear)', fp["GUN DEPRESSION, REAR"] || "-0");
-        updateStat('Firepower', 'Gun Elevation (Front)', fp["GUN ELEVATION, FRONT"] || "+0");
-        updateStat('Firepower', 'Gun Elevation (Side)', fp["GUN ELEVATION, SIDE"] || "+0");
-        updateStat('Firepower', 'Gun Elevation (Rear)', fp["GUN ELEVATION, REAR"] || "+0");
+        updateStat('Firepower', 'MAIN SHELL PENETRATION', fp["MAIN SHELL PENETRATION"] || "0");
+        updateStat('Firepower', 'SECONDARY SHELL PENETRATION', fp["SECONDARY SHELL PENETRATION"] || "0");
+        updateStat('Firepower', 'MAIN SHELL VELOCITY', fp["MAIN SHELL VELOCITY"] || "0");
+        updateStat('Firepower', 'SECONDARY SHELL VELOCITY', fp["SECONDARY SHELL VELOCITY"] || "0");
+        updateStat('Firepower', 'MAIN SHELL DAMAGE', fp["MAIN SHELL DAMAGE"] || "0");
+        updateStat('Firepower', 'SECONDARY SHELL DAMAGE', fp["SECONDARY SHELL DAMAGE"] || "0");
+        updateStat('Firepower', 'MAIN SHELL EXPLOSION RADIUS', fp["MAIN SHELL EXPLOSION RADIUS"] || "0");
+        updateStat('Firepower', 'SECONDARY SHELL EXPLOSION RADIUS', fp["SECONDARY SHELL EXPLOSION RADIUS"] || "0");
+        updateStat('Firepower', 'AIMING SPEED', fp["AIMING SPEED"] || "0");
+        updateStat('Firepower', 'RELOAD TIME', fp["RELOAD TIME"] || "0");
+        updateStat('Firepower', 'RETICLE SIZE MOVING', fp["RETICLE SIZE MOVING"] || "0");
+        updateStat('Firepower', 'RETICLE SIZE STATIONARY', fp["RETICLE SIZE STATIONARY"] || "0");
+        updateStat('Firepower', 'ACCURACY AFTER SHOT', fp["ACCURACY AFTER SHOT"] || "0");
+        updateStat('Firepower', 'ACCURACY MAX', fp["ACCURACY MAX"] || "0");
+        updateStat('Firepower', 'OPTIMAL RANGE', fp["OPTIMAL RANGE"] || "0");
+        updateStat('Firepower', 'AMMO CRIT MODIFIER', fp["AMMO CRIT MODIFIER"] || "0");
+        updateStat('Firepower', 'DAMAGE REDUCTION BEYOND OPTIMAL', fp["DAMAGE REDUCTION BEYOND OPTIMAL"] || "0");
+        updateStat('Firepower', 'ENGINE CRIT MODIFIER', fp["ENGINE CRIT MODIFIER"] || "0");
+        updateStat('Firepower', 'FALLOFF DISTANCE', fp["FALLOFF DISTANCE"] || "0");
+        updateStat('Firepower', 'FUEL CRIT MODIFIER', fp["FUEL CRIT MODIFIER"] || "0");
+        updateStat('Firepower', 'INTERNAL MODULE HIT', fp["INTERNAL MODULE HIT"] || "0");
+        updateStat('Firepower', 'RAMMING DAMAGE MULTIPLIER', fp["RAMMING DAMAGE MULTIPLIER"] || "0");
+        updateStat('Firepower', 'MAGAZINE COUNT', fp["MAGAZINE COUNT"] || "0");
+        updateStat('Firepower', 'MAGAZINE SHELL COUNT', fp["MAGAZINE SHELL COUNT"] || "0");
+        updateStat('Firepower', 'SHELL LOADING TIME BETWEEN SHOTS', fp["SHELL LOADING TIME BETWEEN SHOTS"] || "0");
+        updateStat('Firepower', 'TIME BETWEEN SHOTS', fp["TIME BETWEEN SHOTS"] || "0");
+        updateStat('Firepower', 'GUN DEPRESSION, FRONT', fp["GUN DEPRESSION, FRONT"] || "-0");
+        updateStat('Firepower', 'GUN DEPRESSION, SIDE', fp["GUN DEPRESSION, SIDE"] || "-0");
+        updateStat('Firepower', 'GUN DEPRESSION, REAR', fp["GUN DEPRESSION, REAR"] || "-0");
+        updateStat('Firepower', 'GUN ELEVATION, FRONT', fp["GUN ELEVATION, FRONT"] || "+0");
+        updateStat('Firepower', 'GUN ELEVATION, SIDE', fp["GUN ELEVATION, SIDE"] || "+0");
+        updateStat('Firepower', 'GUN ELEVATION, REAR', fp["GUN ELEVATION, REAR"] || "+0");
     }
 
     // Survivability stats
     if (tankStats.SURVIVABILITY) {
         const surv = tankStats.SURVIVABILITY;
-        updateStat('Survivability', 'Hit Points', surv["HIT POINTS"] || "0");
-        updateStat('Survivability', 'Incoming Crit Damage, Ammo Rack', surv["AMMO CRIT MODIFIER"] || "0");
-        updateStat('Survivability', 'Track Repair Time, Seconds', surv["TRACK REPAIR TIME"] || "0");
-        updateStat('Survivability', 'Crew Hit Points', "0");
-        updateStat('Survivability', 'Crew Recovery Time, Seconds', surv["RECOVERY TIME"] || "0");
-        updateStat('Survivability', 'Incoming Crit Damage, Engine', surv["ENGINE CRIT MODIFIER"] || "0");
-        updateStat('Survivability', 'Engine Hit Points', surv["ENGINE HP"] || "0");
-        updateStat('Survivability', 'Engine Repair Time, Seconds', "0");
-        updateStat('Survivability', 'Fire Duration, Seconds', "0");
-        updateStat('Survivability', 'Fire Damage', "0");
-        updateStat('Survivability', 'Incoming Crit Damage, Fuel Tank', surv["FUEL CRIT MODIFIER"] || "0");
-        updateStat('Survivability', 'Fire Damage Rate', "0");
-        updateStat('Survivability', 'Ramming Damage Resistance, Front', surv["RAMMING DAMAGE RESISTANCE FRONT"] || "0");
-        updateStat('Survivability', 'Ramming Damage Bonus', surv["RAMMING DAMAGE MULTIPLIER"] || "0");
-        updateStat('Survivability', 'Repair Kit Cooldown, Seconds', "0");
-        updateStat('Survivability', 'Track Hit Points', surv["TRACK HP"] || "0");
-        updateStat('Survivability', 'Ltrackamounttoregen', "0");
+        updateStat('Survivability', 'HIT POINTS', surv["HIT POINTS"] || "0");
+        updateStat('Survivability', 'TRACK HP', surv["TRACK HP"] || "0");
+        updateStat('Survivability', 'TRACK REPAIR TIME', surv["TRACK REPAIR TIME"] || "0");
+        updateStat('Survivability', 'ENGINE HP', surv["ENGINE HP"] || "0");
+        updateStat('Survivability', 'FRONTAL HULL ARMOR', surv["FRONTAL HULL ARMOR"] || "0");
+        updateStat('Survivability', 'TURRET FRONTAL ARMOR', surv["TURRET FRONTAL ARMOR"] || "0");
+        updateStat('Survivability', 'SIDE TURRET ARMOUR', surv["SIDE TURRET ARMOUR"] || "0");
+        updateStat('Survivability', 'TURRET RING ARMOR', surv["TURRET RING ARMOR"] || "0");
+        updateStat('Survivability', 'HULL SIDE ARMOR', surv["HULL SIDE ARMOR"] || "0");
+        updateStat('Survivability', 'FIRE RESISTANCE', surv["FIRE RESISTANCE"] || "0");
+        updateStat('Survivability', 'INCOMING DAMAGE MITIGATED BY ERA', surv["INCOMING DAMAGE MITIGATED BY ERA"] || "0");
+        updateStat('Survivability', 'RADIATION RESISTANCE', surv["RADIATION RESISTANCE"] || "0");
+        updateStat('Survivability', 'RAMMING DAMAGE RESISTANCE FRONT', surv["RAMMING DAMAGE RESISTANCE FRONT"] || "0");
+        updateStat('Survivability', 'RECOVERY TIME', surv["RECOVERY TIME"] || "0");
+        updateStat('Survivability', 'SHOCK RESISTANCE', surv["SHOCK RESISTANCE"] || "0");
+        updateStat('Survivability', 'SLOW RESISTANCE', surv["SLOW RESISTANCE"] || "0");
+        updateStat('Survivability', 'SPACED ARMOR HP', surv["SPACED ARMOR HP"] || "0");
     }
 
     // Mobility stats
     if (tankStats.MOBILITY) {
         const mob = tankStats.MOBILITY;
-        updateStat('Mobility', 'Forward Speed', mob["FORWARD SPEED"] || "0");
-        updateStat('Mobility', 'Reverse Speed', mob["REVERSE SPEED"] || "0");
-        updateStat('Mobility', 'Traverse Speed', mob["HULL TRAVERSE"] || "0");
-        updateStat('Mobility', 'Base Acceleration', mob["BOOST MODE ACCELERATION"] || "0");
-        updateStat('Mobility', 'Sprint Energy Cost', mob["BOOST MODE ENERGY COST"] || "0");
-        updateStat('Mobility', 'Sprint Energy Volume', mob["BOOST MODE ENERGY VOLUME"] || "0");
-        updateStat('Mobility', 'Sprint Regen Rate', mob["BOOST MODE REGENERATION RATE"] || "0");
-        updateStat('Mobility', 'Ramming Mass Measure', "0");
-    }
-
-    // Recon stats
-    if (tankStats.RECON) {
-        const recon = tankStats.RECON;
-        updateStat('Recon', 'Spotting Angle, Degrees', "360");
-        updateStat('Recon', 'Spotting Range, Meters', recon["SPOTTING RANGE"] || "0");
-        updateStat('Recon', 'Spotting Duration, Seconds', recon["ENEMY VISIBILITY SHARE DURATION"] || "0");
-        updateStat('Recon', 'Signal Range, Meters', recon["BATTLE COMMUINICATION RANGE"] || "0");
-        updateStat('Recon', 'X-Ray Radius, Meters', "0");
+        updateStat('Mobility', 'FORWARD SPEED', mob["FORWARD SPEED"] || "0");
+        updateStat('Mobility', 'REVERSE SPEED', mob["REVERSE SPEED"] || "0");
+        updateStat('Mobility', 'HULL TRAVERSE', mob["HULL TRAVERSE"] || "0");
+        updateStat('Mobility', 'TURRET TRAVERSE SPEED', mob["TURRET TRAVERSE SPEED"] || "0");
+        updateStat('Mobility', 'ENGINE POWER', mob["ENGINE POWER"] || "0");
+        updateStat('Mobility', 'HANDBRAKE FORCE', mob["HANDBRAKE FORCE"] || "0");
+        updateStat('Mobility', 'VEHICLE LATERAL FRICTION', mob["VEHICLE LATERAL FRICTION"] || "0");
+        updateStat('Mobility', 'BOOST MODE ENERGY COST', mob["BOOST MODE ENERGY COST"] || "0");
+        updateStat('Mobility', 'BOOST MODE ENERGY VOLUME', mob["BOOST MODE ENERGY VOLUME"] || "0");
+        updateStat('Mobility', 'BOOST MODE ACCELERATION', mob["BOOST MODE ACCELERATION"] || "0");
+        updateStat('Mobility', 'BOOST MODE REGENERATION RATE', mob["BOOST MODE REGENERATION RATE"] || "0");
     }
 
     // Utility stats
     if (tankStats.UTILITY) {
         const util = tankStats.UTILITY;
-        updateStat('Utility', 'Energy Points', util["MAX ENERGY"] || "0");
-        updateStat('Utility', 'Energy Regeneration', util["ENERGY REGENERATION"] || "0");
-        updateStat('Utility', 'Smoke Cooldown, Seconds', "0");
-        updateStat('Utility', 'Smoke Energy Cost', "0");
-        updateStat('Utility', 'Smoke Use Count', "0");
+        updateStat('Utility', 'MAX ENERGY', util["MAX ENERGY"] || "0");
+        updateStat('Utility', 'ENERGY REGENERATION', util["ENERGY REGENERATION"] || "0");
+        updateStat('Utility', 'MAIN ABILITY ENERGY COST', util["MAIN ABILITY ENERGY COST"] || "0");
+        updateStat('Utility', 'MAIN ABILITY COOLDOWN', util["MAIN ABILITY COOLDOWN"] || "0");
+        updateStat('Utility', 'MAIN ABILITY DURATION', util["MAIN ABILITY DURATION"] || "0");
+        updateStat('Utility', 'MAIN ABILITY HP', util["MAIN ABILITY HP"] || "0");
+        updateStat('Utility', 'SECOND ABILITY ENERGY COST', util["SECOND ABILITY ENERGY COST"] || "0");
+        updateStat('Utility', 'SECOND ABILITY COOLDOWN', util["SECOND ABILITY COOLDOWN"] || "0");
+        updateStat('Utility', 'SECOND ABILITY DURATION', util["SECOND ABILITY DURATION"] || "0");
+        updateStat('Utility', 'SECOND ABILITY HP', util["SECOND ABILITY HP"] || "0");
+    }
+
+    // Recon stats
+    if (tankStats.RECON) {
+        const recon = tankStats.RECON;
+        updateStat('Recon', 'AIM INTEL VALUE', recon["AIM INTEL VALUE"] || "0");
+        updateStat('Recon', 'BATTLE COMMUINICATION RANGE', recon["BATTLE COMMUINICATION RANGE"] || "0");
+        updateStat('Recon', 'ENEMY VISIBILITY SHARE DURATION', recon["ENEMY VISIBILITY SHARE DURATION"] || "0");
+        updateStat('Recon', 'HIT INTEL VALUE', recon["HIT INTEL VALUE"] || "0");
+        updateStat('Recon', 'MOVING NOISE INTEL', recon["MOVING NOISE INTEL"] || "0");
+        updateStat('Recon', 'PERIPHERY INTEL VALUE', recon["PERIPHERY INTEL VALUE"] || "0");
+        updateStat('Recon', 'RADAR UPDATE INTERVAL', recon["RADAR UPDATE INTERVAL"] || "0");
+        updateStat('Recon', 'SHOT NOISE VALUE', recon["SHOT NOISE VALUE"] || "0");
+        updateStat('Recon', 'SPOTTING RANGE', recon["SPOTTING RANGE"] || "0");
+        updateStat('Recon', 'VEHICLE CAMOUFLAGE', recon["VEHICLE CAMOUFLAGE"] || "0");
+        updateStat('Recon', 'VEHICLE OPTICS', recon["VEHICLE OPTICS"] || "0");
+        updateStat('Recon', 'SECOND ZOOM MAGNIFICATION', recon["SECOND ZOOM MAGNIFICATION"] || "0");
+        updateStat('Recon', 'THIRD ZOOM MAGNIFICATION', recon["THIRD ZOOM MAGNIFICATION"] || "0");
     }
 }
 
