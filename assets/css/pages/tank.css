@@ -249,24 +249,27 @@
 }
 
 /* Stats Grid */
-.full-width-stats-category {
-	grid-column: 1 / -1;
-}
-
 .stats-grid {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	align-items: start;
-	gap: 1.5rem;
+	column-count: 2;
+	column-gap: 1.5rem;
 	margin-top: 2rem;
 }
 
 .stats-category {
+	break-inside: avoid;
+	display: inline-block;
+	width: 100%;
+	margin-bottom: 1.5rem;
 	background-color: var(--card-bg);
 	border-radius: 0.75rem;
 	box-shadow: var(--shadow);
 	border: 1px solid var(--border-color);
 	overflow: hidden;
+	vertical-align: top;
+}
+
+.full-width-stats-category {
+	column-span: all;
 }
 
 .stats-header {
@@ -758,7 +761,7 @@ p {
 
 @media (max-width: 768px) {
 	.stats-grid {
-		grid-template-columns: 1fr;
+		column-count: 1;
 	}
 
 	.agent-card {
