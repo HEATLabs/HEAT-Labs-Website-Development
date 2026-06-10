@@ -222,6 +222,81 @@ function setupChartFilters() {
     initializeStatToggles();
 }
 
+// Helper function to check if a dataset has any meaningful data
+function hasValidData(dataArray) {
+    if (!dataArray || dataArray.length === 0) return false;
+    return dataArray.some(value => value !== null && value !== undefined && value !== 0);
+}
+
+// Helper function to show placeholder in chart container
+function showChartPlaceholder(chartId, message = 'No data available for this statistic at this moment') {
+    const canvas = document.getElementById(chartId);
+    if (!canvas) return;
+
+    const chartContainer = canvas.closest('.chart-container');
+    if (!chartContainer) return;
+
+    // Destroy existing chart if it exists
+    if (chartId === 'firepowerChart' && firepowerChart) {
+        firepowerChart.destroy();
+        firepowerChart = null;
+    } else if (chartId === 'survivabilityChart' && survivabilityChart) {
+        survivabilityChart.destroy();
+        survivabilityChart = null;
+    } else if (chartId === 'mobilityChart' && mobilityChart) {
+        mobilityChart.destroy();
+        mobilityChart = null;
+    } else if (chartId === 'utilityChart' && utilityChart) {
+        utilityChart.destroy();
+        utilityChart = null;
+    }
+
+    // Hide canvas, show placeholder
+    canvas.style.display = 'none';
+
+    // Check if placeholder already exists
+    let placeholder = chartContainer.querySelector('.chart-placeholder');
+    if (!placeholder) {
+        placeholder = document.createElement('div');
+        placeholder.className = 'chart-placeholder';
+        chartContainer.appendChild(placeholder);
+    }
+
+    placeholder.innerHTML = `
+        <i class="fas fa-chart-simple"></i>
+        <p>${message}</p>
+    `;
+    placeholder.style.display = 'flex';
+
+    // Clear legend
+    const legendContainer = document.getElementById(`${chartId}Legend`);
+    if (legendContainer) {
+        legendContainer.innerHTML = '';
+        const legendPlaceholder = document.createElement('div');
+        legendPlaceholder.className = 'chart-legend-placeholder';
+        legendPlaceholder.innerHTML = '<span>No comparison data available</span>';
+        legendContainer.appendChild(legendPlaceholder);
+    }
+}
+
+// Helper function to restore canvas and remove placeholder
+function restoreChartContainer(chartId) {
+    const canvas = document.getElementById(chartId);
+    if (!canvas) return;
+
+    const chartContainer = canvas.closest('.chart-container');
+    if (!chartContainer) return;
+
+    // Show canvas
+    canvas.style.display = 'block';
+
+    // Remove placeholder
+    const placeholder = chartContainer.querySelector('.chart-placeholder');
+    if (placeholder) {
+        placeholder.remove();
+    }
+}
+
 async function updateCharts(compareType) {
     if (!allTanksData.length || !currentTankId) {
         showNoDataMessage();
@@ -328,58 +403,70 @@ async function updateCharts(compareType) {
 
     // Firepower data
     const firepowerDamage = allTanksForCharts.map(tank => {
-        if (!tank || !tank.stats || !tank.stats.FIREPOWER) return 0;
-        return parseFloat(tank.stats.FIREPOWER["MAIN SHELL DAMAGE"]) || 0;
+        if (!tank || !tank.stats || !tank.stats.FIREPOWER) return null;
+        const value = parseFloat(tank.stats.FIREPOWER["MAIN SHELL DAMAGE"]);
+        return isNaN(value) ? null : value;
     });
     const firepowerReload = allTanksForCharts.map(tank => {
-        if (!tank || !tank.stats || !tank.stats.FIREPOWER) return 0;
-        return parseFloat(tank.stats.FIREPOWER["RELOAD TIME"]) || 0;
+        if (!tank || !tank.stats || !tank.stats.FIREPOWER) return null;
+        const value = parseFloat(tank.stats.FIREPOWER["RELOAD TIME"]);
+        return isNaN(value) ? null : value;
     });
     const firepowerAiming = allTanksForCharts.map(tank => {
-        if (!tank || !tank.stats || !tank.stats.FIREPOWER) return 0;
-        return parseFloat(tank.stats.FIREPOWER["AIMING SPEED"]) || 0;
+        if (!tank || !tank.stats || !tank.stats.FIREPOWER) return null;
+        const value = parseFloat(tank.stats.FIREPOWER["AIMING SPEED"]);
+        return isNaN(value) ? null : value;
     });
 
     // Survivability data
     const survivabilityHp = allTanksForCharts.map(tank => {
-        if (!tank || !tank.stats || !tank.stats.SURVIVABILITY) return 0;
-        return parseFloat(tank.stats.SURVIVABILITY["HIT POINTS"]) || 0;
+        if (!tank || !tank.stats || !tank.stats.SURVIVABILITY) return null;
+        const value = parseFloat(tank.stats.SURVIVABILITY["HIT POINTS"]);
+        return isNaN(value) ? null : value;
     });
     const survivabilityCrewHp = allTanksForCharts.map(tank => {
-        if (!tank || !tank.stats || !tank.stats.SURVIVABILITY) return 0;
-        return parseFloat(tank.stats.SURVIVABILITY["TRACK REPAIR TIME"]) || 0;
+        if (!tank || !tank.stats || !tank.stats.SURVIVABILITY) return null;
+        const value = parseFloat(tank.stats.SURVIVABILITY["TRACK REPAIR TIME"]);
+        return isNaN(value) ? null : value;
     });
     const survivabilityTrackHp = allTanksForCharts.map(tank => {
-        if (!tank || !tank.stats || !tank.stats.SURVIVABILITY) return 0;
-        return parseFloat(tank.stats.SURVIVABILITY["TRACK HP"]) || 0;
+        if (!tank || !tank.stats || !tank.stats.SURVIVABILITY) return null;
+        const value = parseFloat(tank.stats.SURVIVABILITY["TRACK HP"]);
+        return isNaN(value) ? null : value;
     });
 
     // Mobility data
     const mobilityForward = allTanksForCharts.map(tank => {
-        if (!tank || !tank.stats || !tank.stats.MOBILITY) return 0;
-        return parseFloat(tank.stats.MOBILITY["FORWARD SPEED"]) || 0;
+        if (!tank || !tank.stats || !tank.stats.MOBILITY) return null;
+        const value = parseFloat(tank.stats.MOBILITY["FORWARD SPEED"]);
+        return isNaN(value) ? null : value;
     });
     const mobilityReverse = allTanksForCharts.map(tank => {
-        if (!tank || !tank.stats || !tank.stats.MOBILITY) return 0;
-        return parseFloat(tank.stats.MOBILITY["REVERSE SPEED"]) || 0;
+        if (!tank || !tank.stats || !tank.stats.MOBILITY) return null;
+        const value = parseFloat(tank.stats.MOBILITY["REVERSE SPEED"]);
+        return isNaN(value) ? null : value;
     });
     const mobilityTraverse = allTanksForCharts.map(tank => {
-        if (!tank || !tank.stats || !tank.stats.MOBILITY) return 0;
-        return parseFloat(tank.stats.MOBILITY["HULL TRAVERSE"]) || 0;
+        if (!tank || !tank.stats || !tank.stats.MOBILITY) return null;
+        const value = parseFloat(tank.stats.MOBILITY["HULL TRAVERSE"]);
+        return isNaN(value) ? null : value;
     });
 
     // Utility data
     const utilityEnergy = allTanksForCharts.map(tank => {
-        if (!tank || !tank.stats || !tank.stats.UTILITY) return 0;
-        return parseFloat(tank.stats.UTILITY["MAX ENERGY"]) || 0;
+        if (!tank || !tank.stats || !tank.stats.UTILITY) return null;
+        const value = parseFloat(tank.stats.UTILITY["MAX ENERGY"]);
+        return isNaN(value) ? null : value;
     });
     const utilityRegen = allTanksForCharts.map(tank => {
-        if (!tank || !tank.stats || !tank.stats.UTILITY) return 0;
-        return parseFloat(tank.stats.UTILITY["ENERGY REGENERATION"]) || 0;
+        if (!tank || !tank.stats || !tank.stats.UTILITY) return null;
+        const value = parseFloat(tank.stats.UTILITY["ENERGY REGENERATION"]);
+        return isNaN(value) ? null : value;
     });
     const utilitySpotting = allTanksForCharts.map(tank => {
-        if (!tank || !tank.stats || !tank.stats.RECON) return 0;
-        return parseFloat(tank.stats.RECON["SPOTTING RANGE, METERS"]) || 0;
+        if (!tank || !tank.stats || !tank.stats.RECON) return null;
+        const value = parseFloat(tank.stats.RECON["SPOTTING RANGE, METERS"]);
+        return isNaN(value) ? null : value;
     });
 
     // Store datasets for each chart
@@ -451,17 +538,32 @@ async function updateCharts(compareType) {
         }
     ];
 
-    // Update all charts with first stat by default
-    updateChart('firepowerChart', 'Firepower', [chartDatasets.firepower[0]], labels);
-    updateChart('survivabilityChart', 'Survivability', [chartDatasets.survivability[0]], labels);
-    updateChart('mobilityChart', 'Mobility', [chartDatasets.mobility[0]], labels);
-    updateChart('utilityChart', 'Utility', [chartDatasets.utility[0]], labels);
+    // Update all charts with first stat by default - check for empty data
+    updateChartWithEmptyCheck('firepowerChart', 'Firepower', [chartDatasets.firepower[0]], labels);
+    updateChartWithEmptyCheck('survivabilityChart', 'Survivability', [chartDatasets.survivability[0]], labels);
+    updateChartWithEmptyCheck('mobilityChart', 'Mobility', [chartDatasets.mobility[0]], labels);
+    updateChartWithEmptyCheck('utilityChart', 'Utility', [chartDatasets.utility[0]], labels);
 
     // Initialize stat toggle buttons
     initializeStatToggles();
 
     // Update chart colors to match current theme
     updateChartColors();
+}
+
+// New function that checks for empty data before rendering chart
+function updateChartWithEmptyCheck(chartId, chartName, datasets, labels) {
+    // Check if the primary dataset has any valid data
+    if (!datasets[0] || !hasValidData(datasets[0].data)) {
+        showChartPlaceholder(chartId);
+        return;
+    }
+
+    // Restore canvas and remove placeholder if it exists
+    restoreChartContainer(chartId);
+
+    // Update the chart
+    updateChart(chartId, chartName, datasets, labels);
 }
 
 function initializeStatToggles() {
@@ -514,6 +616,15 @@ function updateSingleChart(chartType, statIndex) {
         labels = currentChart.data.labels;
     }
 
+    // Check if the dataset has valid data
+    if (!dataset || !hasValidData(dataset.data)) {
+        showChartPlaceholder(chartId);
+        return;
+    }
+
+    // Restore canvas and remove placeholder
+    restoreChartContainer(chartId);
+
     // Update the chart with just the selected stat
     updateChart(chartId, chartName, [{
         ...dataset,
@@ -539,23 +650,45 @@ function updateChart(chartId, chartName, datasets, labels) {
     // Get the original tank order from the first dataset
     const originalTankOrder = datasets[0].tankOrder || [];
 
-    // Create an array of objects that maintain the relationship between labels and data
-    const dataWithLabels = originalTankOrder.map((tank, index) => ({
-        id: tank.id,
-        name: tank.name,
-        type: tank.type,
-        values: datasets.map(dataset => dataset.data[index]),
-        isCurrentTank: tank.id.toString() === currentTankId.toString()
-    }));
+    // Filter out tanks with null/undefined values for sorting
+    const validDataIndices = [];
+    const dataWithLabels = originalTankOrder.map((tank, index) => {
+        const values = datasets.map(dataset => {
+            const val = dataset.data[index];
+            return (val !== null && val !== undefined && !isNaN(val)) ? val : null;
+        });
+        const hasAnyValidData = values.some(v => v !== null);
+
+        if (hasAnyValidData) {
+            validDataIndices.push(index);
+        }
+
+        return {
+            id: tank.id,
+            name: tank.name,
+            type: tank.type,
+            values: values,
+            isCurrentTank: tank.id.toString() === currentTankId.toString(),
+            hasValidData: hasAnyValidData
+        };
+    });
+
+    // Filter to only tanks with valid data for the current stat
+    let filteredData = dataWithLabels.filter(item => item.hasValidData);
+
+    // If no tanks have valid data after filtering, show placeholder
+    if (filteredData.length === 0) {
+        showChartPlaceholder(chartId);
+        return;
+    }
 
     // Sort based on the first dataset's values (main sort key)
-    let sortedData = [...dataWithLabels];
+    let sortedData = [...filteredData];
     if (datasets.length > 0 && datasets[0].data.length > 0) {
         sortedData.sort((a, b) => {
-            // Handle null/undefined values by putting them at the end
-            if (a.values[0] == null) return 1;
-            if (b.values[0] == null) return -1;
-            return a.values[0] - b.values[0];
+            const aVal = a.values[0] !== null ? a.values[0] : Infinity;
+            const bVal = b.values[0] !== null ? b.values[0] : Infinity;
+            return aVal - bVal;
         });
     }
 
@@ -571,7 +704,10 @@ function updateChart(chartId, chartName, datasets, labels) {
         // Create sorted data array based on the sorted data
         return {
             ...dataset,
-            data: sortedData.map(item => idToData[item.id])
+            data: sortedData.map(item => {
+                const val = idToData[item.id];
+                return (val !== null && val !== undefined && !isNaN(val)) ? val : 0;
+            })
         };
     });
 
@@ -579,7 +715,7 @@ function updateChart(chartId, chartName, datasets, labels) {
     const currentTankNewIndex = sortedData.findIndex(item => item.isCurrentTank);
 
     // Prepare datasets with different colors
-    const chartDatasets = sortedDatasets.map((dataset, index) => ({
+    const chartDatasetsConfig = sortedDatasets.map((dataset, index) => ({
         label: dataset.label,
         data: dataset.data,
         backgroundColor: sortedData.map((item) =>
@@ -650,7 +786,7 @@ function updateChart(chartId, chartName, datasets, labels) {
         type: 'bar',
         data: {
             labels: sortedLabels,
-            datasets: chartDatasets
+            datasets: chartDatasetsConfig
         },
         options: {
             ...chartConfig,
