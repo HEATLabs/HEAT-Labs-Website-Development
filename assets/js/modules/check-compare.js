@@ -37,8 +37,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const stockResponse = await fetch(tankInfo.stock);
             const stockData = await stockResponse.json();
 
-            // Find the stats using tank slug or ID
-            let tankStats = stockData[tankInfo.slug] || stockData[tankInfo.id] || Object.values(stockData)[0];
+            // Find the stats using tank slug
+            let tankStats = stockData[tankInfo.slug] || stockData[tankInfo.id] || null;
 
             // Combine the data
             const fullData = {
@@ -60,6 +60,12 @@ document.addEventListener('DOMContentLoaded', function() {
             // Firepower stats
             "MAIN SHELL DAMAGE": "Damage",
             "MAIN SHELL PENETRATION": "Penetration",
+            "MAIN SHELL VELOCITY": "Shell Velocity",
+            "MAIN SHELL EXPLOSION RADIUS": "Explosion Radius",
+            "SECONDARY SHELL DAMAGE": "Secondary Damage",
+            "SECONDARY SHELL PENETRATION": "Secondary Penetration",
+            "SECONDARY SHELL VELOCITY": "Secondary Velocity",
+            "SECONDARY SHELL EXPLOSION RADIUS": "Secondary Explosion Radius",
             "AIMING SPEED": "Aiming Speed",
             "RELOAD TIME": "Reload Time",
             "TIME BETWEEN SHOTS": "Time Between Shots",
@@ -70,81 +76,128 @@ document.addEventListener('DOMContentLoaded', function() {
             "RETICLE SIZE STATIONARY": "Reticle Size, Standing",
             "ACCURACY AFTER SHOT": "Reticle Size, After Shot",
             "ACCURACY MAX": "Reticle Size, Max",
-            "TURRET TRAVERSE SPEED": "Turret Traverse Speed, Degrees/Second",
-            "GUN DEPRESSION, FRONT": "Gun Depression (Front)",
-            "GUN DEPRESSION, SIDE": "Gun Depression (Side)",
-            "GUN DEPRESSION, REAR": "Gun Depression (Rear)",
-            "GUN ELEVATION, FRONT": "Gun Elevation (Front)",
-            "GUN ELEVATION, SIDE": "Gun Elevation (Side)",
-            "GUN ELEVATION, REAR": "Gun Elevation (Rear)",
+            "OPTIMAL RANGE": "Optimal Range",
+            "DAMAGE REDUCTION BEYOND OPTIMAL": "Damage Reduction Beyond Optimal",
+            "FALLOFF DISTANCE": "Falloff Distance",
+            "INTERNAL MODULE HIT": "Internal Module Hit Chance",
 
             // Survivability stats
             "HIT POINTS": "Hit Points",
-            "TRACK REPAIR TIME": "Track Repair Time, Seconds",
+            "TRACK REPAIR TIME": "Track Repair Time",
             "TRACK HP": "Track Hit Points",
             "ENGINE HP": "Engine Hit Points",
-            "RECOVERY TIME": "Crew Recovery Time, Seconds",
-            "AMMO CRIT MODIFIER": "Incoming Crit Damage, Ammo Rack",
-            "ENGINE CRIT MODIFIER": "Incoming Crit Damage, Engine",
-            "FUEL CRIT MODIFIER": "Incoming Crit Damage, Fuel Tank",
-            "RAMMING DAMAGE RESISTANCE FRONT": "Ramming Damage Resistance, Front",
+            "FRONTAL HULL ARMOR": "Frontal Hull Armor",
+            "TURRET FRONTAL ARMOR": "Turret Frontal Armor",
+            "SIDE TURRET ARMOUR": "Side Turret Armor",
+            "TURRET RING ARMOR": "Turret Ring Armor",
+            "HULL SIDE ARMOR": "Hull Side Armor",
+            "RECOVERY TIME": "Crew Recovery Time",
+            "AMMO CRIT MODIFIER": "Ammo Rack Crit Modifier",
+            "ENGINE CRIT MODIFIER": "Engine Crit Modifier",
+            "FUEL CRIT MODIFIER": "Fuel Tank Crit Modifier",
+            "RAMMING DAMAGE RESISTANCE FRONT": "Ramming Damage Resistance",
             "RAMMING DAMAGE MULTIPLIER": "Ramming Damage Bonus",
             "SPACED ARMOR HP": "Spaced Armor HP",
             "FIRE RESISTANCE": "Fire Resistance",
             "RADIATION RESISTANCE": "Radiation Resistance",
             "SHOCK RESISTANCE": "Shock Resistance",
             "SLOW RESISTANCE": "Slow Resistance",
+            "INCOMING DAMAGE MITIGATED BY ERA": "ERA Damage Mitigation",
 
             // Mobility stats
-            "FORWARD SPEED": "Forward Speed, km/h",
-            "REVERSE SPEED": "Reverse Speed, km/h",
-            "HULL TRAVERSE": "Traverse Speed",
+            "FORWARD SPEED": "Forward Speed",
+            "REVERSE SPEED": "Reverse Speed",
+            "HULL TRAVERSE": "Hull Traverse",
+            "TURRET TRAVERSE SPEED": "Turret Traverse Speed",
             "ENGINE POWER": "Engine Power",
             "HANDBRAKE FORCE": "Handbrake Force",
-            "VEHICLE LATERAL FRICTION": "Vehicle Lateral Friction",
+            "VEHICLE LATERAL FRICTION": "Lateral Friction",
             "BOOST MODE ENERGY COST": "Sprint Energy Cost",
             "BOOST MODE ENERGY VOLUME": "Sprint Energy Volume",
             "BOOST MODE ACCELERATION": "Base Acceleration",
             "BOOST MODE REGENERATION RATE": "Sprint Regen Rate",
 
             // Recon stats
-            "SPOTTING RANGE": "Spotting Range, Meters",
-            "BATTLE COMMUINICATION RANGE": "Signal Range, Meters",
-            "ENEMY VISIBILITY SHARE DURATION": "Spotting Duration, Seconds",
+            "SPOTTING RANGE": "Spotting Range",
+            "BATTLE COMMUINICATION RANGE": "Signal Range",
+            "ENEMY VISIBILITY SHARE DURATION": "Spotting Duration",
             "VEHICLE CAMOUFLAGE": "Vehicle Camouflage",
             "VEHICLE OPTICS": "Vehicle Optics",
+            "AIM INTEL VALUE": "Aim Intel",
+            "HIT INTEL VALUE": "Hit Intel",
+            "PERIPHERY INTEL VALUE": "Periphery Intel",
+            "MOVING NOISE INTEL": "Moving Noise Intel",
+            "SHOT NOISE VALUE": "Shot Noise",
+            "RADAR UPDATE INTERVAL": "Radar Update Interval",
+            "SECOND ZOOM MAGNIFICATION": "Second Zoom",
+            "THIRD ZOOM MAGNIFICATION": "Third Zoom",
 
             // Utility stats
-            "MAX ENERGY": "Energy Points",
-            "ENERGY REGENERATION": "Energy Regeneration"
+            "MAX ENERGY": "Max Energy",
+            "ENERGY REGENERATION": "Energy Regen",
+            "MAIN ABILITY ENERGY COST": "Main Ability Cost",
+            "MAIN ABILITY COOLDOWN": "Main Ability Cooldown",
+            "MAIN ABILITY DURATION": "Main Ability Duration",
+            "MAIN ABILITY HP": "Main Ability HP",
+            "SECOND ABILITY ENERGY COST": "Second Ability Cost",
+            "SECOND ABILITY COOLDOWN": "Second Ability Cooldown",
+            "SECOND ABILITY DURATION": "Second Ability Duration",
+            "SECOND ABILITY HP": "Second Ability HP"
         };
+    }
+
+    // Check if a value should be considered for comparison (not zero/empty)
+    function isValidStatValue(value) {
+        if (value === null || value === undefined) return false;
+        if (typeof value === 'string') {
+            if (value === "" || value === "N/A" || value === "0") return false;
+            // Check if it's a number string that equals 0
+            const num = parseFloat(value);
+            if (!isNaN(num) && num === 0) return false;
+        }
+        if (typeof value === 'number' && value === 0) return false;
+        return true;
+    }
+
+    // Parse value to number if possible
+    function parseNumericValue(value) {
+        if (typeof value === 'number') return value;
+        if (typeof value === 'string') {
+            const num = parseFloat(value);
+            return isNaN(num) ? null : num;
+        }
+        return null;
     }
 
     // Render the comparison table
     async function renderComparisonTable() {
         if (comparisonData.length === 0) {
             comparisonTable.innerHTML = `
-                <tr>
-                    <td colspan="100" class="comparison-empty py-10">
-                        No tanks selected for comparison.<br>
-                        <a href="tanks">Browse tanks to compare</a>
-                    </td>
-                </tr>
+                <tbody>
+                    <tr>
+                        <td colspan="100" class="comparison-empty py-10">
+                            No tanks selected for comparison.<br>
+                            <a href="tanks">Browse tanks to compare</a>
+                        </td>
+                    </tr>
+                </tbody>
             `;
             return;
         }
 
         // Get all tank details
         const tanks = await Promise.all(comparisonData.map(id => fetchTankDetails(id)));
-        const validTanks = tanks.filter(tank => tank !== null);
+        const validTanks = tanks.filter(tank => tank !== null && tank.stats && Object.keys(tank.stats).length > 0);
 
         if (validTanks.length === 0) {
             comparisonTable.innerHTML = `
-                <tr>
-                    <td colspan="100" class="comparison-empty py-10">
-                        Failed to load tank data. Please try again later.
-                    </td>
-                </tr>
+                <tbody>
+                    <tr>
+                        <td colspan="100" class="comparison-empty py-10">
+                            Failed to load tank data. Please try again later.
+                        </td>
+                    </tr>
+                </tbody>
             `;
             return;
         }
@@ -208,12 +261,23 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         tableHTML += '</tr></thead><tbody>';
 
+        // Define stat categories and the stats that should be "lower is better"
+        const lowerIsBetter = new Set([
+            'RELOAD TIME', 'TIME BETWEEN SHOTS', 'SHELL LOADING TIME BETWEEN SHOTS',
+            'TRACK REPAIR TIME', 'RECOVERY TIME', 'AIMING SPEED', 'RETICLE SIZE MOVING',
+            'RETICLE SIZE STATIONARY', 'ACCURACY AFTER SHOT', 'ACCURACY MAX',
+            'DAMAGE REDUCTION BEYOND OPTIMAL', 'FALLOFF DISTANCE', 'ENERGY REGENERATION',
+            'MAIN ABILITY COOLDOWN', 'SECOND ABILITY COOLDOWN', 'MAIN ABILITY ENERGY COST',
+            'SECOND ABILITY ENERGY COST', 'RADAR UPDATE INTERVAL'
+        ]);
+
         // Add stats rows for each category
         const statCategories = ['FIREPOWER', 'MOBILITY', 'SURVIVABILITY', 'RECON', 'UTILITY'];
 
         for (const category of statCategories) {
-            // Check if all tanks have this category
-            if (!validTanks[0].stats[category]) continue;
+            // Check if any tank has this category
+            const hasCategory = validTanks.some(tank => tank.stats[category]);
+            if (!hasCategory) continue;
 
             tableHTML += `<tr class="stat-category"><td colspan="${validTanks.length + 1}">${category}</td></tr>`;
 
@@ -229,97 +293,84 @@ document.addEventListener('DOMContentLoaded', function() {
             const sortedStatKeys = Array.from(allStatKeys).sort();
 
             for (const statKey of sortedStatKeys) {
-                // Skip stats that are all zero
+                // Get values for all tanks
                 const values = validTanks.map(tank => {
                     const rawValue = tank.stats[category]?.[statKey];
-                    if (rawValue === undefined) return null;
-                    const num = parseFloat(rawValue);
-                    return isNaN(num) ? rawValue : num;
+                    if (!isValidStatValue(rawValue)) return null;
+                    return parseNumericValue(rawValue);
                 });
 
-                // Skip if all values are null/undefined or all zero
-                const validValues = values.filter(v => v !== null && v !== 0);
+                // Skip if all values are null
+                const validValues = values.filter(v => v !== null);
                 if (validValues.length === 0) continue;
-
-                // Determine if stat is numeric
-                const isNumeric = validValues.every(v => typeof v === 'number');
 
                 // Get display name for stat
                 const displayName = statMapping[statKey] || formatStatName(statKey);
 
-                if (isNumeric) {
-                    // Check if this is a depression/elevation stat
-                    const isDepression = statKey.includes('DEPRESSION');
-                    const isElevation = statKey.includes('ELEVATION') && !statKey.includes('DEGREES/SECOND');
+                // Determine if we should show units
+                const shouldShowUnits = statKey.includes('TIME') || statKey.includes('RELOAD') ||
+                                       statKey.includes('SPEED') || statKey.includes('RANGE') ||
+                                       statKey.includes('RADIUS') || statKey.includes('HP');
 
-                    let numericValues = values.filter(v => typeof v === 'number');
-                    let maxValue, minValue;
+                // Calculate best and worst based on stat type
+                let maxValue = Math.max(...validValues);
+                let minValue = Math.min(...validValues);
+                const isLowerBetter = lowerIsBetter.has(statKey);
 
-                    if (isDepression) {
-                        // For depression, lower (more negative) is better
-                        maxValue = Math.min(...numericValues);
-                        minValue = Math.max(...numericValues);
-                    } else if (isElevation) {
-                        // For elevation, higher (more positive) is better
-                        maxValue = Math.max(...numericValues);
-                        minValue = Math.min(...numericValues);
+                let valueRange = maxValue - minValue;
+
+                // Handle case where all values are the same
+                if (valueRange === 0) valueRange = 1;
+
+                tableHTML += `<tr><td>${displayName}</td>`;
+
+                values.forEach((value, i) => {
+                    let cellClass = '';
+                    let displayValue = value;
+
+                    if (value !== null) {
+                        let stepIndex;
+                        if (isLowerBetter) {
+                            // For lower is better stats, lowest value gets best score
+                            stepIndex = Math.floor((value - minValue) / (valueRange / 6));
+                            cellClass = `stat-${6 - Math.min(5, stepIndex)}`;
+                        } else {
+                            // For higher is better stats, highest value gets best score
+                            stepIndex = Math.floor((maxValue - value) / (valueRange / 6));
+                            cellClass = `stat-${Math.min(6, stepIndex)}`;
+                        }
+
+                        // Ensure cellClass is between 1-7
+                        const classNum = parseInt(cellClass.split('-')[1]);
+                        if (isNaN(classNum)) {
+                            cellClass = 'stat-4';
+                        } else if (classNum < 1) {
+                            cellClass = 'stat-1';
+                        } else if (classNum > 7) {
+                            cellClass = 'stat-7';
+                        }
+
+                        // Format value with units
+                        if (shouldShowUnits) {
+                            if (statKey.includes('TIME') || statKey.includes('RELOAD') || statKey.includes('COOLDOWN')) {
+                                displayValue = `${value}s`;
+                            } else if (statKey.includes('SPEED') && !statKey.includes('AIMING')) {
+                                displayValue = `${value} km/h`;
+                            } else if (statKey.includes('RANGE') || statKey.includes('RADIUS')) {
+                                displayValue = `${value}m`;
+                            } else if (statKey.includes('HP') || statKey.includes('HIT POINTS') || statKey.includes('DAMAGE')) {
+                                displayValue = Math.round(value);
+                            }
+                        } else if (typeof value === 'number' && !Number.isInteger(value)) {
+                            displayValue = value.toFixed(2);
+                        }
                     } else {
-                        // For all other stats, higher is better
-                        maxValue = Math.max(...numericValues);
-                        minValue = Math.min(...numericValues);
+                        displayValue = '-';
+                        cellClass = '';
                     }
 
-                    const valueRange = maxValue - minValue;
-
-                    tableHTML += `<tr><td>${displayName}</td>`;
-
-                    values.forEach((value, i) => {
-                        let cellClass = '';
-                        let displayValue = value;
-
-                        if (typeof value === 'number' && valueRange > 0) {
-                            let stepIndex;
-                            if (isDepression) {
-                                stepIndex = Math.floor((maxValue - value) / (valueRange / 6));
-                                cellClass = `stat-${Math.min(6, stepIndex) + 1}`;
-                            } else if (isElevation) {
-                                stepIndex = Math.floor((value - minValue) / (valueRange / 6));
-                                cellClass = `stat-${7 - Math.min(6, stepIndex)}`;
-                            } else {
-                                stepIndex = Math.floor((value - minValue) / (valueRange / 6));
-                                cellClass = `stat-${7 - Math.min(6, stepIndex)}`;
-                            }
-
-                            // Add degree symbol for angle stats
-                            if (statKey.includes('DEPRESSION') || statKey.includes('ELEVATION')) {
-                                displayValue = value >= 0 ? `+${value}` : value.toString();
-                            }
-                        } else if (valueRange === 0 && typeof value === 'number') {
-                            cellClass = 'stat-4';
-                        }
-
-                        let formattedValue = displayValue;
-                        if (typeof displayValue === 'number') {
-                            if (statKey.includes('DAMAGE') || statKey.includes('HIT POINTS') || statKey.includes('HP')) {
-                                formattedValue = Math.round(displayValue);
-                            } else if (statKey.includes('TIME') || statKey.includes('RELOAD')) {
-                                formattedValue = `${displayValue}s`;
-                            } else if (statKey.includes('SPEED') && !statKey.includes('AIMING')) {
-                                formattedValue = `${displayValue} km/h`;
-                            } else if (statKey.includes('RANGE') || statKey.includes('RADIUS')) {
-                                formattedValue = `${displayValue}m`;
-                            }
-                        }
-
-                        tableHTML += `<td class="${cellClass}">${formattedValue !== null ? formattedValue : '-'}</td>`;
-                    });
-                } else {
-                    // Non-numeric values
-                    tableHTML += `<tr><td>${displayName}</td>`;
-                    values.forEach(value => {
-                        tableHTML += `<td>${value !== null ? value : '-'}</td>`;
-                    });
-                }
+                    tableHTML += `<td class="${cellClass}">${displayValue}</td>`;
+                });
                 tableHTML += '</tr>';
             }
         }
