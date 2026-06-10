@@ -1119,12 +1119,6 @@ function populateTankStats(tankStats) {
         updateStat('Firepower', 'MAGAZINE SHELL COUNT', fp["MAGAZINE SHELL COUNT"] || "0");
         updateStat('Firepower', 'SHELL LOADING TIME BETWEEN SHOTS', fp["SHELL LOADING TIME BETWEEN SHOTS"] || "0");
         updateStat('Firepower', 'TIME BETWEEN SHOTS', fp["TIME BETWEEN SHOTS"] || "0");
-        updateStat('Firepower', 'GUN DEPRESSION, FRONT', fp["GUN DEPRESSION, FRONT"] || "-0");
-        updateStat('Firepower', 'GUN DEPRESSION, SIDE', fp["GUN DEPRESSION, SIDE"] || "-0");
-        updateStat('Firepower', 'GUN DEPRESSION, REAR', fp["GUN DEPRESSION, REAR"] || "-0");
-        updateStat('Firepower', 'GUN ELEVATION, FRONT', fp["GUN ELEVATION, FRONT"] || "+0");
-        updateStat('Firepower', 'GUN ELEVATION, SIDE', fp["GUN ELEVATION, SIDE"] || "+0");
-        updateStat('Firepower', 'GUN ELEVATION, REAR', fp["GUN ELEVATION, REAR"] || "+0");
     }
 
     // Survivability stats
