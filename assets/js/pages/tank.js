@@ -1091,6 +1091,8 @@ function populateTankStats(tankStats) {
     // Firepower stats
     if (tankStats.FIREPOWER) {
         const fp = tankStats.FIREPOWER;
+        updateStat('Firepower', 'MAIN SHELL TYPE', fp["MAIN SHELL TYPE"] || "N/A");
+        updateStat('Firepower', 'SECONDARY SHELL TYPE', fp["SECONDARY SHELL TYPE"] || "N/A");
         updateStat('Firepower', 'MAIN SHELL PENETRATION', fp["MAIN SHELL PENETRATION"] || "0");
         updateStat('Firepower', 'SECONDARY SHELL PENETRATION', fp["SECONDARY SHELL PENETRATION"] || "0");
         updateStat('Firepower', 'MAIN SHELL VELOCITY', fp["MAIN SHELL VELOCITY"] || "0");
