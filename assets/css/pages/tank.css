@@ -1218,7 +1218,7 @@ p {
 	position: relative;
 	z-index: 1;
 	width: 100%;
-	overflow: hidden;
+	overflow: visible;
 	padding: 0 1rem;
 	box-sizing: border-box;
 }
