@@ -122,7 +122,7 @@ async function initializeCharts() {
 
     try {
         // First fetch the tanks.json to get the tank details
-        const tanksResponse = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/tanks.json');
+        const tanksResponse = await fetch('https://cdn1.heatlabs.net/tanks.json');
         const tanksData = await tanksResponse.json();
 
         // Find current tank to get type and agents
@@ -329,7 +329,7 @@ async function updateCharts(compareType) {
     // Firepower data
     const firepowerDamage = allTanksForCharts.map(tank => {
         if (!tank || !tank.stats || !tank.stats.FIREPOWER) return 0;
-        return parseFloat(tank.stats.FIREPOWER.DAMAGE) || 0;
+        return parseFloat(tank.stats.FIREPOWER["MAIN SHELL DAMAGE"]) || 0;
     });
     const firepowerReload = allTanksForCharts.map(tank => {
         if (!tank || !tank.stats || !tank.stats.FIREPOWER) return 0;
@@ -347,31 +347,31 @@ async function updateCharts(compareType) {
     });
     const survivabilityCrewHp = allTanksForCharts.map(tank => {
         if (!tank || !tank.stats || !tank.stats.SURVIVABILITY) return 0;
-        return parseFloat(tank.stats.SURVIVABILITY["CREW HIT POINTS"]) || 0;
+        return parseFloat(tank.stats.SURVIVABILITY["TRACK REPAIR TIME"]) || 0;
     });
     const survivabilityTrackHp = allTanksForCharts.map(tank => {
         if (!tank || !tank.stats || !tank.stats.SURVIVABILITY) return 0;
-        return parseFloat(tank.stats.SURVIVABILITY["TRACK HIT POINTS"]) || 0;
+        return parseFloat(tank.stats.SURVIVABILITY["TRACK HP"]) || 0;
     });
 
     // Mobility data
     const mobilityForward = allTanksForCharts.map(tank => {
         if (!tank || !tank.stats || !tank.stats.MOBILITY) return 0;
-        return parseFloat(tank.stats.MOBILITY["FORWARD SPEED, KM/H"]) || 0;
+        return parseFloat(tank.stats.MOBILITY["FORWARD SPEED"]) || 0;
     });
     const mobilityReverse = allTanksForCharts.map(tank => {
         if (!tank || !tank.stats || !tank.stats.MOBILITY) return 0;
-        return parseFloat(tank.stats.MOBILITY["REVERSE SPEED, KM/H"]) || 0;
+        return parseFloat(tank.stats.MOBILITY["REVERSE SPEED"]) || 0;
     });
     const mobilityTraverse = allTanksForCharts.map(tank => {
         if (!tank || !tank.stats || !tank.stats.MOBILITY) return 0;
-        return parseFloat(tank.stats.MOBILITY["TRAVERSE SPEED"]) || 0;
+        return parseFloat(tank.stats.MOBILITY["HULL TRAVERSE"]) || 0;
     });
 
     // Utility data
     const utilityEnergy = allTanksForCharts.map(tank => {
         if (!tank || !tank.stats || !tank.stats.UTILITY) return 0;
-        return parseFloat(tank.stats.UTILITY["ENERGY POINTS"]) || 0;
+        return parseFloat(tank.stats.UTILITY["MAX ENERGY"]) || 0;
     });
     const utilityRegen = allTanksForCharts.map(tank => {
         if (!tank || !tank.stats || !tank.stats.UTILITY) return 0;
@@ -406,7 +406,7 @@ async function updateCharts(compareType) {
             tankOrder: originalTankOrder
         },
         {
-            label: 'Crew Hit Points',
+            label: 'Track Repair Time',
             data: survivabilityCrewHp,
             tankOrder: originalTankOrder
         },
