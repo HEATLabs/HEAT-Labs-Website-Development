@@ -468,6 +468,21 @@ function closeBuildDetailModal() {
     }
 }
 
+// Helper function to truncate description to 60 characters
+function truncateDescription(description) {
+    if (!description) return 'No description provided.';
+
+    // Remove any HTML tags if present
+    const plainText = description.replace(/<[^>]*>/g, '');
+
+    if (plainText.length <= 60) {
+        return plainText;
+    }
+
+    // Truncate to 60 characters and add ellipsis
+    return plainText.substring(0, 60).trim() + '...';
+}
+
 // Function to update builds display based on filters
 function updateBuildsDisplay() {
     const sortFilter = document.getElementById('sortFilter');
@@ -563,7 +578,7 @@ function updateBuildsDisplay() {
             </div>
             <div class="build-content">
                 <h3 class="build-title">${build.buildName}</h3>
-                <p class="build-description">${build.buildDescription || 'No description provided.'}</p>
+                <p class="build-description">${truncateDescription(build.buildDescription || 'No description provided.')}</p>
 
                 <div class="build-meta">
                     <span class="build-author">
