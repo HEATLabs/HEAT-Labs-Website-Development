@@ -15,16 +15,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Current config data
     let configData = null;
-    let originalConfig = null;
+    let originalFileContent = null;
+    let originalSettings = null;
     let fileNameValue = '';
+    let currentFile = null;
 
-    // Default values
+    // Default values for each settings section
     const defaultValues = {
         aiming: {
             "aimAssistSensitivityMultiplierAt500M": 0.5,
             "aimAssistSensitivityMultiplierAtZeroM": 0.5,
             "aimAssistTargetLockOnTime": 0.0,
-            "distanceUpdateSpeed": 30.0,
+            "cqcAimPointAngleThreshold": 30.0,
+            "cqcAimPointDepth": 0.35,
+            "cqcAimPointDistanceThreshold": 10.0,
+            "distanceUpdateSpeed": 600.0,
             "maxAimingAngleError": 25.0,
             "maxDistance": 2000.0,
             "minDistance": 35.0,
@@ -33,12 +38,12 @@ document.addEventListener('DOMContentLoaded', function() {
             "useLocalDispersion": true
         },
         followAim: {
-            "followAimAccMagnetMin": 0.3,
-            "followAimAccMagnetMult": 0.5,
-            "followAimCentringTime": 1.0,
-            "followAimDecMagnetMin": 0.4,
-            "followAimDecMagnetMult": 0.55,
-            "followAimMaxMagnetPower": 0.4,
+            "followAimAccMagnetMin": 0.1,
+            "followAimAccMagnetMult": 0.2,
+            "followAimCentringTime": 0.3,
+            "followAimDecMagnetMin": 0.1,
+            "followAimDecMagnetMult": 0.2,
+            "followAimMaxMagnetPower": 0.2,
             "followAimMaxTargetDistance": 500.0,
             "followAimMinMagnetDistanceFromCenterPower": 0.3,
             "followAimMinRadiusScalingDistance": 200.0,
@@ -46,14 +51,15 @@ document.addEventListener('DOMContentLoaded', function() {
             "followAimSelectorCenterCoef": 1.5,
             "followAimSelectorCenterMin": 0.5,
             "followAimSelectorDistanceCoef": 0.3,
-            "followAimSensitivityFactor": 0.7,
+            "followAimSensitivityFactor": 0.55,
             "followAimTankCentringSize": 40.0,
             "followInnerRadius": 3.5,
             "followRadius": 4.3
         },
         armorOutliner: {
-            "Max Distance": 400.0,
-            "Is Enabled": true
+            "Default Mode": "Full",
+            "Is Enabled": true,
+            "Max Distance": 500.0
         },
         haptics: {
             "heavyRumbleDurationMS": 500,
@@ -74,12 +80,125 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         frameLimiter: {
             "client": {
-                "frequency": 250.0,
-                "carriedOverspent": 0.4
+                "carriedOverspent": 0.4,
+                "frequency": 1000.0
             },
             "inactive client": {
-                "frequency": 30.0,
-                "carriedOverspent": 0.4
+                "carriedOverspent": 0.4,
+                "frequency": 30.0
+            }
+        },
+        markers: {
+            "ally": {
+                "InDirectVisible": {
+                    "opacity": 1.0,
+                    "isEnabled": true,
+                    "isNameEnabled": true,
+                    "isHealthBarEnabled": true,
+                    "isDistanceEnabled": true
+                },
+                "Dead": {
+                    "opacity": 0.5,
+                    "isEnabled": true,
+                    "isNameEnabled": false,
+                    "isHealthBarEnabled": false,
+                    "isDistanceEnabled": false
+                },
+                "DeadHotKey": {
+                    "opacity": 0.7,
+                    "isEnabled": true,
+                    "isNameEnabled": true,
+                    "isHealthBarEnabled": false,
+                    "isDistanceEnabled": false
+                },
+                "DeadInAiming": {
+                    "opacity": 0.3,
+                    "isEnabled": false,
+                    "isNameEnabled": false,
+                    "isHealthBarEnabled": false,
+                    "isDistanceEnabled": false
+                },
+                "InDirectInvisible": {
+                    "opacity": 0.8,
+                    "isEnabled": true,
+                    "isNameEnabled": true,
+                    "isHealthBarEnabled": true,
+                    "isDistanceEnabled": true
+                }
+            },
+            "enemy": {
+                "InDirectVisible": {
+                    "opacity": 1.0,
+                    "isEnabled": true,
+                    "isNameEnabled": true,
+                    "isHealthBarEnabled": true,
+                    "isDistanceEnabled": true
+                },
+                "Dead": {
+                    "opacity": 0.5,
+                    "isEnabled": true,
+                    "isNameEnabled": false,
+                    "isHealthBarEnabled": false,
+                    "isDistanceEnabled": false
+                },
+                "DeadHotKey": {
+                    "opacity": 0.7,
+                    "isEnabled": true,
+                    "isNameEnabled": true,
+                    "isHealthBarEnabled": false,
+                    "isDistanceEnabled": false
+                },
+                "DeadInAiming": {
+                    "opacity": 0.3,
+                    "isEnabled": false,
+                    "isNameEnabled": false,
+                    "isHealthBarEnabled": false,
+                    "isDistanceEnabled": false
+                },
+                "InDirectInvisible": {
+                    "opacity": 0.8,
+                    "isEnabled": true,
+                    "isNameEnabled": true,
+                    "isHealthBarEnabled": true,
+                    "isDistanceEnabled": true
+                }
+            },
+            "platoon": {
+                "InDirectVisible": {
+                    "opacity": 1.0,
+                    "isEnabled": true,
+                    "isNameEnabled": true,
+                    "isHealthBarEnabled": true,
+                    "isDistanceEnabled": true
+                },
+                "Dead": {
+                    "opacity": 0.5,
+                    "isEnabled": true,
+                    "isNameEnabled": false,
+                    "isHealthBarEnabled": false,
+                    "isDistanceEnabled": false
+                },
+                "DeadHotKey": {
+                    "opacity": 0.7,
+                    "isEnabled": true,
+                    "isNameEnabled": true,
+                    "isHealthBarEnabled": false,
+                    "isDistanceEnabled": false
+                },
+                "DeadInAiming": {
+                    "opacity": 0.3,
+                    "isEnabled": false,
+                    "isNameEnabled": false,
+                    "isHealthBarEnabled": false,
+                    "isDistanceEnabled": false
+                },
+                "InDirectInvisible": {
+                    "opacity": 0.8,
+                    "isEnabled": true,
+                    "isNameEnabled": true,
+                    "isHealthBarEnabled": true,
+                    "isDistanceEnabled": true
+                }
             }
         },
         resolutionPresets: [{
@@ -150,75 +269,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 "Scale": 2.0,
                 "Width": 3840
             }
-        ],
-        markers: {
-            "ally": {
-                "InDirectVisible": {
-                    "opacity": 1.0,
-                    "isEnabled": true,
-                    "isNameEnabled": true,
-                    "isHealthBarEnabled": true,
-                    "isDistanceEnabled": true
-                }
-            },
-            "enemy": {
-                "InDirectVisible": {
-                    "opacity": 1.0,
-                    "isEnabled": true,
-                    "isNameEnabled": true,
-                    "isHealthBarEnabled": true,
-                    "isDistanceEnabled": true
-                }
-            },
-            "platoon": {
-                "InDirectVisible": {
-                    "opacity": 1.0,
-                    "isEnabled": true,
-                    "isNameEnabled": true,
-                    "isHealthBarEnabled": true,
-                    "isDistanceEnabled": true
-                }
-            }
-        }
+        ]
     };
 
     // Tab switching
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             const tabId = btn.getAttribute('data-tab');
-
-            // Update active tab button
             tabBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-
-            // Update active tab content
             tabContents.forEach(content => content.classList.remove('active'));
-            document.getElementById(`${tabId}-tab`).classList.add('active');
-
-            // Save active tab to localStorage
+            const targetTab = document.getElementById(`${tabId}-tab`);
+            if (targetTab) targetTab.classList.add('active');
             localStorage.setItem('activeConfigTab', tabId);
         });
     });
 
-    // Set active tab from localStorage if available
     const savedTab = localStorage.getItem('activeConfigTab');
     if (savedTab) {
         const tabBtn = document.querySelector(`.tab-btn[data-tab="${savedTab}"]`);
-        if (tabBtn) {
-            tabBtn.click();
-        }
+        if (tabBtn) tabBtn.click();
     }
 
     // File input button click
-    fileInputBtn.addEventListener('click', () => {
-        fileInput.click();
-    });
+    fileInputBtn.addEventListener('click', () => fileInput.click());
 
     // File input change
     fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) {
-            handleFile(e.target.files[0]);
-        }
+        if (e.target.files.length > 0) handleFile(e.target.files[0]);
     });
 
     // Drag and drop events
@@ -250,34 +328,100 @@ document.addEventListener('DOMContentLoaded', function() {
     dropZone.addEventListener('drop', (e) => {
         const dt = e.dataTransfer;
         const file = dt.files[0];
-        if (file) {
-            handleFile(file);
-        }
+        if (file) handleFile(file);
     });
 
     // Reset file button
     resetFile.addEventListener('click', () => {
         fileInput.value = '';
         configData = null;
-        originalConfig = null;
+        originalFileContent = null;
+        originalSettings = null;
+        currentFile = null;
         fileInfo.style.display = 'none';
         configSections.style.display = 'none';
         dropZone.style.display = 'flex';
+        localStorage.removeItem('cwConfigData');
+        localStorage.removeItem('cwConfigFileName');
     });
 
-    // Save config button
+    // Save config button (saves modified settings back to the file - preserves all other content)
     saveConfig.addEventListener('click', () => {
-        if (configData) {
-            localStorage.setItem('cwConfigData', JSON.stringify(configData));
+        if (configData && currentFile) {
+            // Build the updated settings object
+            const updatedSettings = buildUpdatedSettingsObject();
+
+            // Create the full file content with original structure
+            let fullParsed;
+            try {
+                fullParsed = JSON.parse(originalFileContent);
+            } catch (e) {
+                showToast('Error parsing original file structure', 'error');
+                return;
+            }
+
+            // Ensure settings object exists
+            if (!fullParsed.settings) fullParsed.settings = {};
+
+            // Update only the settings we manage
+            for (const [sectionKey, sectionData] of Object.entries(updatedSettings)) {
+                if (sectionData !== undefined && sectionData !== null) {
+                    fullParsed.settings[sectionKey] = sectionData;
+                }
+            }
+
+            // Create download of the modified file
+            const blob = new Blob([JSON.stringify(fullParsed, null, 2)], {
+                type: 'application/json'
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileNameValue;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            // Update local storage with new settings
+            localStorage.setItem('cwConfigData', JSON.stringify(updatedSettings));
             localStorage.setItem('cwConfigFileName', fileNameValue);
-            showToast('Settings saved to browser storage!');
+
+            // Update our stored content
+            originalFileContent = JSON.stringify(fullParsed, null, 2);
+            originalSettings = JSON.parse(JSON.stringify(configData));
+
+            showToast('Configuration saved and downloaded successfully!');
+        } else if (!currentFile) {
+            showToast('No file loaded', 'error');
         }
     });
 
-    // Download config button
+    // Download config button (exports modified config)
     downloadConfig.addEventListener('click', () => {
         if (configData) {
-            const blob = new Blob([JSON.stringify(configData, null, 2)], {
+            const updatedSettings = buildUpdatedSettingsObject();
+
+            let fullParsed;
+            try {
+                fullParsed = originalFileContent ? JSON.parse(originalFileContent) : {
+                    settings: {}
+                };
+            } catch (e) {
+                fullParsed = {
+                    settings: {}
+                };
+            }
+
+            if (!fullParsed.settings) fullParsed.settings = {};
+
+            for (const [sectionKey, sectionData] of Object.entries(updatedSettings)) {
+                if (sectionData !== undefined && sectionData !== null) {
+                    fullParsed.settings[sectionKey] = sectionData;
+                }
+            }
+
+            const blob = new Blob([JSON.stringify(fullParsed, null, 2)], {
                 type: 'application/json'
             });
             const url = URL.createObjectURL(blob);
@@ -288,20 +432,36 @@ document.addEventListener('DOMContentLoaded', function() {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            showToast('Configuration exported!');
         }
     });
 
     // Reset all button
     resetAll.addEventListener('click', () => {
-        if (confirm('Are you sure you want to reset all settings to default?')) {
+        if (confirm('Are you sure you want to reset all settings to default values?')) {
             resetAllSettings();
         }
     });
 
+    // Build the updated settings object from current configData
+    function buildUpdatedSettingsObject() {
+        const updated = {};
+        if (configData['cw::AimingProjectSettings']) updated['cw::AimingProjectSettings'] = configData['cw::AimingProjectSettings'];
+        if (configData['cw::FollowAimSettings']) updated['cw::FollowAimSettings'] = configData['cw::FollowAimSettings'];
+        if (configData['cw::ArmorOutlinerProjectSettings']) updated['cw::ArmorOutlinerProjectSettings'] = configData['cw::ArmorOutlinerProjectSettings'];
+        if (configData['cw::HapticsProjectSettings']) updated['cw::HapticsProjectSettings'] = configData['cw::HapticsProjectSettings'];
+        if (configData['engine::WindowProjectSettings']) updated['engine::WindowProjectSettings'] = configData['engine::WindowProjectSettings'];
+        if (configData['FrameLimiterSettings']) updated['FrameLimiterSettings'] = configData['FrameLimiterSettings'];
+        if (configData['cw::hud::battle::VehicleMarkerSettingsSingleton::ProjectSettings']) {
+            updated['cw::hud::battle::VehicleMarkerSettingsSingleton::ProjectSettings'] = configData['cw::hud::battle::VehicleMarkerSettingsSingleton::ProjectSettings'];
+        }
+        return updated;
+    }
+
     // Handle file upload
     function handleFile(file) {
         if (!file.name.endsWith('.project')) {
-            showToast('Please upload a valid .project file');
+            showToast('Please upload a valid .project file', 'error');
             return;
         }
 
@@ -309,29 +469,40 @@ document.addEventListener('DOMContentLoaded', function() {
         fileName.textContent = file.name;
         fileInfo.style.display = 'flex';
         dropZone.style.display = 'none';
+        currentFile = file;
 
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
-                const content = e.target.result;
-                configData = JSON.parse(content);
-                originalConfig = JSON.parse(content);
+                originalFileContent = e.target.result;
+                let parsed = JSON.parse(originalFileContent);
 
-                // Check if this is the new format with "settings" wrapper
-                if (configData.settings) {
-                    configData = configData.settings;
+                // Extract settings from the parsed file
+                if (parsed.settings) {
+                    configData = parsed.settings;
+                } else {
+                    // If no settings wrapper, assume the whole file is settings
+                    configData = parsed;
                 }
 
-                // Load settings from localStorage if available
+                originalSettings = JSON.parse(JSON.stringify(configData));
+
+                // Load saved settings from localStorage if available
                 const savedConfig = localStorage.getItem('cwConfigData');
-                if (savedConfig) {
+                const savedFileName = localStorage.getItem('cwConfigFileName');
+
+                if (savedConfig && savedFileName === fileNameValue) {
                     try {
                         const parsedSavedConfig = JSON.parse(savedConfig);
-                        // Only apply saved settings if the file structure matches
-                        if (parsedSavedConfig['cw::AimingProjectSettings'] || parsedSavedConfig.settings) {
-                            configData = parsedSavedConfig.settings || parsedSavedConfig;
-                            showToast('Previous settings loaded from browser storage');
+                        // Merge saved settings with loaded config
+                        for (const [sectionKey, sectionData] of Object.entries(parsedSavedConfig)) {
+                            if (configData[sectionKey] && sectionData) {
+                                Object.assign(configData[sectionKey], sectionData);
+                            } else if (sectionData) {
+                                configData[sectionKey] = sectionData;
+                            }
                         }
+                        showToast('Previous settings loaded from browser storage');
                     } catch (e) {
                         console.error('Error loading saved config:', e);
                     }
@@ -339,9 +510,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 renderSettings();
                 configSections.style.display = 'block';
+                showToast('File loaded successfully!');
             } catch (e) {
                 console.error('Error parsing file:', e);
-                showToast('Error parsing file. Please make sure it\'s a valid JSON file.');
+                showToast('Error parsing file. Please make sure it\'s a valid JSON file.', 'error');
                 resetFile.click();
             }
         };
@@ -351,55 +523,37 @@ document.addEventListener('DOMContentLoaded', function() {
     // Render all settings
     function renderSettings() {
         if (!configData) return;
-
-        // Aiming Settings
         renderAimingSettings();
-
-        // Follow Aim Settings (Aim Assist)
         renderFollowAimSettings();
-
-        // Armor Outliner Settings
         renderArmorOutlinerSettings();
-
-        // Controller Haptics Settings
         renderHapticsSettings();
-
-        // Marker Settings
         renderMarkerSettings();
-
-        // Window Settings
         renderWindowSettings();
-
-        // Resolution Settings
-        renderResolutionSettings();
-
-        // Frame Limiter Settings
         renderFrameLimiterSettings();
     }
 
     function renderAimingSettings() {
         const tab = document.getElementById('aiming-tab');
         tab.innerHTML = '';
-
         const aimingSettings = configData['cw::AimingProjectSettings'] || {};
 
         const group = createSettingsGroup('Aiming Settings');
         tab.appendChild(group);
 
-        // Create settings controls for each aiming property
         createRangeInput(group, 'Aim Assist Sensitivity at 500m', 'aimAssistSensitivityMultiplierAt500M', aimingSettings, 0, 1, 0.01);
         createRangeInput(group, 'Aim Assist Sensitivity at 0m', 'aimAssistSensitivityMultiplierAtZeroM', aimingSettings, 0, 1, 0.01);
         createRangeInput(group, 'Aim Assist Target Lock On Time', 'aimAssistTargetLockOnTime', aimingSettings, 0, 5, 0.1);
-        createRangeInput(group, 'Distance Update Speed', 'distanceUpdateSpeed', aimingSettings, 1, 100, 1);
+        createRangeInput(group, 'Distance Update Speed', 'distanceUpdateSpeed', aimingSettings, 1, 1000, 10);
         createRangeInput(group, 'Max Aiming Angle Error', 'maxAimingAngleError', aimingSettings, 1, 90, 1);
         createRangeInput(group, 'Max Distance', 'maxDistance', aimingSettings, 100, 5000, 10);
         createRangeInput(group, 'Min Distance', 'minDistance', aimingSettings, 1, 100, 1);
+        createRangeInput(group, 'CQC Aim Point Angle Threshold', 'cqcAimPointAngleThreshold', aimingSettings, 0, 90, 1);
+        createRangeInput(group, 'CQC Aim Point Depth', 'cqcAimPointDepth', aimingSettings, 0, 1, 0.05);
+        createRangeInput(group, 'CQC Aim Point Distance Threshold', 'cqcAimPointDistanceThreshold', aimingSettings, 0, 50, 1);
 
-        // Dropdown for stopType
         const stopTypeOptions = ['StopByRotation', 'StopByDistance', 'StopByTime'];
         createDropdown(group, 'Stop Type', 'stopType', aimingSettings, stopTypeOptions);
 
-        // Checkboxes
         createCheckbox(group, 'Use Local Aim Point', 'useLocalAimPoint', aimingSettings);
         createCheckbox(group, 'Use Local Dispersion', 'useLocalDispersion', aimingSettings);
     }
@@ -407,13 +561,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderFollowAimSettings() {
         const tab = document.getElementById('aim-assist-tab');
         tab.innerHTML = '';
-
         const followAimSettings = configData['cw::FollowAimSettings'] || {};
 
         const group = createSettingsGroup('Aim Assist Settings');
         tab.appendChild(group);
 
-        // Create settings controls for each follow aim property
         createRangeInput(group, 'Acceleration Magnet Min', 'followAimAccMagnetMin', followAimSettings, 0, 1, 0.01);
         createRangeInput(group, 'Acceleration Magnet Multiplier', 'followAimAccMagnetMult', followAimSettings, 0, 1, 0.01);
         createRangeInput(group, 'Centring Time', 'followAimCentringTime', followAimSettings, 0, 5, 0.1);
@@ -436,36 +588,33 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderArmorOutlinerSettings() {
         const tab = document.getElementById('armor-tab');
         tab.innerHTML = '';
-
         const armorSettings = configData['cw::ArmorOutlinerProjectSettings'] || {};
 
         const group = createSettingsGroup('Armor Outliner Settings');
         tab.appendChild(group);
 
         createRangeInput(group, 'Max Distance', 'Max Distance', armorSettings, 100, 1000, 10);
+
+        const modeOptions = ['Full', 'Partial', 'Off'];
+        createDropdown(group, 'Default Mode', 'Default Mode', armorSettings, modeOptions);
+
         createCheckbox(group, 'Enabled', 'Is Enabled', armorSettings);
     }
 
     function renderHapticsSettings() {
         const tab = document.getElementById('controller-tab');
         tab.innerHTML = '';
-
         const hapticsSettings = configData['cw::HapticsProjectSettings'] || {};
 
         const group = createSettingsGroup('Controller Haptics Settings');
         tab.appendChild(group);
 
-        // Heavy Rumble
         createRangeInput(group, 'Heavy Rumble Duration (ms)', 'heavyRumbleDurationMS', hapticsSettings, 100, 1000, 10);
         createRangeInput(group, 'Heavy Rumble High Frequency', 'heavyRumbleHighFrequency', hapticsSettings, 0, 1, 0.05);
         createRangeInput(group, 'Heavy Rumble Low Frequency', 'heavyRumbleLowFrequency', hapticsSettings, 0, 1, 0.05);
-
-        // Medium Rumble
         createRangeInput(group, 'Medium Rumble Duration (ms)', 'mediumRumbleDurationMS', hapticsSettings, 100, 1000, 10);
         createRangeInput(group, 'Medium Rumble High Frequency', 'mediumRumbleHighFrequency', hapticsSettings, 0, 1, 0.05);
         createRangeInput(group, 'Medium Rumble Low Frequency', 'mediumRumbleLowFrequency', hapticsSettings, 0, 1, 0.05);
-
-        // Light Rumble
         createRangeInput(group, 'Light Rumble Duration (ms)', 'lightRumbleDurationMS', hapticsSettings, 100, 1000, 10);
         createRangeInput(group, 'Light Rumble High Frequency', 'lightRumbleHighFrequency', hapticsSettings, 0, 1, 0.05);
         createRangeInput(group, 'Light Rumble Low Frequency', 'lightRumbleLowFrequency', hapticsSettings, 0, 1, 0.05);
@@ -477,67 +626,98 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const markerSettings = configData['cw::hud::battle::VehicleMarkerSettingsSingleton::ProjectSettings'] || {};
         const vehicleMarkerSettings = markerSettings['Vehicle Marker Settings'] || {};
-        const allySettings = vehicleMarkerSettings['markerSettings']?.allyMarkerSettings?.markerSettings || defaultValues.markers.ally;
-        const enemySettings = vehicleMarkerSettings['markerSettings']?.enemyMarkerSettings?.markerSettings || defaultValues.markers.enemy;
-        const platoonSettings = vehicleMarkerSettings['markerSettings']?.platoonMarkerSettings?.markerSettings || defaultValues.markers.platoon;
+
+        // Helper to get settings with fallback to defaults
+        function getMarkerSettings(type) {
+            const typeKey = `${type}MarkerSettings`;
+            if (vehicleMarkerSettings.markerSettings &&
+                vehicleMarkerSettings.markerSettings[typeKey] &&
+                vehicleMarkerSettings.markerSettings[typeKey].markerSettings) {
+                return vehicleMarkerSettings.markerSettings[typeKey].markerSettings;
+            }
+            return JSON.parse(JSON.stringify(defaultValues.markers[type]));
+        }
+
+        const allySettings = getMarkerSettings('ally');
+        const enemySettings = getMarkerSettings('enemy');
+        const platoonSettings = getMarkerSettings('platoon');
 
         const group = createSettingsGroup('Marker Visibility Settings');
         tab.appendChild(group);
 
-        // Create a tab system for marker types
+        // Create tab system for marker types
         const markerTypeTabs = document.createElement('div');
-        markerTypeTabs.className = 'settings-tabs';
+        markerTypeTabs.className = 'marker-type-tabs';
+        markerTypeTabs.style.display = 'flex';
+        markerTypeTabs.style.gap = '0.5rem';
         markerTypeTabs.style.marginBottom = '1rem';
+        markerTypeTabs.style.borderBottom = '1px solid var(--border-color)';
+        markerTypeTabs.style.paddingBottom = '0.5rem';
 
         const allyTab = document.createElement('button');
-        allyTab.className = 'tab-btn active';
+        allyTab.className = 'marker-tab-btn active';
         allyTab.textContent = 'Allies';
         allyTab.setAttribute('data-marker-type', 'ally');
 
         const enemyTab = document.createElement('button');
-        enemyTab.className = 'tab-btn';
+        enemyTab.className = 'marker-tab-btn';
         enemyTab.textContent = 'Enemies';
         enemyTab.setAttribute('data-marker-type', 'enemy');
 
         const platoonTab = document.createElement('button');
-        platoonTab.className = 'tab-btn';
+        platoonTab.className = 'marker-tab-btn';
         platoonTab.textContent = 'Platoon';
         platoonTab.setAttribute('data-marker-type', 'platoon');
+
+        // Style the tab buttons
+        [allyTab, enemyTab, platoonTab].forEach(btn => {
+            btn.style.background = 'none';
+            btn.style.border = 'none';
+            btn.style.padding = '0.5rem 1rem';
+            btn.style.cursor = 'pointer';
+            btn.style.color = 'var(--text-secondary)';
+            btn.style.borderRadius = '4px';
+            btn.style.transition = 'all 0.2s';
+        });
+        allyTab.style.color = 'var(--accent-color)';
+        allyTab.style.borderBottom = '2px solid var(--accent-color)';
 
         markerTypeTabs.append(allyTab, enemyTab, platoonTab);
         group.appendChild(markerTypeTabs);
 
-        // Create container for marker type content
         const markerTypeContent = document.createElement('div');
         markerTypeContent.className = 'marker-type-content';
         group.appendChild(markerTypeContent);
 
-        // Function to render marker settings for a type
         function renderMarkerType(type, settings) {
             markerTypeContent.innerHTML = '';
-
             const states = Object.keys(settings);
+
             states.forEach(state => {
                 const stateSettings = settings[state];
                 const stateGroup = document.createElement('div');
                 stateGroup.className = 'marker-state-group';
+                stateGroup.style.marginBottom = '1.5rem';
+                stateGroup.style.padding = '1rem';
+                stateGroup.style.background = 'var(--bg-secondary)';
+                stateGroup.style.borderRadius = '8px';
+                stateGroup.style.border = '1px solid var(--border-color)';
 
                 const stateHeader = document.createElement('h4');
                 stateHeader.textContent = state.replace(/([A-Z])/g, ' $1').trim();
-                stateHeader.style.margin = '1rem 0 0.5rem';
+                stateHeader.style.margin = '0 0 1rem 0';
                 stateHeader.style.color = 'var(--text-primary)';
                 stateGroup.appendChild(stateHeader);
 
-                // Create opacity slider
                 if (stateSettings.opacity !== undefined) {
                     createRangeInput(stateGroup, 'Opacity', 'opacity', stateSettings, 0, 1, 0.05);
                 }
 
-                // Create checkboxes for all boolean properties
-                Object.keys(stateSettings).forEach(key => {
-                    if (typeof stateSettings[key] === 'boolean') {
-                        const label = key.replace('is', '').replace(/([A-Z])/g, ' $1').trim();
-                        createCheckbox(stateGroup, label, key, stateSettings);
+                const boolProps = ['isEnabled', 'isNameEnabled', 'isHealthBarEnabled', 'isDistanceEnabled'];
+                boolProps.forEach(prop => {
+                    if (stateSettings[prop] !== undefined) {
+                        const label = prop.replace('is', '').replace(/([A-Z])/g, ' $1').trim();
+                        createCheckbox(stateGroup, label, prop, stateSettings);
                     }
                 });
 
@@ -545,31 +725,36 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Initial render
         renderMarkerType('ally', allySettings);
 
-        // Tab switching
-        [allyTab, enemyTab, platoonTab].forEach(tab => {
-            tab.addEventListener('click', () => {
-                [allyTab, enemyTab, platoonTab].forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-
-                const type = tab.getAttribute('data-marker-type');
-                if (type === 'ally') {
-                    renderMarkerType('ally', allySettings);
-                } else if (type === 'enemy') {
-                    renderMarkerType('enemy', enemySettings);
-                } else if (type === 'platoon') {
-                    renderMarkerType('platoon', platoonSettings);
-                }
+        function switchMarkerTab(type) {
+            [allyTab, enemyTab, platoonTab].forEach(btn => {
+                btn.style.color = 'var(--text-secondary)';
+                btn.style.borderBottom = 'none';
             });
-        });
+            if (type === 'ally') {
+                allyTab.style.color = 'var(--accent-color)';
+                allyTab.style.borderBottom = '2px solid var(--accent-color)';
+                renderMarkerType('ally', allySettings);
+            } else if (type === 'enemy') {
+                enemyTab.style.color = 'var(--accent-color)';
+                enemyTab.style.borderBottom = '2px solid var(--accent-color)';
+                renderMarkerType('enemy', enemySettings);
+            } else if (type === 'platoon') {
+                platoonTab.style.color = 'var(--accent-color)';
+                platoonTab.style.borderBottom = '2px solid var(--accent-color)';
+                renderMarkerType('platoon', platoonSettings);
+            }
+        }
+
+        allyTab.addEventListener('click', () => switchMarkerTab('ally'));
+        enemyTab.addEventListener('click', () => switchMarkerTab('enemy'));
+        platoonTab.addEventListener('click', () => switchMarkerTab('platoon'));
     }
 
     function renderWindowSettings() {
         const tab = document.getElementById('window-tab');
         tab.innerHTML = '';
-
         const windowSettings = configData['engine::WindowProjectSettings'] || {};
 
         const group = createSettingsGroup('Window Resolution Settings');
@@ -583,63 +768,46 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function renderFrameLimiterSettings() {
         const tab = document.getElementById('resolution-tab');
+        tab.innerHTML = '';
 
         const frameLimiterSettings = configData['FrameLimiterSettings'] || {};
 
-        // Only proceed if we have frame limiter settings
         if (Object.keys(frameLimiterSettings).length > 0) {
             const group = createSettingsGroup('Frame Limiter Settings');
             tab.appendChild(group);
 
-            // Client settings
             if (frameLimiterSettings.client) {
                 const clientGroup = document.createElement('div');
-                clientGroup.className = 'frame-limiter-group';
                 clientGroup.style.marginBottom = '1.5rem';
-
                 const clientHeader = document.createElement('h4');
                 clientHeader.textContent = 'Active Client';
                 clientHeader.style.marginBottom = '0.5rem';
                 clientGroup.appendChild(clientHeader);
-
                 createRangeInput(clientGroup, 'Frequency (FPS)', 'frequency', frameLimiterSettings.client, 30, 360, 1);
                 createRangeInput(clientGroup, 'Carried Overspent', 'carriedOverspent', frameLimiterSettings.client, 0.1, 1.0, 0.05);
-
                 group.appendChild(clientGroup);
             }
 
-            // Inactive client settings
             if (frameLimiterSettings['inactive client']) {
                 const inactiveClientGroup = document.createElement('div');
-                inactiveClientGroup.className = 'frame-limiter-group';
                 inactiveClientGroup.style.marginBottom = '1.5rem';
-
                 const inactiveClientHeader = document.createElement('h4');
                 inactiveClientHeader.textContent = 'Inactive Client';
                 inactiveClientHeader.style.marginBottom = '0.5rem';
                 inactiveClientGroup.appendChild(inactiveClientHeader);
-
                 createRangeInput(inactiveClientGroup, 'Frequency (FPS)', 'frequency', frameLimiterSettings['inactive client'], 10, 144, 1);
                 createRangeInput(inactiveClientGroup, 'Carried Overspent', 'carriedOverspent', frameLimiterSettings['inactive client'], 0.1, 1.0, 0.05);
-
                 group.appendChild(inactiveClientGroup);
             }
         }
-    }
 
-    function renderResolutionSettings() {
-        const tab = document.getElementById('resolution-tab');
-        tab.innerHTML = '';
-
-        // Find resolution presets in config
+        // Resolution presets section
         let resolutionPresets = [];
         let breakpoints = [];
 
-        // Search for resolution settings in config (they might be in different places)
         if (configData['engine::WindowSettings']) {
             resolutionPresets = configData['engine::WindowSettings'].values || [];
         } else {
-            // Search through all keys for resolution settings
             for (const key in configData) {
                 if (key.includes('WindowSettings') && configData[key].values) {
                     resolutionPresets = configData[key].values || [];
@@ -648,7 +816,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Search for breakpoints
         if (configData['engine::Breakpoints']) {
             breakpoints = configData['engine::Breakpoints'];
         } else {
@@ -660,7 +827,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Resolution Presets
         if (resolutionPresets.length > 0) {
             const presetsGroup = createSettingsGroup('Resolution Presets');
             tab.appendChild(presetsGroup);
@@ -668,23 +834,18 @@ document.addEventListener('DOMContentLoaded', function() {
             resolutionPresets.forEach((preset, index) => {
                 if (preset.value && preset.value['resolution fullscreen']) {
                     const presetGroup = document.createElement('div');
-                    presetGroup.className = 'resolution-preset-group';
                     presetGroup.style.marginBottom = '1.5rem';
-
                     const presetHeader = document.createElement('h4');
                     presetHeader.textContent = preset.key;
                     presetHeader.style.marginBottom = '0.5rem';
                     presetGroup.appendChild(presetHeader);
-
                     createRangeInput(presetGroup, 'Width', 'width', preset.value['resolution fullscreen'], 800, 7680, 10);
                     createRangeInput(presetGroup, 'Height', 'height', preset.value['resolution fullscreen'], 600, 4320, 10);
-
                     presetsGroup.appendChild(presetGroup);
                 }
             });
         }
 
-        // Breakpoints
         if (breakpoints.length > 0) {
             const breakpointsGroup = createSettingsGroup('Resolution Breakpoints');
             tab.appendChild(breakpointsGroup);
@@ -692,18 +853,14 @@ document.addEventListener('DOMContentLoaded', function() {
             breakpoints.forEach((bp, index) => {
                 if (bp.Width !== undefined && bp.Height !== undefined && bp.Scale !== undefined) {
                     const bpGroup = document.createElement('div');
-                    bpGroup.className = 'breakpoint-group';
                     bpGroup.style.marginBottom = '1rem';
-
                     const bpHeader = document.createElement('h4');
                     bpHeader.textContent = `Breakpoint ${index + 1}`;
                     bpHeader.style.marginBottom = '0.5rem';
                     bpGroup.appendChild(bpHeader);
-
                     createRangeInput(bpGroup, 'Width', 'Width', bp, 0, 7680, 10);
                     createRangeInput(bpGroup, 'Height', 'Height', bp, 0, 4320, 10);
                     createRangeInput(bpGroup, 'Scale', 'Scale', bp, 0.1, 3, 0.01);
-
                     breakpointsGroup.appendChild(bpGroup);
                 }
             });
@@ -714,18 +871,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function createSettingsGroup(title) {
         const group = document.createElement('div');
         group.className = 'settings-group';
-
         const heading = document.createElement('h3');
         heading.textContent = title;
         group.appendChild(heading);
-
         return group;
     }
 
     // Helper function to create a range input
     function createRangeInput(container, label, key, settingsObj, min, max, step) {
-        const value = settingsObj[key] !== undefined ? settingsObj[key] : 0;
-
+        const value = settingsObj[key] !== undefined ? settingsObj[key] : min;
         const item = document.createElement('div');
         item.className = 'setting-item';
 
@@ -741,40 +895,26 @@ document.addEventListener('DOMContentLoaded', function() {
         input.max = max;
         input.step = step;
         input.value = value;
-        input.addEventListener('input', (e) => {
-            settingsObj[key] = parseFloat(e.target.value);
-            valueDisplay.textContent = settingsObj[key].toFixed(2);
-        });
-        item.appendChild(input);
 
         const valueDisplay = document.createElement('span');
         valueDisplay.className = 'setting-value';
         valueDisplay.textContent = value.toFixed(2);
+
+        input.addEventListener('input', (e) => {
+            const newVal = parseFloat(e.target.value);
+            settingsObj[key] = newVal;
+            valueDisplay.textContent = newVal.toFixed(2);
+        });
+
+        item.appendChild(input);
         item.appendChild(valueDisplay);
 
-        // Add reset button
         const resetBtn = document.createElement('button');
         resetBtn.className = 'btn-reset';
-        resetBtn.innerHTML = '<i class="fas fa-undo"></i>';
+        resetBtn.innerHTML = '↺';
         resetBtn.title = 'Reset to default';
         resetBtn.addEventListener('click', () => {
-            let defaultValue = 0;
-
-            // Find default value based on the settings object
-            if (settingsObj === configData['cw::AimingProjectSettings']) {
-                defaultValue = defaultValues.aiming[key] !== undefined ? defaultValues.aiming[key] : value;
-            } else if (settingsObj === configData['cw::FollowAimSettings']) {
-                defaultValue = defaultValues.followAim[key] !== undefined ? defaultValues.followAim[key] : value;
-            } else if (settingsObj === configData['cw::ArmorOutlinerProjectSettings']) {
-                defaultValue = defaultValues.armorOutliner[key] !== undefined ? defaultValues.armorOutliner[key] : value;
-            } else if (settingsObj === configData['cw::HapticsProjectSettings']) {
-                defaultValue = defaultValues.haptics[key] !== undefined ? defaultValues.haptics[key] : value;
-            } else if (settingsObj === configData['engine::WindowProjectSettings']?.minSize) {
-                defaultValue = defaultValues.window.minSize[key] !== undefined ? defaultValues.window.minSize[key] : value;
-            } else if (settingsObj === configData['FrameLimiterSettings']?.client || settingsObj === configData['FrameLimiterSettings']?.['inactive client']) {
-                defaultValue = defaultValues.frameLimiter[key] !== undefined ? defaultValues.frameLimiter[key] : value;
-            }
-
+            const defaultValue = getDefaultValueForSetting(settingsObj, key, min);
             settingsObj[key] = defaultValue;
             input.value = defaultValue;
             valueDisplay.textContent = defaultValue.toFixed(2);
@@ -787,14 +927,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // Helper function to create a checkbox input
     function createCheckbox(container, label, key, settingsObj) {
         const value = settingsObj[key] !== undefined ? settingsObj[key] : false;
-
         const item = document.createElement('div');
         item.className = 'setting-item checkbox-item';
+        item.style.display = 'flex';
+        item.style.alignItems = 'center';
+        item.style.gap = '1rem';
 
         const input = document.createElement('input');
         input.type = 'checkbox';
         input.id = `setting-${key}`;
         input.checked = value;
+        input.style.width = '20px';
+        input.style.height = '20px';
+        input.style.cursor = 'pointer';
+
         input.addEventListener('change', (e) => {
             settingsObj[key] = e.target.checked;
         });
@@ -803,29 +949,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const labelEl = document.createElement('label');
         labelEl.textContent = label;
         labelEl.htmlFor = `setting-${key}`;
+        labelEl.style.cursor = 'pointer';
+        labelEl.style.flex = '1';
         item.appendChild(labelEl);
 
-        // Add reset button
         const resetBtn = document.createElement('button');
         resetBtn.className = 'btn-reset';
-        resetBtn.innerHTML = '<i class="fas fa-undo"></i>';
+        resetBtn.innerHTML = '↺';
         resetBtn.title = 'Reset to default';
+        resetBtn.style.marginLeft = 'auto';
         resetBtn.addEventListener('click', () => {
-            let defaultValue = false;
-
-            // Find default value based on the settings object
-            if (settingsObj === configData['cw::AimingProjectSettings']) {
-                defaultValue = defaultValues.aiming[key] !== undefined ? defaultValues.aiming[key] : value;
-            } else if (settingsObj === configData['cw::FollowAimSettings']) {
-                defaultValue = defaultValues.followAim[key] !== undefined ? defaultValues.followAim[key] : value;
-            } else if (settingsObj === configData['cw::ArmorOutlinerProjectSettings']) {
-                defaultValue = defaultValues.armorOutliner[key] !== undefined ? defaultValues.armorOutliner[key] : value;
-            } else if (settingsObj === configData['cw::HapticsProjectSettings']) {
-                defaultValue = defaultValues.haptics[key] !== undefined ? defaultValues.haptics[key] : value;
-            } else if (settingsObj === configData['cw::hud::battle::VehicleMarkerSettingsSingleton::ProjectSettings']) {
-                defaultValue = defaultValues.markers[key] !== undefined ? defaultValues.markers[key] : value;
-            }
-
+            const defaultValue = getDefaultValueForSetting(settingsObj, key, false);
             settingsObj[key] = defaultValue;
             input.checked = defaultValue;
         });
@@ -837,7 +971,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Helper function to create a dropdown input
     function createDropdown(container, label, key, settingsObj, options) {
         const value = settingsObj[key] !== undefined ? settingsObj[key] : options[0];
-
         const item = document.createElement('div');
         item.className = 'setting-item';
 
@@ -848,6 +981,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const select = document.createElement('select');
         select.id = `setting-${key}`;
+        select.style.flex = '1';
+        select.style.padding = '0.5rem';
+        select.style.background = 'var(--bg-tertiary)';
+        select.style.border = '1px solid var(--border-color)';
+        select.style.borderRadius = '4px';
+        select.style.color = 'var(--text-primary)';
 
         options.forEach(option => {
             const optionEl = document.createElement('option');
@@ -862,19 +1001,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         item.appendChild(select);
 
-        // Add reset button
         const resetBtn = document.createElement('button');
         resetBtn.className = 'btn-reset';
-        resetBtn.innerHTML = '<i class="fas fa-undo"></i>';
+        resetBtn.innerHTML = '↺';
         resetBtn.title = 'Reset to default';
         resetBtn.addEventListener('click', () => {
-            let defaultValue = options[0];
-
-            // Find default value based on the settings object
-            if (settingsObj === configData['cw::AimingProjectSettings']) {
-                defaultValue = defaultValues.aiming[key] !== undefined ? defaultValues.aiming[key] : value;
-            }
-
+            const defaultValue = getDefaultValueForSetting(settingsObj, key, options[0]);
             settingsObj[key] = defaultValue;
             select.value = defaultValue;
         });
@@ -883,120 +1015,125 @@ document.addEventListener('DOMContentLoaded', function() {
         container.appendChild(item);
     }
 
+    function getDefaultValueForSetting(settingsObj, key, fallback) {
+        if (settingsObj === configData?.['cw::AimingProjectSettings']) {
+            return defaultValues.aiming[key] !== undefined ? defaultValues.aiming[key] : fallback;
+        }
+        if (settingsObj === configData?.['cw::FollowAimSettings']) {
+            return defaultValues.followAim[key] !== undefined ? defaultValues.followAim[key] : fallback;
+        }
+        if (settingsObj === configData?.['cw::ArmorOutlinerProjectSettings']) {
+            return defaultValues.armorOutliner[key] !== undefined ? defaultValues.armorOutliner[key] : fallback;
+        }
+        if (settingsObj === configData?.['cw::HapticsProjectSettings']) {
+            return defaultValues.haptics[key] !== undefined ? defaultValues.haptics[key] : fallback;
+        }
+        if (settingsObj === configData?.['engine::WindowProjectSettings']?.minSize) {
+            return defaultValues.window.minSize[key] !== undefined ? defaultValues.window.minSize[key] : fallback;
+        }
+        if (settingsObj === configData?.['FrameLimiterSettings']?.client) {
+            return defaultValues.frameLimiter.client[key] !== undefined ? defaultValues.frameLimiter.client[key] : fallback;
+        }
+        if (settingsObj === configData?.['FrameLimiterSettings']?.['inactive client']) {
+            return defaultValues.frameLimiter['inactive client'][key] !== undefined ? defaultValues.frameLimiter['inactive client'][key] : fallback;
+        }
+        // For marker settings
+        if (configData?.['cw::hud::battle::VehicleMarkerSettingsSingleton::ProjectSettings']) {
+            for (const type of ['ally', 'enemy', 'platoon']) {
+                for (const state of ['InDirectVisible', 'Dead', 'DeadHotKey', 'DeadInAiming', 'InDirectInvisible']) {
+                    if (defaultValues.markers[type]?.[state]?.[key] !== undefined) {
+                        return defaultValues.markers[type][state][key];
+                    }
+                }
+            }
+        }
+        return fallback;
+    }
+
     // Reset all settings to default
     function resetAllSettings() {
-        if (!configData || !originalConfig) return;
+        if (!configData) return;
 
-        // Reset aiming settings
         if (configData['cw::AimingProjectSettings']) {
-            Object.keys(defaultValues.aiming).forEach(key => {
-                configData['cw::AimingProjectSettings'][key] = defaultValues.aiming[key];
-            });
+            Object.assign(configData['cw::AimingProjectSettings'], JSON.parse(JSON.stringify(defaultValues.aiming)));
         }
-
-        // Reset follow aim settings
         if (configData['cw::FollowAimSettings']) {
-            Object.keys(defaultValues.followAim).forEach(key => {
-                configData['cw::FollowAimSettings'][key] = defaultValues.followAim[key];
-            });
+            Object.assign(configData['cw::FollowAimSettings'], JSON.parse(JSON.stringify(defaultValues.followAim)));
         }
-
-        // Reset armor outliner settings
         if (configData['cw::ArmorOutlinerProjectSettings']) {
-            Object.keys(defaultValues.armorOutliner).forEach(key => {
-                configData['cw::ArmorOutlinerProjectSettings'][key] = defaultValues.armorOutliner[key];
-            });
+            Object.assign(configData['cw::ArmorOutlinerProjectSettings'], JSON.parse(JSON.stringify(defaultValues.armorOutliner)));
         }
-
-        // Reset haptics settings
         if (configData['cw::HapticsProjectSettings']) {
-            Object.keys(defaultValues.haptics).forEach(key => {
-                configData['cw::HapticsProjectSettings'][key] = defaultValues.haptics[key];
-            });
+            Object.assign(configData['cw::HapticsProjectSettings'], JSON.parse(JSON.stringify(defaultValues.haptics)));
         }
-
-        // Reset window settings
-        if (configData['engine::WindowProjectSettings']) {
-            Object.keys(defaultValues.window.minSize).forEach(key => {
-                configData['engine::WindowProjectSettings'].minSize[key] = defaultValues.window.minSize[key];
-            });
+        if (configData['engine::WindowProjectSettings'] && configData['engine::WindowProjectSettings'].minSize) {
+            Object.assign(configData['engine::WindowProjectSettings'].minSize, JSON.parse(JSON.stringify(defaultValues.window.minSize)));
         }
-
-        // Reset frame limiter settings
         if (configData['FrameLimiterSettings']) {
             if (configData['FrameLimiterSettings'].client) {
-                Object.keys(defaultValues.frameLimiter.client).forEach(key => {
-                    configData['FrameLimiterSettings'].client[key] = defaultValues.frameLimiter.client[key];
-                });
+                Object.assign(configData['FrameLimiterSettings'].client, JSON.parse(JSON.stringify(defaultValues.frameLimiter.client)));
             }
             if (configData['FrameLimiterSettings']['inactive client']) {
-                Object.keys(defaultValues.frameLimiter['inactive client']).forEach(key => {
-                    configData['FrameLimiterSettings']['inactive client'][key] = defaultValues.frameLimiter['inactive client'][key];
-                });
+                Object.assign(configData['FrameLimiterSettings']['inactive client'], JSON.parse(JSON.stringify(defaultValues.frameLimiter['inactive client'])));
+            }
+        }
+        if (configData['cw::hud::battle::VehicleMarkerSettingsSingleton::ProjectSettings'] &&
+            configData['cw::hud::battle::VehicleMarkerSettingsSingleton::ProjectSettings']['Vehicle Marker Settings'] &&
+            configData['cw::hud::battle::VehicleMarkerSettingsSingleton::ProjectSettings']['Vehicle Marker Settings'].markerSettings) {
+            const markerSettings = configData['cw::hud::battle::VehicleMarkerSettingsSingleton::ProjectSettings']['Vehicle Marker Settings'].markerSettings;
+            if (markerSettings.allyMarkerSettings && markerSettings.allyMarkerSettings.markerSettings) {
+                Object.assign(markerSettings.allyMarkerSettings.markerSettings, JSON.parse(JSON.stringify(defaultValues.markers.ally)));
+            }
+            if (markerSettings.enemyMarkerSettings && markerSettings.enemyMarkerSettings.markerSettings) {
+                Object.assign(markerSettings.enemyMarkerSettings.markerSettings, JSON.parse(JSON.stringify(defaultValues.markers.enemy)));
+            }
+            if (markerSettings.platoonMarkerSettings && markerSettings.platoonMarkerSettings.markerSettings) {
+                Object.assign(markerSettings.platoonMarkerSettings.markerSettings, JSON.parse(JSON.stringify(defaultValues.markers.platoon)));
             }
         }
 
-        // Reset marker settings
-        if (configData['cw::hud::battle::VehicleMarkerSettingsSingleton::ProjectSettings']) {
-            const markerSettings = configData['cw::hud::battle::VehicleMarkerSettingsSingleton::ProjectSettings'];
-            if (markerSettings['Vehicle Marker Settings']?.markerSettings?.allyMarkerSettings?.markerSettings) {
-                Object.assign(markerSettings['Vehicle Marker Settings'].markerSettings.allyMarkerSettings.markerSettings, defaultValues.markers.ally);
-            }
-            if (markerSettings['Vehicle Marker Settings']?.markerSettings?.enemyMarkerSettings?.markerSettings) {
-                Object.assign(markerSettings['Vehicle Marker Settings'].markerSettings.enemyMarkerSettings.markerSettings, defaultValues.markers.enemy);
-            }
-            if (markerSettings['Vehicle Marker Settings']?.markerSettings?.platoonMarkerSettings?.markerSettings) {
-                Object.assign(markerSettings['Vehicle Marker Settings'].markerSettings.platoonMarkerSettings.markerSettings, defaultValues.markers.platoon);
-            }
-        }
-
-        // Re-render all settings
         renderSettings();
         showToast('All settings reset to default values');
     }
 
     // Show toast notification
-    function showToast(message) {
+    function showToast(message, type = 'success') {
+        const existingToasts = document.querySelectorAll('.toast-notification');
+        existingToasts.forEach(toast => toast.remove());
+
         const toast = document.createElement('div');
-        toast.className = 'toast-notification';
+        toast.className = `toast-notification toast-${type}`;
         toast.textContent = message;
 
+        const toastStyles = {
+            position: 'fixed',
+            bottom: '20px',
+            left: '50%',
+            transform: 'translateX(-50%) translateY(100%)',
+            backgroundColor: type === 'error' ? '#d13438' : '#ff8300',
+            color: 'white',
+            padding: '0.75rem 1.5rem',
+            borderRadius: '8px',
+            zIndex: '1000',
+            opacity: '0',
+            transition: 'all 0.3s ease',
+            pointerEvents: 'none'
+        };
+
+        Object.assign(toast.style, toastStyles);
         document.body.appendChild(toast);
 
         setTimeout(() => {
-            toast.classList.add('show');
+            toast.style.transform = 'translateX(-50%) translateY(0)';
+            toast.style.opacity = '1';
         }, 10);
 
         setTimeout(() => {
-            toast.classList.remove('show');
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(-50%) translateY(100%)';
             setTimeout(() => {
-                document.body.removeChild(toast);
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
             }, 300);
-        }, 3000);
+        }, type === 'error' ? 5000 : 3000);
     }
-
-    // Dynamic toast styles (yes, I know, there is a CSS file, shut up)
-    const toastStyles = document.createElement('style');
-    toastStyles.textContent = `
-    .toast-notification {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%) translateY(100%);
-      background-color: var(--accent-color);
-      color: white;
-      padding: 0.75rem 1.5rem;
-      border-radius: 0.5rem;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      z-index: 1000;
-      opacity: 0;
-      transition: all 0.3s ease;
-    }
-
-    .toast-notification.show {
-      transform: translateX(-50%) translateY(0);
-      opacity: 1;
-    }
-  `;
-    document.head.appendChild(toastStyles);
 });
