@@ -29,22 +29,12 @@
         'Total Damage Caused': {
             icon: 'fa-bolt',
             color: '#ff8300',
-            unit: 'HP'
+            unit: ' HP'
         },
         'Total Damage Blocked': {
             icon: 'fa-shield-haltered',
             color: '#ff8300',
-            unit: 'HP'
-        },
-        'Total Credits': {
-            icon: 'fa-coins',
-            color: '#ff8300',
-            unit: 'Credits'
-        },
-        'Total Tech Coins': {
-            icon: 'fa-microchip',
-            color: '#ff8300',
-            unit: ' Tech'
+            unit: ' HP'
         }
     };
 
@@ -345,8 +335,16 @@
 
             // Generate HTML for past records list
             let recordsHtml = '';
-            pastRecords.forEach((record, index) => {
-                recordsHtml += `
+            if (pastRecords.length === 0) {
+                recordsHtml = `
+          <div class="past-records-empty">
+            <i class="fas fa-history"></i>
+            <p>No past records available for this category.</p>
+          </div>
+        `;
+            } else {
+                pastRecords.forEach((record, index) => {
+                    recordsHtml += `
           <div class="past-record-item" data-record-index="${index}">
             <div class="past-record-rank">#${index + 1}</div>
             <div class="past-record-content">
@@ -372,7 +370,8 @@
             </div>
           </div>
         `;
-            });
+                });
+            }
 
             pastRecordsList.innerHTML = recordsHtml;
             pastModalOverlay.classList.add('active');
