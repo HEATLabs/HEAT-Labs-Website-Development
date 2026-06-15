@@ -355,8 +355,7 @@
                 <span class="past-record-date">${formatDateTime(record.timestamp)}</span>
               </div>
               <div class="past-record-player">
-                <i class="fas fa-user-circle"></i>
-                <span>${escapeHtml(record.player_name || 'Unknown Player')}</span>
+                <span class="past-record-player-name">${escapeHtml(record.player_name || 'Unknown Player')}</span>
               </div>
               <div class="past-record-details">
                 <span><i class="fas fa-map-marker-alt"></i> ${escapeHtml(record.map || 'Unknown')}</span>
