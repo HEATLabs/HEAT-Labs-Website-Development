@@ -29,12 +29,12 @@
         'Total Damage Caused': {
             icon: 'fa-bolt',
             color: '#ff8300',
-            unit: ''
+            unit: 'HP'
         },
         'Total Damage Blocked': {
             icon: 'fa-shield-haltered',
             color: '#ff8300',
-            unit: ''
+            unit: 'HP'
         },
         'Total Credits': {
             icon: 'fa-coins',
