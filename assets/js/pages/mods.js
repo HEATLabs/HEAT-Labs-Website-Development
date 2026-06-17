@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const activeFiltersContainer = document.querySelector('.mods-active-filters');
     const modsGrid = document.querySelector('.mods-grid');
     let modCards = [];
+    let allModsData = [];
 
     // Fetch mod data from JSON file
     async function fetchModData() {
@@ -19,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error('Failed to load mod data');
             }
             const data = await response.json();
+            allModsData = data;
             return data;
         } catch (error) {
             console.error('Error loading mod data:', error);
@@ -73,6 +75,31 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Populate creator filters dynamically from JSON data
+    function populateCreatorFilters(mods) {
+        const creatorFilterGroup = document.querySelector('.mods-filter-group:first-child .mods-filter-buttons-grid');
+        if (!creatorFilterGroup) return;
+
+        // Get unique creators from mod data
+        const uniqueCreators = [...new Set(mods.map(mod => mod.creator))];
+
+        // Clear existing buttons
+        creatorFilterGroup.innerHTML = '';
+
+        // Create buttons for each unique creator
+        uniqueCreators.forEach(creator => {
+            const button = document.createElement('button');
+            button.className = 'mods-filter-btn creator-filter';
+            button.setAttribute('data-creator', creator);
+
+            // Add icon
+            let icon = 'fa-user';
+
+            button.innerHTML = `<i class="fas ${icon}"></i> ${creator}`;
+            creatorFilterGroup.appendChild(button);
+        });
+    }
+
     // Render all mod cards
     async function renderModCards() {
         const mods = await fetchModData();
@@ -82,6 +109,9 @@ document.addEventListener('DOMContentLoaded', function() {
             modsGrid.innerHTML = '<p class="text-center py-10">Failed to load mod data. Please try again later.</p>';
             return;
         }
+
+        // Populate creator filters before rendering cards
+        populateCreatorFilters(mods);
 
         // Create and append cards for each mod
         mods.forEach(mod => {
