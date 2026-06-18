@@ -1,3 +1,11 @@
+const FOOTER_CONFIG = {
+    showGameVersion: true,
+    showGameBuild: true,
+    showWebsiteVersion: true,
+    showWebsiteBuild: true,
+    showChangelogLink: true
+};
+
 // Main JS for HEAT Labs
 document.addEventListener('DOMContentLoaded', function() {
     // Check maintenance mode first
@@ -285,56 +293,79 @@ function addVersionToFooter(websiteUpdate, gameUpdate, isFallback = false, isWeb
         gameBuildFormatted = formatDate(new Date().toISOString());
     }
 
-    // Create game version info element
-    const gameVersionInfo = document.createElement('div');
-    gameVersionInfo.className = 'version-info-item';
-    gameVersionInfo.innerHTML = `
-        <span class="version-label">Game Version:</span>
-        <span class="version-value">v${gameUpdate ? gameUpdate.gameVersion : '0.0.0.0'}</span>
-    `;
+    // Track if we've added any items to know if we should show the container
+    let hasVisibleItems = false;
 
-    // Create game build element
-    const gameBuildInfo = document.createElement('div');
-    gameBuildInfo.className = 'version-info-item';
-    gameBuildInfo.innerHTML = `
-        <span class="version-label">Game Build:</span>
-        <span class="version-value">${gameBuildFormatted}</span>
-    `;
+    // Helper to create a version info element with conditional visibility
+    function createVersionItem(show, html, className = '') {
+        if (!show) return null;
+        hasVisibleItems = true;
+        const div = document.createElement('div');
+        div.className = `version-info-item ${className}`.trim();
+        div.innerHTML = html;
+        return div;
+    }
 
-    // Create website version info element
-    const websiteVersionInfo = document.createElement('div');
-    websiteVersionInfo.className = 'version-info-item';
-    websiteVersionInfo.innerHTML = `
-        <span class="version-label">Website Version:</span>
-        <span class="version-value">v${websiteUpdate ? websiteUpdate.version : '1.0.0'}</span>
-    `;
+    // Create each version item based on config
+    const gameVersionInfo = createVersionItem(
+        FOOTER_CONFIG.showGameVersion,
+        `
+            <span class="version-label">Game Version:</span>
+            <span class="version-value">v${gameUpdate ? gameUpdate.gameVersion : '0.0.0.0'}</span>
+        `
+    );
 
-    // Create website build element
-    const websiteBuildInfo = document.createElement('div');
-    websiteBuildInfo.className = 'version-info-item';
-    websiteBuildInfo.innerHTML = `
-        <span class="version-label">Website Build:</span>
-        <span class="version-value">${isFallback ? currentDate : websiteBuildFormatted}</span>
-    `;
+    const gameBuildInfo = createVersionItem(
+        FOOTER_CONFIG.showGameBuild,
+        `
+            <span class="version-label">Game Build:</span>
+            <span class="version-value">${gameBuildFormatted}</span>
+        `
+    );
 
-    // Create changelog link
-    const changelogLink = document.createElement('a');
-    changelogLink.className = 'version-info-item version-info-link';
-    changelogLink.href = '//changelog.heatlabs.net';
-    changelogLink.innerHTML = `
-        <span>View Changelog</span>
-        <i class="fas fa-external-link-alt"></i>
-    `;
-    changelogLink.title = 'View full changelog';
-    changelogLink.target = '_blank';
-    changelogLink.rel = 'noopener noreferrer';
+    const websiteVersionInfo = createVersionItem(
+        FOOTER_CONFIG.showWebsiteVersion,
+        `
+            <span class="version-label">Website Version:</span>
+            <span class="version-value">v${websiteUpdate ? websiteUpdate.version : '1.0.0'}</span>
+        `
+    );
 
-    // Append all elements to container
-    versionContainer.appendChild(gameVersionInfo);
-    versionContainer.appendChild(gameBuildInfo);
-    versionContainer.appendChild(websiteVersionInfo);
-    versionContainer.appendChild(websiteBuildInfo);
-    versionContainer.appendChild(changelogLink);
+    const websiteBuildInfo = createVersionItem(
+        FOOTER_CONFIG.showWebsiteBuild,
+        `
+            <span class="version-label">Website Build:</span>
+            <span class="version-value">${isFallback ? currentDate : websiteBuildFormatted}</span>
+        `
+    );
+
+    let changelogLink = null;
+    if (FOOTER_CONFIG.showChangelogLink) {
+        hasVisibleItems = true;
+        changelogLink = document.createElement('a');
+        changelogLink.className = 'version-info-item version-info-link';
+        changelogLink.href = '//changelog.heatlabs.net';
+        changelogLink.innerHTML = `
+            <span>View Changelog</span>
+            <i class="fas fa-external-link-alt"></i>
+        `;
+        changelogLink.title = 'View full changelog';
+        changelogLink.target = '_blank';
+        changelogLink.rel = 'noopener noreferrer';
+    }
+
+    // Only proceed if we have items to show
+    if (!hasVisibleItems) {
+        console.log('All footer version items are disabled in config');
+        return;
+    }
+
+    // Append all non-null elements to container
+    if (gameVersionInfo) versionContainer.appendChild(gameVersionInfo);
+    if (gameBuildInfo) versionContainer.appendChild(gameBuildInfo);
+    if (websiteVersionInfo) versionContainer.appendChild(websiteVersionInfo);
+    if (websiteBuildInfo) versionContainer.appendChild(websiteBuildInfo);
+    if (changelogLink) versionContainer.appendChild(changelogLink);
 
     // Insert after disclaimer
     disclaimerDiv.parentNode.insertBefore(versionContainer, disclaimerDiv.nextSibling);
