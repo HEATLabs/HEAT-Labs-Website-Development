@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     ${mod.description}
                 </div>
                 <div class="mod-buttons">
-                    <a href="mods/${mod.slug}" class="btn-accent">
+                    <a href="${mod.slug}" class="btn-accent" target="_blank" rel="noopener noreferrer">
                         <i class="fas fa-external-link-alt mr-2"></i>View Mod
                     </a>
                 </div>
