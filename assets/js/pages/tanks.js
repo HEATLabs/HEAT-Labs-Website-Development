@@ -272,6 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
         card.setAttribute('data-status', tank.class);
         card.setAttribute('data-tank-id', tank.id);
         card.setAttribute('data-state', tank.state);
+        card.setAttribute('data-featured', tank.featured ? 'true' : 'false');
 
         // Only show tank class (bubble) if it exists and isn't empty
         const tankClassHTML = tank.class && tank.class.trim() !== '' ?
@@ -327,6 +328,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Sort tanks alphabetically by name, with featured tanks first
+    function sortTanks(tanks) {
+        // First, separate featured and non-featured tanks
+        const featuredTanks = tanks.filter(tank => tank.featured === true && tank.state === "displayed");
+        const nonFeaturedTanks = tanks.filter(tank => (tank.featured !== true || tank.featured === false) && tank.state === "displayed");
+
+        // Sort each group alphabetically by name
+        featuredTanks.sort((a, b) => a.name.localeCompare(b.name));
+        nonFeaturedTanks.sort((a, b) => a.name.localeCompare(b.name));
+
+        // Combine: featured first, then non-featured
+        return [...featuredTanks, ...nonFeaturedTanks];
+    }
+
     // Render all tank cards
     async function renderTankCards() {
         const tanks = await fetchTankData();
@@ -337,8 +352,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // Sort tanks: featured first, then alphabetically
+        const sortedTanks = sortTanks(tanks);
+
         // Create and append cards for each tank that has state: "displayed"
-        tanks.forEach(tank => {
+        sortedTanks.forEach(tank => {
             // Only create cards for tanks with state: "displayed"
             if (tank.state === "displayed") {
                 const card = createTankCard(tank);
