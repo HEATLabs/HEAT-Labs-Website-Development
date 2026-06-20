@@ -50,6 +50,20 @@ async function fetchMapData() {
     }
 }
 
+// Sort maps alphabetically by name, with featured maps first
+function sortMaps(maps) {
+    // First, separate featured and non-featured maps
+    const featuredMaps = maps.filter(map => map.featured === true && map.state === "displayed");
+    const nonFeaturedMaps = maps.filter(map => (map.featured !== true || map.featured === false) && map.state === "displayed");
+
+    // Sort each group alphabetically by name
+    featuredMaps.sort((a, b) => a.name.localeCompare(b.name));
+    nonFeaturedMaps.sort((a, b) => a.name.localeCompare(b.name));
+
+    // Combine: featured first, then non-featured
+    return [...featuredMaps, ...nonFeaturedMaps];
+}
+
 // Create map card HTML
 function createMapCard(map) {
     const card = document.createElement('div');
@@ -57,6 +71,7 @@ function createMapCard(map) {
     card.setAttribute('data-status', map.status);
     card.setAttribute('data-map-id', map.id);
     card.setAttribute('data-state', map.state);
+    card.setAttribute('data-featured', map.featured ? 'true' : 'false');
 
     // Calculate area for sorting if size is known
     let area = 0;
@@ -120,8 +135,11 @@ async function renderMapCards() {
         return;
     }
 
+    // Sort maps: featured first, then alphabetically
+    const sortedMaps = sortMaps(maps);
+
     // Create and append cards for each map that has state: "displayed"
-    maps.forEach(map => {
+    sortedMaps.forEach(map => {
         // Only create cards for maps with state: "displayed"
         if (map.state === "displayed") {
             const card = createMapCard(map);
