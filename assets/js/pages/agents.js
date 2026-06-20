@@ -62,6 +62,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Sort agents alphabetically by name, with featured agents first
+    function sortAgents(agents) {
+        // First, separate featured and non-featured agents
+        const featuredAgents = agents.filter(agent => agent.featured === true && agent.state === "displayed");
+        const nonFeaturedAgents = agents.filter(agent => (agent.featured !== true || agent.featured === false) && agent.state === "displayed");
+
+        // Sort each group alphabetically by name
+        featuredAgents.sort((a, b) => a.name.localeCompare(b.name));
+        nonFeaturedAgents.sort((a, b) => a.name.localeCompare(b.name));
+
+        // Combine: featured first, then non-featured
+        return [...featuredAgents, ...nonFeaturedAgents];
+    }
+
     // Create agent card HTML
     function createAgentCard(agent) {
         const card = document.createElement('div');
@@ -69,6 +83,7 @@ document.addEventListener('DOMContentLoaded', function() {
         card.setAttribute('data-status', agent.status);
         card.setAttribute('data-agent-id', agent.id);
         card.setAttribute('data-state', agent.state);
+        card.setAttribute('data-featured', agent.featured ? 'true' : 'false');
 
         // Get number of compatible tanks
         const tankCount = agent.compatibleTanks ? agent.compatibleTanks.length : 0;
@@ -124,8 +139,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // Sort agents: featured first, then alphabetically
+        const sortedAgents = sortAgents(agents);
+
         // Create and append cards for each agent that has state: "displayed"
-        agents.forEach(agent => {
+        sortedAgents.forEach(agent => {
             // Only create cards for agents with state: "displayed"
             if (agent.state === "displayed") {
                 const card = createAgentCard(agent);
