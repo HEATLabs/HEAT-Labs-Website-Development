@@ -5,6 +5,7 @@ let currentPage = 1;
 let buildsPerPage = 12;
 let isLoading = false;
 let hasMoreBuilds = true;
+let initialBuildLoadComplete = false;
 const MAX_CONCURRENT_REQUESTS = 10;
 const REQUEST_DELAY = 500; // 0.5s between batches
 const loaderMessages = [
@@ -47,7 +48,9 @@ async function fetchTankData() {
 
         tankData = await response.json();
         populateTankFilter();
-        fetchBuildsData();
+        await fetchBuildsData();
+        initialBuildLoadComplete = true;
+        handleUrlParams();
     } catch (error) {
         console.error('Error fetching tank data:', error);
         showError("Failed to load tank data. Please try again later.");
@@ -378,39 +381,59 @@ function handleUrlParams() {
     } = getUrlParams();
 
     if (tank && build) {
-        // Wait for builds to load before trying to find the specific build
-        const checkBuildsLoaded = setInterval(() => {
-            if (originalBuilds.length > 0 || !hasMoreBuilds) {
-                clearInterval(checkBuildsLoaded);
-                const targetBuild = findBuildByParams(tank, build);
+        // Find the build directly now that all data is loaded
+        const targetBuild = findBuildByParams(tank, build);
 
-                if (targetBuild) {
-                    // Set filters to match the build's tank
-                    document.getElementById('tankFilter').value = targetBuild.tankId;
-                    document.getElementById('nationFilter').value = targetBuild.tankNation;
-                    document.getElementById('typeFilter').value = targetBuild.tankType;
-                    document.getElementById('sortFilter').value = 'featured';
+        if (targetBuild) {
+            // Set filters to match the build's tank
+            document.getElementById('tankFilter').value = targetBuild.tankId;
+            document.getElementById('nationFilter').value = targetBuild.tankNation;
+            document.getElementById('typeFilter').value = targetBuild.tankType;
+            document.getElementById('sortFilter').value = 'featured';
 
-                    // Force update the filter options
-                    updateFilterOptions();
+            // Force update the filter options
+            updateFilterOptions();
 
-                    // Update the display and then show the modal
-                    updateBuildsDisplay();
+            // Update the display and then show the modal
+            updateBuildsDisplay();
 
-                    // Small delay to ensure DOM is updated
-                    setTimeout(() => {
-                        showBuildDetailModal(targetBuild);
+            // Small delay to ensure DOM is updated
+            setTimeout(() => {
+                showBuildDetailModal(targetBuild);
 
-                        // Update URL without reloading
-                        history.replaceState({}, '',
-                            `${window.location.pathname}?tank=${tank}&build=${build}`
-                        );
-                    }, 100);
-                } else {
-                    console.warn(`Build not found for tank: ${tank}, build: ${build}`);
-                }
+                // Update URL without reloading
+                history.replaceState({}, '',
+                    `${window.location.pathname}?tank=${tank}&build=${build}`
+                );
+            }, 100);
+        } else {
+            console.warn(`Build not found for tank: ${tank}, build: ${build}`);
+            // Fallback: try to find the tank and load its builds specifically
+            const tankDataEntry = tankData.find(t => t.slug === tank);
+            if (tankDataEntry) {
+                // Try to fetch this specific tank's builds again
+                processTankBuilds(tankDataEntry).then(() => {
+                    const retryBuild = findBuildByParams(tank, build);
+                    if (retryBuild) {
+                        // Set filters to match the build's tank
+                        document.getElementById('tankFilter').value = retryBuild.tankId;
+                        document.getElementById('nationFilter').value = retryBuild.tankNation;
+                        document.getElementById('typeFilter').value = retryBuild.tankType;
+                        document.getElementById('sortFilter').value = 'featured';
+
+                        updateFilterOptions();
+                        updateBuildsDisplay();
+
+                        setTimeout(() => {
+                            showBuildDetailModal(retryBuild);
+                            history.replaceState({}, '',
+                                `${window.location.pathname}?tank=${tank}&build=${build}`
+                            );
+                        }, 100);
+                    }
+                });
             }
-        }, 100);
+        }
     }
 }
 
@@ -872,7 +895,4 @@ document.addEventListener('DOMContentLoaded', function() {
             card.classList.add('animated');
         });
     }, 300);
-
-    // Handle URL parameters after everything is loaded
-    handleUrlParams();
 });
