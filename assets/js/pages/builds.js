@@ -30,7 +30,8 @@ const loaderMessages = [
     "Forcing Wargaming to hire Anuraen... ",
     "Getting esmatty more explosives... ",
     "Messaging SINEWAVE... ",
-    "Confusing VEN0M... "
+    "Confusing VEN0M... ",
+    "Building Legocity2000... "
 ];
 
 // Function to fetch tank data with error handling and retries
