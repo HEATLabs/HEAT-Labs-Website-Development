@@ -53,6 +53,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Initialize interactive map zoom for map overview images
+    initializeInteractiveMapZoom();
+
     // Initialize any interactive elements specific to map pages
     initializeMapPageElements();
 });
@@ -142,11 +145,15 @@ function initializeImageGallery() {
 
     // Add main content images
     document.querySelectorAll('.map-image img').forEach(img => {
-        galleryImages.push({
-            src: img.src,
-            alt: img.alt,
-            caption: img.nextElementSibling?.textContent || ''
-        });
+        // Skip images that are inside interactive containers
+        const parentContainer = img.closest('.interactive-map-container');
+        if (!parentContainer) {
+            galleryImages.push({
+                src: img.src,
+                alt: img.alt,
+                caption: img.nextElementSibling?.textContent || ''
+            });
+        }
     });
 
     // Add sidebar gallery images
@@ -229,7 +236,11 @@ function initializeImageGallery() {
     createThumbnails();
 
     // Set up click handlers for all gallery images
-    document.querySelectorAll('.map-image img, .sidebar-card .gallery-thumbnail').forEach((element, index) => {
+    document.querySelectorAll('.map-image img:not(.interactive-map-container img), .sidebar-card .gallery-thumbnail').forEach((element, index) => {
+        // Skip if inside interactive container
+        const parentContainer = element.closest('.interactive-map-container');
+        if (parentContainer) return;
+
         element.addEventListener('click', (e) => {
             e.preventDefault();
             openGallery(index);
@@ -309,4 +320,342 @@ function initializeImageGallery() {
             updateGalleryImage();
         }
     }
+}
+
+// Initialize interactive zoom for map overview images
+function initializeInteractiveMapZoom() {
+    // Find all gamemode sections
+    const gamemodeSections = document.querySelectorAll('.gamemode-section');
+
+    gamemodeSections.forEach(section => {
+        // Find the map-image div within this section
+        const mapImageDiv = section.querySelector('.map-image');
+        if (!mapImageDiv) return;
+
+        // Find the img inside
+        const img = mapImageDiv.querySelector('img');
+        if (!img) return;
+
+        // Check if this is a placeholder image
+        const src = img.src || '';
+        if (src.includes('upscaled_t-55-enigma.webp') ||
+            src.includes('imagecomingsoon.webp') ||
+            src.includes('placeholder')) {
+            return; // Skip interactive zoom for placeholder images
+        }
+
+        // Get the original parent and position
+        const parent = mapImageDiv.parentNode;
+        const nextSibling = mapImageDiv.nextSibling;
+
+        // Create interactive container
+        const container = document.createElement('div');
+        container.className = 'interactive-map-container';
+
+        // Move the map-image div into the container
+        parent.insertBefore(container, mapImageDiv);
+        container.appendChild(mapImageDiv);
+
+        // Set up the container
+        container.style.position = 'relative';
+        container.style.width = '100%';
+        container.style.overflow = 'hidden';
+        container.style.cursor = 'grab';
+        container.style.touchAction = 'none';
+        container.style.userSelect = 'none';
+        container.style.webkitUserSelect = 'none';
+        container.style.backgroundColor = 'var(--bg-secondary)';
+        container.style.borderRadius = '0.75rem';
+        container.style.boxShadow = 'var(--shadow-lg)';
+        container.style.border = '1px solid var(--border-color)';
+
+        // Style the map-image div
+        mapImageDiv.style.margin = '0';
+        mapImageDiv.style.position = 'relative';
+        mapImageDiv.style.overflow = 'hidden';
+        mapImageDiv.style.display = 'flex';
+        mapImageDiv.style.alignItems = 'center';
+        mapImageDiv.style.justifyContent = 'center';
+        mapImageDiv.style.width = '100%';
+        mapImageDiv.style.height = 'auto';
+        mapImageDiv.style.minHeight = 'auto';
+        mapImageDiv.style.padding = '0';
+
+        // Style the image for interactive zoom
+        img.style.display = 'block';
+        img.style.width = '100%';
+        img.style.maxWidth = '100%';
+        img.style.height = 'auto';
+        img.style.maxHeight = 'none';
+        img.style.borderRadius = '0';
+        img.style.boxShadow = 'none';
+        img.style.border = 'none';
+        img.style.transition = 'none';
+        img.style.transformOrigin = 'center center';
+        img.style.pointerEvents = 'none';
+        img.style.userSelect = 'none';
+        img.style.webkitUserSelect = 'none';
+        img.style.webkitUserDrag = 'none';
+
+        // Force a layout recalculation
+        container.style.display = 'block';
+
+        // Wait for image to load to get natural dimensions
+        if (img.complete && img.naturalWidth > 0) {
+            setupZoomControls(container, img, mapImageDiv);
+        } else {
+            img.addEventListener('load', function() {
+                setupZoomControls(container, img, mapImageDiv);
+            });
+            // Fallback if image already loaded but event didn't fire
+            setTimeout(() => {
+                if (img.naturalWidth > 0) {
+                    setupZoomControls(container, img, mapImageDiv);
+                }
+            }, 500);
+        }
+    });
+}
+
+// Set up zoom controls and interaction for an interactive map container
+function setupZoomControls(container, img, mapImageDiv) {
+    // Zoom state
+    let zoomLevel = 1;
+    let minZoom = 1;
+    let maxZoom = 5;
+    let translateX = 0;
+    let translateY = 0;
+
+    // Get container dimensions
+    const containerRect = container.getBoundingClientRect();
+    const containerWidth = containerRect.width || container.clientWidth || 800;
+    const containerHeight = containerRect.height || container.clientHeight || 500;
+
+    // Image dimensions
+    const imgWidth = img.naturalWidth || img.width || 800;
+    const imgHeight = img.naturalHeight || img.height || 500;
+
+    // Calculate initial display dimensions (image fits container width)
+    const aspectRatio = imgWidth / imgHeight;
+    let displayWidth = containerWidth;
+    let displayHeight = containerWidth / aspectRatio;
+
+    // If height would exceed container height, fit to height instead
+    if (displayHeight > containerHeight) {
+        displayHeight = containerHeight;
+        displayWidth = containerHeight * aspectRatio;
+    }
+
+    // Store the natural display size for scaling calculations
+    img.dataset.displayWidth = displayWidth;
+    img.dataset.displayHeight = displayHeight;
+
+    // Add zoom controls
+    const controls = document.createElement('div');
+    controls.className = 'zoom-controls';
+    controls.innerHTML = `
+        <button class="zoom-btn" data-action="zoom-in" aria-label="Zoom in">
+            <i class="fas fa-plus"></i>
+        </button>
+        <button class="zoom-btn reset-btn" data-action="reset" aria-label="Reset view">
+            <i class="fas fa-home"></i>
+        </button>
+        <button class="zoom-btn" data-action="zoom-out" aria-label="Zoom out">
+            <i class="fas fa-minus"></i>
+        </button>
+    `;
+    container.appendChild(controls);
+
+    // Get button references
+    const zoomInBtn = controls.querySelector('[data-action="zoom-in"]');
+    const zoomOutBtn = controls.querySelector('[data-action="zoom-out"]');
+    const resetBtn = controls.querySelector('[data-action="reset"]');
+
+    // Set initial image size to fit container
+    function updateTransform() {
+        const displayW = parseFloat(img.dataset.displayWidth) || containerWidth;
+        const displayH = parseFloat(img.dataset.displayHeight) || containerHeight;
+
+        // Calculate the scaled dimensions
+        const scaledWidth = displayW * zoomLevel;
+        const scaledHeight = displayH * zoomLevel;
+
+        // Get current container dimensions
+        const rect = container.getBoundingClientRect();
+        const currentWidth = rect.width || containerWidth;
+        const currentHeight = rect.height || containerHeight;
+
+        // Calculate max translations to keep image in bounds
+        const maxTranslateX = Math.max(0, (scaledWidth - currentWidth) / 2);
+        const maxTranslateY = Math.max(0, (scaledHeight - currentHeight) / 2);
+
+        // Clamp translations
+        translateX = Math.max(-maxTranslateX, Math.min(maxTranslateX, translateX));
+        translateY = Math.max(-maxTranslateY, Math.min(maxTranslateY, translateY));
+
+        // Apply transform
+        const transform = `translate(${translateX}px, ${translateY}px) scale(${zoomLevel})`;
+        img.style.transform = transform;
+        img.style.transformOrigin = 'center center';
+    }
+
+    // Reset view
+    function resetView() {
+        zoomLevel = 1;
+        translateX = 0;
+        translateY = 0;
+        updateTransform();
+    }
+
+    // Zoom in
+    function zoomIn() {
+        const newZoom = Math.min(zoomLevel * 1.2, maxZoom);
+        if (newZoom !== zoomLevel) {
+            zoomLevel = newZoom;
+            updateTransform();
+        }
+    }
+
+    // Zoom out
+    function zoomOut() {
+        const newZoom = Math.max(zoomLevel / 1.2, minZoom);
+        if (newZoom !== zoomLevel) {
+            zoomLevel = newZoom;
+            updateTransform();
+        }
+    }
+
+    // Mouse drag handling
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let startTranslateX = 0;
+    let startTranslateY = 0;
+
+    function onDragStart(e) {
+        if (e.button !== undefined && e.button !== 0) return;
+
+        isDragging = true;
+        container.style.cursor = 'grabbing';
+
+        const clientX = e.clientX || e.touches?.[0]?.clientX || 0;
+        const clientY = e.clientY || e.touches?.[0]?.clientY || 0;
+
+        startX = clientX;
+        startY = clientY;
+        startTranslateX = translateX;
+        startTranslateY = translateY;
+
+        e.preventDefault();
+    }
+
+    function onDragMove(e) {
+        if (!isDragging) return;
+
+        const clientX = e.clientX || e.touches?.[0]?.clientX || 0;
+        const clientY = e.clientY || e.touches?.[0]?.clientY || 0;
+
+        const deltaX = clientX - startX;
+        const deltaY = clientY - startY;
+
+        translateX = startTranslateX + deltaX;
+        translateY = startTranslateY + deltaY;
+
+        updateTransform();
+        e.preventDefault();
+    }
+
+    function onDragEnd(e) {
+        if (isDragging) {
+            isDragging = false;
+            container.style.cursor = 'grab';
+        }
+    }
+
+    // Mouse events
+    container.addEventListener('mousedown', onDragStart);
+    document.addEventListener('mousemove', onDragMove);
+    document.addEventListener('mouseup', onDragEnd);
+
+    // Touch events
+    container.addEventListener('touchstart', onDragStart, { passive: false });
+    container.addEventListener('touchmove', onDragMove, { passive: false });
+    container.addEventListener('touchend', onDragEnd);
+
+    // Mouse wheel zoom
+    container.addEventListener('wheel', function(e) {
+        e.preventDefault();
+
+        const delta = e.deltaY || e.deltaX || 0;
+        if (delta > 0) {
+            zoomOut();
+        } else if (delta < 0) {
+            zoomIn();
+        }
+    }, { passive: false });
+
+    // Button events
+    zoomInBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        zoomIn();
+    });
+    zoomOutBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        zoomOut();
+    });
+    resetBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        resetView();
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Only if container is visible and hovered
+        if (!container.matches(':hover')) return;
+
+        switch(e.key) {
+            case '=':
+            case '+':
+                e.preventDefault();
+                zoomIn();
+                break;
+            case '-':
+                e.preventDefault();
+                zoomOut();
+                break;
+            case 'r':
+            case 'R':
+                e.preventDefault();
+                resetView();
+                break;
+        }
+    });
+
+    // Initial reset
+    resetView();
+
+    // Update on resize
+    let resizeTimeout;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            // Recalculate display dimensions
+            const rect = container.getBoundingClientRect();
+            const newWidth = rect.width || container.clientWidth || 800;
+            const newHeight = rect.height || container.clientHeight || 500;
+
+            const aspectRatio = img.naturalWidth / img.naturalHeight;
+            let displayW = newWidth;
+            let displayH = newWidth / aspectRatio;
+
+            if (displayH > newHeight) {
+                displayH = newHeight;
+                displayW = newHeight * aspectRatio;
+            }
+
+            img.dataset.displayWidth = displayW;
+            img.dataset.displayHeight = displayH;
+            resetView();
+        }, 200);
+    });
 }
