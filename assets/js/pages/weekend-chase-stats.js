@@ -314,7 +314,7 @@ class EventStats {
         const winRate = day.battles > 0 ? (day.wins / day.battles * 100).toFixed(1) : 0;
         return `
           <tr>
-            <td>Day ${day.day_index}</td>
+            <td>Window ${day.day_index}</td>
             <td>${day.rank ? `#${day.rank}` : 'N/A'}</td>
             <td>${day.battles}</td>
             <td>${day.wins}</td>
@@ -349,7 +349,7 @@ class EventStats {
       this.charts.damageProgression.destroy();
     }
 
-    const days = history.map(d => `Day ${d.day_index}`);
+    const days = history.map(d => `Window ${d.day_index}`);
     const damages = history.map(d => d.damage);
     const battles = history.map(d => d.battles);
     const wins = history.map(d => d.wins);
