@@ -1011,12 +1011,36 @@ class EventStats {
         const frags = player.frags || 0;
         const winRate = battles > 0 ? (wins / battles * 100) : 0;
 
-        const comparisonData = [
-            { label: 'Total Damage', playerVal: damage, globalVal: stats.avgDamage || 0, format: 'number' },
-            { label: 'Battles', playerVal: battles, globalVal: stats.avgBattles || 0, format: 'number' },
-            { label: 'Frags', playerVal: frags, globalVal: stats.avgFrags || 0, format: 'number' },
-            { label: 'Win Rate', playerVal: winRate, globalVal: stats.avgWinRate || 0, format: 'percent' },
-            { label: 'Damage per Battle', playerVal: battles > 0 ? Math.round(damage / battles) : 0, globalVal: stats.avgDamagePerBattle || 0, format: 'number' },
+        const comparisonData = [{
+                label: 'Total Damage',
+                playerVal: damage,
+                globalVal: stats.avgDamage || 0,
+                format: 'number'
+            },
+            {
+                label: 'Battles',
+                playerVal: battles,
+                globalVal: stats.avgBattles || 0,
+                format: 'number'
+            },
+            {
+                label: 'Frags',
+                playerVal: frags,
+                globalVal: stats.avgFrags || 0,
+                format: 'number'
+            },
+            {
+                label: 'Win Rate',
+                playerVal: winRate,
+                globalVal: stats.avgWinRate || 0,
+                format: 'percent'
+            },
+            {
+                label: 'Damage per Battle',
+                playerVal: battles > 0 ? Math.round(damage / battles) : 0,
+                globalVal: stats.avgDamagePerBattle || 0,
+                format: 'number'
+            },
         ];
 
         this.renderComparisonStats(comparisonData, 'Global Average');
@@ -1037,12 +1061,36 @@ class EventStats {
 
         const compareName = comparePlayer.nickname || this.comparePlayerId;
 
-        const comparisonData = [
-            { label: 'Total Damage', playerVal: damage, globalVal: cDamage, format: 'number' },
-            { label: 'Battles', playerVal: battles, globalVal: cBattles, format: 'number' },
-            { label: 'Frags', playerVal: frags, globalVal: cFrags, format: 'number' },
-            { label: 'Win Rate', playerVal: winRate, globalVal: cWinRate, format: 'percent' },
-            { label: 'Damage per Battle', playerVal: battles > 0 ? Math.round(damage / battles) : 0, globalVal: cBattles > 0 ? Math.round(cDamage / cBattles) : 0, format: 'number' },
+        const comparisonData = [{
+                label: 'Total Damage',
+                playerVal: damage,
+                globalVal: cDamage,
+                format: 'number'
+            },
+            {
+                label: 'Battles',
+                playerVal: battles,
+                globalVal: cBattles,
+                format: 'number'
+            },
+            {
+                label: 'Frags',
+                playerVal: frags,
+                globalVal: cFrags,
+                format: 'number'
+            },
+            {
+                label: 'Win Rate',
+                playerVal: winRate,
+                globalVal: cWinRate,
+                format: 'percent'
+            },
+            {
+                label: 'Damage per Battle',
+                playerVal: battles > 0 ? Math.round(damage / battles) : 0,
+                globalVal: cBattles > 0 ? Math.round(cDamage / cBattles) : 0,
+                format: 'number'
+            },
         ];
 
         this.renderComparisonStats(comparisonData, compareName);
@@ -1239,7 +1287,9 @@ class EventStats {
                         ticks: {
                             color: secondaryColor,
                             maxTicksLimit: 10,
-                            font: { size: 8 },
+                            font: {
+                                size: 8
+                            },
                             maxRotation: 45,
                             minRotation: 45,
                         },
@@ -1331,7 +1381,9 @@ class EventStats {
                         ticks: {
                             color: secondaryColor,
                             maxTicksLimit: 10,
-                            font: { size: 8 },
+                            font: {
+                                size: 8
+                            },
                         },
                         grid: {
                             display: false,
