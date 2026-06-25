@@ -638,7 +638,8 @@ class PlayerRecords {
             'kill-confirmed': 'Kill Confirmed'
         };
 
-        const statConfigs = [{
+        // Base stat configs for all modes
+        const baseStatConfigs = [{
                 key: 'damage_caused',
                 label: 'Damage',
                 icon: 'fa-bolt',
@@ -663,18 +664,6 @@ class PlayerRecords {
                 color: '#f1c40f'
             },
             {
-                key: 'captures',
-                label: 'Captures',
-                icon: 'fa-flag-checkered',
-                color: '#2ecc71'
-            },
-            {
-                key: 'damage_blocked',
-                label: 'Damage Blocked',
-                icon: 'fa-shield',
-                color: '#9b59b6'
-            },
-            {
                 key: 'credits',
                 label: 'Credits',
                 icon: 'fa-coins',
@@ -688,6 +677,70 @@ class PlayerRecords {
             }
         ];
 
+        // Mode-specific stat configs
+        const modeStatConfigs = {
+            'conquest': [
+                ...baseStatConfigs,
+                {
+                    key: 'captures',
+                    label: 'Captures',
+                    icon: 'fa-flag-checkered',
+                    color: '#2ecc71'
+                },
+                {
+                    key: 'damage_blocked',
+                    label: 'Damage Blocked',
+                    icon: 'fa-shield',
+                    color: '#9b59b6'
+                }
+            ],
+            'control': [
+                ...baseStatConfigs,
+                {
+                    key: 'captures',
+                    label: 'Captures',
+                    icon: 'fa-flag-checkered',
+                    color: '#2ecc71'
+                },
+                {
+                    key: 'damage_blocked',
+                    label: 'Damage Blocked',
+                    icon: 'fa-shield',
+                    color: '#9b59b6'
+                }
+            ],
+            'hardpoint': [
+                ...baseStatConfigs,
+                {
+                    key: 'captures',
+                    label: 'Captures',
+                    icon: 'fa-flag-checkered',
+                    color: '#2ecc71'
+                },
+                {
+                    key: 'damage_blocked',
+                    label: 'Damage Blocked',
+                    icon: 'fa-shield',
+                    color: '#9b59b6'
+                }
+            ],
+            'kill-confirmed': [
+                ...baseStatConfigs,
+                {
+                    key: 'confirms',
+                    label: 'Confirms',
+                    icon: 'fa-check-double',
+                    color: '#2ecc71'
+                },
+                {
+                    key: 'denies',
+                    label: 'Denies',
+                    icon: 'fa-ban',
+                    color: '#9b59b6'
+                }
+            ]
+        };
+
         const contentMap = {
             'conquest': this.elements.conquestContent,
             'control': this.elements.controlContent,
@@ -700,6 +753,7 @@ class PlayerRecords {
             if (!container) continue;
 
             const records = this.recordsByMode[mode] || [];
+            const statConfigs = modeStatConfigs[mode] || baseStatConfigs;
 
             if (!records.length) {
                 container.innerHTML = `
@@ -845,7 +899,9 @@ class PlayerRecords {
             'captures': 'Captures',
             'damage_blocked': 'Damage Blocked',
             'credits': 'Credits',
-            'intel': 'Intel'
+            'intel': 'Intel',
+            'confirms': 'Confirms',
+            'denies': 'Denies'
         };
 
         const statLabel = statLabels[statKey] || statKey;
