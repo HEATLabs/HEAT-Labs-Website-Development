@@ -532,13 +532,14 @@ class PlayerRecords {
         for (const record of records) {
             const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
             const recordDate = this.getRecordDate(record.proof);
+            const modeDisplayName = this.getModeDisplayName(record.mode);
 
             html += `
         <tr>
           <td><span class="rank-badge ${rankClass}">${rank}</span></td>
           <td><strong>${record.playerId}</strong></td>
           <td>${this.formatNumber(record[statKey] || 0)}</td>
-          <td><span class="mode-badge">${this.capitalize(record.mode)}</span></td>
+          <td><span class="mode-badge">${modeDisplayName}</span></td>
           <td>${record.vehicle || 'N/A'}</td>
           <td>${record.agent || 'N/A'}</td>
           <td>${recordDate}</td>
@@ -749,7 +750,7 @@ class PlayerRecords {
         const sorted = [...records].sort((a, b) => (b[statKey] || 0) - (a[statKey] || 0));
 
         if (!sorted.length) {
-            this.showToast(`No records found for ${label} in ${this.capitalize(mode)}`, 'error');
+            this.showToast(`No records found for ${label} in ${this.getModeDisplayName(mode)}`, 'error');
             return;
         }
 
@@ -781,7 +782,7 @@ class PlayerRecords {
         };
 
         const statLabel = statLabels[statKey] || statKey;
-        const modeName = this.capitalize(mode);
+        const modeName = this.getModeDisplayName(mode);
 
         // Build leaderboard HTML
         let html = `
@@ -982,6 +983,16 @@ class PlayerRecords {
         } catch {
             return 'N/A';
         }
+    }
+
+    getModeDisplayName(mode) {
+        const displayNames = {
+            'conquest': 'Conquest',
+            'control': 'Control',
+            'hardpoint': 'Hardpoint',
+            'kill-confirmed': 'Kill Confirmed'
+        };
+        return displayNames[mode] || mode;
     }
 
     // Toast notification system
