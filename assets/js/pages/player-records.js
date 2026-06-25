@@ -186,6 +186,59 @@ class PlayerRecords {
         }
     }
 
+    // Extract date from proof URL for sorting
+    extractDateFromProof(proofUrl) {
+        if (!proofUrl) return null;
+        try {
+            const filename = proofUrl.split('/').pop();
+            if (!filename) return null;
+
+            // Pattern: date in format DDMMYYYY
+            const dateMatch = filename.match(/(\d{2})(\d{2})(\d{4})/);
+            if (dateMatch) {
+                const day = parseInt(dateMatch[1]);
+                const month = parseInt(dateMatch[2]) - 1;
+                const year = parseInt(dateMatch[3]);
+                const dateObj = new Date(year, month, day);
+                if (!isNaN(dateObj.getTime())) {
+                    return dateObj;
+                }
+            }
+            return null;
+        } catch {
+            return null;
+        }
+    }
+
+    // Sort records by stat value (descending) and then by date (descending, most recent first)
+    sortRecordsByStatAndDate(records, statKey) {
+        return [...records].sort((a, b) => {
+            // First sort by stat value (descending)
+            const aValue = a[statKey] || 0;
+            const bValue = b[statKey] || 0;
+
+            if (bValue !== aValue) {
+                return bValue - aValue;
+            }
+
+            // If stat values are equal, sort by date (descending - most recent first)
+            const aDate = this.extractDateFromProof(a.proof);
+            const bDate = this.extractDateFromProof(b.proof);
+
+            // If both have valid dates, compare them
+            if (aDate && bDate) {
+                return bDate.getTime() - aDate.getTime();
+            }
+
+            // If one has a date and the other doesn't, the one with date comes first
+            if (aDate && !bDate) return -1;
+            if (!aDate && bDate) return 1;
+
+            // If neither has a date, maintain original order or fallback to player ID
+            return (a.playerId || '').localeCompare(b.playerId || '');
+        });
+    }
+
     renderGlobalStats() {
         let totalRecords = 0;
         let highestDamage = 0;
@@ -464,8 +517,9 @@ class PlayerRecords {
             }
         }
 
-        allRecords.sort((a, b) => (b[statKey] || 0) - (a[statKey] || 0));
-        return allRecords.slice(0, limit);
+        // Use the new sorting method that considers both stat value and date
+        const sorted = this.sortRecordsByStatAndDate(allRecords, statKey);
+        return sorted.slice(0, limit);
     }
 
     getCategoryStats() {
@@ -519,7 +573,18 @@ class PlayerRecords {
     renderGlobalTable(statKey, statLabel, tbody) {
         if (!tbody) return;
 
-        const records = this.getTopRecords(statKey, 20);
+        // Get all records and sort with date consideration
+        const allRecords = [];
+        for (const mode of ['conquest', 'control', 'hardpoint', 'kill-confirmed']) {
+            for (const record of this.recordsByMode[mode] || []) {
+                if (record[statKey] !== undefined && record[statKey] !== null) {
+                    allRecords.push(record);
+                }
+            }
+        }
+
+        const sorted = this.sortRecordsByStatAndDate(allRecords, statKey);
+        const records = sorted.slice(0, 20);
 
         if (!records.length) {
             tbody.innerHTML = `<tr><td colspan="8" class="no-data">No records found for ${statLabel}</td></tr>`;
@@ -710,7 +775,8 @@ class PlayerRecords {
 
     getModeTopRecords(mode, statKey, limit = 5) {
         const records = this.recordsByMode[mode] || [];
-        const sorted = [...records].sort((a, b) => (b[statKey] || 0) - (a[statKey] || 0));
+        // Use the new sorting method that considers both stat value and date
+        const sorted = this.sortRecordsByStatAndDate(records, statKey);
         return sorted.slice(0, limit);
     }
 
@@ -747,7 +813,8 @@ class PlayerRecords {
 
     showFullLeaderboard(mode, statKey, label) {
         const records = this.recordsByMode[mode] || [];
-        const sorted = [...records].sort((a, b) => (b[statKey] || 0) - (a[statKey] || 0));
+        // Use the new sorting method that considers both stat value and date
+        const sorted = this.sortRecordsByStatAndDate(records, statKey);
 
         if (!sorted.length) {
             this.showToast(`No records found for ${label} in ${this.getModeDisplayName(mode)}`, 'error');
@@ -786,7 +853,7 @@ class PlayerRecords {
 
         // Build leaderboard HTML
         let html = `
-      <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);" id="leaderboardModal">
+      <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);" id="leaderboardModal" data-mode="${mode}" data-stat="${statKey}" data-label="${label}">
         <div style="background: var(--card-bg); border-radius: 1rem; border: 1px solid var(--border-color); padding: 2rem; max-width: 900px; width: 95%; max-height: 85vh; overflow-y: auto; position: relative;">
           <button style="position: sticky; top: 0; float: right; background: var(--bg-tertiary); border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer; padding: 0.5rem; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; z-index: 1;" onclick="document.getElementById('leaderboardModal').remove()">
             <i class="fas fa-times"></i>
@@ -893,11 +960,9 @@ class PlayerRecords {
         // Get the current modal and re-render
         const modal = document.getElementById('leaderboardModal');
         if (modal) {
-            // We need to re-render with the new page
-            // But we lost the mode and statKey context, so we need to store them
-            // Let's use stored values or re-parse from the modal
+            // Get mode, statKey, and label from modal data attributes
             const mode = modal.dataset.mode || 'conquest';
-            const statKey = modal.dataset.statKey || 'damage_caused';
+            const statKey = modal.dataset.stat || 'damage_caused';
             const label = modal.dataset.label || 'Damage';
 
             // Remove old modal and render new page
