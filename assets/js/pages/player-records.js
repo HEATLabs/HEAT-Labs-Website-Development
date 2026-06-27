@@ -50,6 +50,8 @@ class PlayerRecords {
             globalBlockedTableBody: document.getElementById('globalBlockedTableBody'),
             globalCreditsTableBody: document.getElementById('globalCreditsTableBody'),
             globalIntelTableBody: document.getElementById('globalIntelTableBody'),
+            globalConfirmsTableBody: document.getElementById('globalConfirmsTableBody'),
+            globalDeniesTableBody: document.getElementById('globalDeniesTableBody'),
             conquestContent: document.getElementById('conquestContent'),
             controlContent: document.getElementById('controlContent'),
             hardpointContent: document.getElementById('hardpointContent'),
@@ -451,16 +453,18 @@ class PlayerRecords {
 
         // 3. Records by Category - REMOVED "Other" category
         const categoryData = this.getCategoryStats();
-        const categoryLabels = ['Damage', 'Kills', 'Assists', 'XP', 'Captures'];
+        const categoryLabels = ['Damage', 'Kills', 'Assists', 'XP', 'Captures', 'Confirms', 'Denies'];
         const categoryColors = [
             'rgba(255, 131, 0, 0.8)',
             'rgba(231, 76, 60, 0.8)',
             'rgba(52, 152, 219, 0.8)',
             'rgba(241, 196, 15, 0.8)',
-            'rgba(46, 204, 113, 0.8)'
+            'rgba(46, 204, 113, 0.8)',
+            'rgba(155, 89, 182, 0.8)',
+            'rgba(230, 126, 34, 0.8)'
         ];
-        // Only use first 5 values (remove "Other")
-        const filteredData = categoryData.slice(0, 5);
+        // Use all 7 categories
+        const filteredData = categoryData;
 
         const ctx3 = document.getElementById('globalRecordsByCategoryChart').getContext('2d');
         this.globalCharts.recordsByCategory = new Chart(ctx3, {
@@ -599,35 +603,42 @@ class PlayerRecords {
             assists = 0,
             xp = 0,
             captures = 0,
-            other = 0;
+            confirms = 0,
+            denies = 0;
 
         for (const mode of ['conquest', 'control', 'hardpoint', 'kill-confirmed']) {
             for (const record of this.recordsByMode[mode] || []) {
                 if (record.damage_caused && record.damage_caused > 30000) damage++;
-                else if (record.damage_caused) other++;
+                else if (record.damage_caused && record.damage_caused > 0) damage++;
 
                 if (record.destroyed && record.destroyed > 15) kills++;
-                else if (record.destroyed) other++;
+                else if (record.destroyed) kills++;
 
                 if (record.assists && record.assists > 10) assists++;
-                else if (record.assists) other++;
+                else if (record.assists) assists++;
 
                 if (record.XP && record.XP > 10000) xp++;
-                else if (record.XP) other++;
+                else if (record.XP) xp++;
 
                 if (record.captures && record.captures > 3) captures++;
-                else if (record.captures) other++;
+                else if (record.captures) captures++;
+
+                if (record.confirms && record.confirms > 10) confirms++;
+                else if (record.confirms) confirms++;
+
+                if (record.denies && record.denies > 2) denies++;
+                else if (record.denies) denies++;
             }
         }
 
         // Ensure we have some data
-        const total = damage + kills + assists + xp + captures;
+        const total = damage + kills + assists + xp + captures + confirms + denies;
         if (total === 0) {
-            return [1, 1, 1, 1, 1];
+            return [1, 1, 1, 1, 1, 1, 1];
         }
 
-        // Return only 5 categories (remove "Other")
-        return [damage, kills, assists, xp, captures];
+        // Return all 7 categories
+        return [damage, kills, assists, xp, captures, confirms, denies];
     }
 
     renderGlobalTables() {
@@ -639,6 +650,8 @@ class PlayerRecords {
         this.renderGlobalTable('damage_blocked', 'Damage Blocked', this.elements.globalBlockedTableBody);
         this.renderGlobalTable('credits', 'Credits', this.elements.globalCreditsTableBody);
         this.renderGlobalTable('intel', 'Intel', this.elements.globalIntelTableBody);
+        this.renderGlobalTable('confirms', 'Confirms', this.elements.globalConfirmsTableBody);
+        this.renderGlobalTable('denies', 'Denies', this.elements.globalDeniesTableBody);
     }
 
     // Uses getUniqueTopRecords to show each player only once
