@@ -239,6 +239,77 @@ class PlayerRecords {
         });
     }
 
+    // Get unique players with their best record for a stat (each player appears once)
+    getUniqueTopRecords(statKey, limit = 10, mode = null) {
+        const allRecords = [];
+
+        // Get records from specific mode or all modes
+        if (mode) {
+            for (const record of this.recordsByMode[mode] || []) {
+                if (record[statKey] !== undefined && record[statKey] !== null) {
+                    allRecords.push(record);
+                }
+            }
+        } else {
+            for (const modeName of ['conquest', 'control', 'hardpoint', 'kill-confirmed']) {
+                for (const record of this.recordsByMode[modeName] || []) {
+                    if (record[statKey] !== undefined && record[statKey] !== null) {
+                        allRecords.push(record);
+                    }
+                }
+            }
+        }
+
+        // Group by player, keep only their best record for this stat
+        const playerBestMap = new Map();
+        for (const record of allRecords) {
+            const playerId = record.playerId;
+            if (!playerBestMap.has(playerId)) {
+                playerBestMap.set(playerId, record);
+            } else {
+                const existing = playerBestMap.get(playerId);
+                const existingValue = existing[statKey] || 0;
+                const newValue = record[statKey] || 0;
+
+                // Keep the higher value, or if equal, keep the more recent one
+                if (newValue > existingValue) {
+                    playerBestMap.set(playerId, record);
+                } else if (newValue === existingValue) {
+                    const existingDate = this.extractDateFromProof(existing.proof);
+                    const newDate = this.extractDateFromProof(record.proof);
+                    if (newDate && (!existingDate || newDate > existingDate)) {
+                        playerBestMap.set(playerId, record);
+                    }
+                }
+            }
+        }
+
+        // Convert to array and sort
+        const uniqueRecords = Array.from(playerBestMap.values());
+        const sorted = this.sortRecordsByStatAndDate(uniqueRecords, statKey);
+
+        // Return with rank information
+        return sorted.slice(0, limit).map((record, index) => ({
+            ...record,
+            rank: index + 1
+        }));
+    }
+
+    // Get all records for a specific player for a specific stat
+    getPlayerRecordsForStat(playerId, statKey) {
+        const player = this.players.get(playerId);
+        if (!player) return null;
+
+        // Get all records for this player that have this stat
+        const allRecords = player.records || [];
+        const filteredRecords = allRecords.filter(record =>
+            record[statKey] !== undefined && record[statKey] !== null && record[statKey] > 0
+        );
+
+        // Sort by stat value (descending) and then by date
+        return this.sortRecordsByStatAndDate(filteredRecords, statKey);
+    }
+
     renderGlobalStats() {
         let totalRecords = 0;
         let highestDamage = 0;
@@ -324,8 +395,8 @@ class PlayerRecords {
             }
         });
 
-        // 2. Top Damage Records (Top 10)
-        const topDamage = this.getTopRecords('damage_caused', 10);
+        // Top Damage Records
+        const topDamage = this.getUniqueTopRecords('damage_caused', 10);
         const damageLabels = topDamage.map(r => r.playerId.substring(0, 12) + (r.playerId.length > 12 ? '...' : ''));
         const damageValues = topDamage.map(r => r.damage_caused || 0);
 
@@ -570,29 +641,20 @@ class PlayerRecords {
         this.renderGlobalTable('intel', 'Intel', this.elements.globalIntelTableBody);
     }
 
+    // Uses getUniqueTopRecords to show each player only once
     renderGlobalTable(statKey, statLabel, tbody) {
         if (!tbody) return;
 
-        // Get all records and sort with date consideration
-        const allRecords = [];
-        for (const mode of ['conquest', 'control', 'hardpoint', 'kill-confirmed']) {
-            for (const record of this.recordsByMode[mode] || []) {
-                if (record[statKey] !== undefined && record[statKey] !== null) {
-                    allRecords.push(record);
-                }
-            }
-        }
-
-        const sorted = this.sortRecordsByStatAndDate(allRecords, statKey);
-        const records = sorted.slice(0, 20);
+        // Get unique players with their best record for this stat
+        const records = this.getUniqueTopRecords(statKey, 20);
 
         if (!records.length) {
             tbody.innerHTML = `<tr><td colspan="8" class="no-data">No records found for ${statLabel}</td></tr>`;
             return;
         }
 
-        let rank = 1;
         let html = '';
+        let rank = 1;
 
         for (const record of records) {
             const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
@@ -602,7 +664,7 @@ class PlayerRecords {
             html += `
         <tr>
           <td><span class="rank-badge ${rankClass}">${rank}</span></td>
-          <td><strong>${record.playerId}</strong></td>
+          <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);">${record.playerId}</strong></td>
           <td>${this.formatNumber(record[statKey] || 0)}</td>
           <td><span class="mode-badge">${modeDisplayName}</span></td>
           <td>${record.vehicle || 'N/A'}</td>
@@ -611,6 +673,7 @@ class PlayerRecords {
           <td>
             <div class="action-buttons">
               ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i> Proof</button>` : ''}
+              <button class="action-btn action-btn-profile" data-playerid="${record.playerId}" data-statkey="${statKey}"><i class="fas fa-user"></i> Profile</button>
             </div>
           </td>
         </tr>
@@ -625,6 +688,15 @@ class PlayerRecords {
             btn.addEventListener('click', () => {
                 const proofUrl = btn.dataset.proof;
                 this.showProofModal(proofUrl);
+            });
+        });
+
+        // Add player profile click handlers
+        tbody.querySelectorAll('.action-btn-profile, .player-name-clickable').forEach(el => {
+            el.addEventListener('click', () => {
+                const playerId = el.dataset.playerid;
+                const statKey = el.dataset.statkey || 'damage_caused';
+                this.showPlayerProfile(playerId, statKey);
             });
         });
     }
@@ -768,7 +840,8 @@ class PlayerRecords {
 
             let cardsHtml = '';
             for (const config of statConfigs) {
-                const topRecords = this.getModeTopRecords(mode, config.key, 5);
+                // Use unique players for each stat
+                const topRecords = this.getUniqueTopRecords(config.key, 5, mode);
                 cardsHtml += `
           <div class="mode-stat-card">
             <div class="mode-stat-card-header">
@@ -824,6 +897,15 @@ class PlayerRecords {
                     this.showProofModal(proofUrl);
                 });
             });
+
+            // Add event listeners for profile buttons
+            container.querySelectorAll('.action-btn-profile, .player-name-clickable').forEach(el => {
+                el.addEventListener('click', () => {
+                    const playerId = el.dataset.playerid;
+                    const statKey = el.dataset.statkey || 'damage_caused';
+                    this.showPlayerProfile(playerId, statKey);
+                });
+            });
         }
     }
 
@@ -834,6 +916,7 @@ class PlayerRecords {
         return sorted.slice(0, limit);
     }
 
+    // UPDATED: Uses unique players for mode table rows
     renderModeTableRows(records, statKey, mode) {
         if (!records.length) {
             return `<tr><td colspan="6" class="no-data">No records found</td></tr>`;
@@ -848,13 +931,14 @@ class PlayerRecords {
             html += `
         <tr>
           <td><span class="rank-badge ${rankClass}">${rank}</span></td>
-          <td><strong>${record.playerId}</strong></td>
+          <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);">${record.playerId}</strong></td>
           <td>${this.formatNumber(record[statKey] || 0)}</td>
           <td>${record.vehicle || 'N/A'}</td>
           <td>${recordDate}</td>
           <td>
             <div class="action-buttons">
               ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i> Proof</button>` : ''}
+              <button class="action-btn action-btn-profile" data-playerid="${record.playerId}" data-statkey="${statKey}"><i class="fas fa-user"></i> Profile</button>
             </div>
           </td>
         </tr>
@@ -865,10 +949,10 @@ class PlayerRecords {
         return html;
     }
 
+    // UPDATED: Uses unique players for full leaderboard
     showFullLeaderboard(mode, statKey, label) {
-        const records = this.recordsByMode[mode] || [];
-        // Use the new sorting method that considers both stat value and date
-        const sorted = this.sortRecordsByStatAndDate(records, statKey);
+        // Use unique players for this mode and stat
+        const sorted = this.getUniqueTopRecords(statKey, 1000, mode);
 
         if (!sorted.length) {
             this.showToast(`No records found for ${label} in ${this.getModeDisplayName(mode)}`, 'error');
@@ -944,7 +1028,7 @@ class PlayerRecords {
             html += `
         <tr>
           <td><span class="rank-badge ${rankClass}">${rank}</span></td>
-          <td><strong>${record.playerId}</strong></td>
+          <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);">${record.playerId}</strong></td>
           <td>${this.formatNumber(record[statKey] || 0)}</td>
           <td>${record.vehicle || 'N/A'}</td>
           <td>${record.agent || 'N/A'}</td>
@@ -952,6 +1036,7 @@ class PlayerRecords {
           <td>
             <div class="action-buttons">
               ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i> Proof</button>` : ''}
+              <button class="action-btn action-btn-profile" data-playerid="${record.playerId}" data-statkey="${statKey}"><i class="fas fa-user"></i> Profile</button>
             </div>
           </td>
         </tr>
@@ -998,6 +1083,18 @@ class PlayerRecords {
             });
         });
 
+        // Add profile click handlers
+        document.querySelectorAll('#leaderboardModal .action-btn-profile, #leaderboardModal .player-name-clickable').forEach(el => {
+            el.addEventListener('click', () => {
+                const playerId = el.dataset.playerid;
+                const statKey = el.dataset.statkey || 'damage_caused';
+                // Close leaderboard modal first
+                const modal = document.getElementById('leaderboardModal');
+                if (modal) modal.remove();
+                this.showPlayerProfile(playerId, statKey);
+            });
+        });
+
         // Close modal on overlay click
         document.getElementById('leaderboardModal').addEventListener('click', (e) => {
             if (e.target === e.currentTarget) {
@@ -1027,6 +1124,143 @@ class PlayerRecords {
         }
     }
 
+    // Show player profile modal with all their records for a specific stat
+    showPlayerProfile(playerId, statKey = 'damage_caused') {
+        const player = this.players.get(playerId);
+        if (!player) {
+            this.showToast(`Player "${playerId}" not found`, 'error');
+            return;
+        }
+
+        const statLabels = {
+            'damage_caused': 'Damage',
+            'destroyed': 'Kills',
+            'assists': 'Assists',
+            'XP': 'XP',
+            'captures': 'Captures',
+            'damage_blocked': 'Damage Blocked',
+            'credits': 'Credits',
+            'intel': 'Intel',
+            'confirms': 'Confirms',
+            'denies': 'Denies'
+        };
+
+        const statLabel = statLabels[statKey] || statKey;
+
+        // Get all records for this player for this specific stat
+        const allRecords = this.getPlayerRecordsForStat(playerId, statKey);
+        if (!allRecords || allRecords.length === 0) {
+            this.showToast(`No ${statLabel} records found for ${playerId}`, 'error');
+            return;
+        }
+
+        // Build the profile modal
+        let html = `
+      <div class="profile-modal-overlay" id="profileModal">
+        <div class="profile-modal-content">
+          <button class="profile-modal-close" onclick="document.getElementById('profileModal').remove()">
+            <i class="fas fa-times"></i>
+          </button>
+          <div class="profile-header">
+            <div class="profile-avatar">
+              <i class="fas fa-user-circle"></i>
+            </div>
+            <div class="profile-info">
+              <h2>${playerId}</h2>
+              <p><i class="fas fa-trophy" style="color: var(--accent-color, #ff8300);"></i> ${allRecords.length} ${statLabel} record${allRecords.length > 1 ? 's' : ''}</p>
+            </div>
+          </div>
+          <div class="profile-records">
+            <h3><i class="fas fa-chart-bar" style="color: var(--accent-color, #ff8300);"></i> ${statLabel} Records</h3>
+            <div class="table-wrapper">
+              <table class="records-table profile-records-table">
+                <thead>
+                  <tr>
+                    <th>${statLabel}</th>
+                    <th>Mode</th>
+                    <th>Vehicle</th>
+                    <th>Agent</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+    `;
+
+        let rank = 1;
+        for (const record of allRecords) {
+            const recordDate = this.getRecordDate(record.proof);
+            const modeDisplayName = this.getModeDisplayName(record.mode);
+            const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
+
+            html += `
+        <tr>
+          <td><span class="rank-badge ${rankClass}">${this.formatNumber(record[statKey] || 0)}</span></td>
+          <td><span class="mode-badge">${modeDisplayName}</span></td>
+          <td>${record.vehicle || 'N/A'}</td>
+          <td>${record.agent || 'N/A'}</td>
+          <td>${recordDate}</td>
+          <td>
+            <div class="action-buttons">
+              ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i> Proof</button>` : ''}
+            </div>
+          </td>
+        </tr>
+      `;
+            rank++;
+        }
+
+        html += `
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="profile-footer">
+            <button onclick="document.getElementById('profileModal').remove()" class="profile-close-btn">Close</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+        // Remove existing profile modal if any
+        const existingModal = document.getElementById('profileModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        document.body.insertAdjacentHTML('beforeend', html);
+
+        // Add proof click handlers
+        document.querySelectorAll('#profileModal .action-btn-proof').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const proofUrl = btn.dataset.proof;
+                // Close profile modal first
+                const modal = document.getElementById('profileModal');
+                if (modal) modal.remove();
+                this.showProofModal(proofUrl);
+            });
+        });
+
+        // Close modal on overlay click
+        document.getElementById('profileModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                e.currentTarget.remove();
+            }
+        });
+
+        // Close on Escape key
+        const closeHandler = (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('profileModal');
+                if (modal) {
+                    modal.remove();
+                    document.removeEventListener('keydown', closeHandler);
+                }
+            }
+        };
+        document.addEventListener('keydown', closeHandler);
+    }
+
     showProofModal(proofUrl) {
         if (!proofUrl) return;
 
@@ -1040,6 +1274,12 @@ class PlayerRecords {
         const leaderboardModal = document.getElementById('leaderboardModal');
         if (leaderboardModal) {
             leaderboardModal.remove();
+        }
+
+        // Close any profile modal that might be open
+        const profileModal = document.getElementById('profileModal');
+        if (profileModal) {
+            profileModal.remove();
         }
 
         const html = `
@@ -1324,6 +1564,15 @@ toastStyles.textContent = `
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.3px;
+  }
+
+  .player-name-clickable {
+    cursor: pointer;
+    transition: color 0.2s ease;
+  }
+  .player-name-clickable:hover {
+    color: #ff6b00 !important;
+    text-decoration: underline;
   }
 `;
 document.head.appendChild(toastStyles);
