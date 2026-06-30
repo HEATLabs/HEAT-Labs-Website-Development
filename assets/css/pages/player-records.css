@@ -285,23 +285,32 @@
 /* Action Buttons */
 .action-buttons {
 	display: flex;
-	gap: 0.5rem;
+	gap: 0.75rem;
 	flex-wrap: wrap;
+	align-items: center;
 }
 
 .action-btn {
-	padding: 0.3rem 0.6rem;
+	padding: 0.5rem 0.9rem;
 	border: none;
-	border-radius: 0.4rem;
-	font-size: 0.75rem;
+	border-radius: 0.5rem;
+	font-size: 0.9rem;
 	font-weight: 600;
 	cursor: pointer;
 	transition: all var(--transition-speed, 0.3s);
 	display: inline-flex;
 	align-items: center;
-	gap: 0.3rem;
+	justify-content: center;
+	gap: 0.4rem;
 	text-decoration: none;
 	color: #fff;
+	min-width: 36px;
+	min-height: 36px;
+	line-height: 1;
+}
+
+.action-btn i {
+	font-size: 0.95rem;
 }
 
 .action-btn-proof {
@@ -310,6 +319,14 @@
 
 .action-btn-proof:hover {
 	background-color: #2980b9;
+}
+
+.action-btn-profile {
+	background-color: #6c5ce7;
+}
+
+.action-btn-profile:hover {
+	background-color: #5a4bd1;
 }
 
 .action-btn-leaderboard {
@@ -326,10 +343,6 @@
 
 .action-btn-full-leaderboard:hover {
 	background-color: #7d3c98;
-}
-
-.action-btn i {
-	font-size: 0.7rem;
 }
 
 /* Mode Stats Header */
@@ -968,6 +981,42 @@
 
 .action-btn-profile:hover {
     background-color: #5a4bd1;
+}
+
+/* Match Type Badges */
+.match-type-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.match-type-pvp {
+    background: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.3);
+}
+.match-type-pve {
+    background: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+    border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+/* Last Updated */
+.last-updated-text {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    opacity: 0.8;
+}
+.last-updated-text i {
+    margin-right: 0.4rem;
+}
+
+.global-last-updated {
+    margin-top: 0.5rem;
 }
 
 /* Responsive profile modal */

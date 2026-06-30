@@ -18,6 +18,16 @@ class PlayerRecords {
         this.leaderboardPageSize = 10;
         this.leaderboardData = null;
         this.leaderboardStatKey = null;
+        this.lastUpdated = {
+            conquest: null,
+            control: null,
+            hardpoint: null,
+            'kill-confirmed': null
+        };
+        this.currentFilter = {
+            mode: 'global',
+            statKey: 'damage_caused'
+        };
 
         // DOM elements
         this.elements = {
@@ -69,6 +79,7 @@ class PlayerRecords {
         this.renderGlobalCharts();
         this.renderGlobalTables();
         this.renderModeTabs();
+        this.renderLastUpdated();
         this.isDataLoaded = true;
     }
 
@@ -119,6 +130,9 @@ class PlayerRecords {
         if (contentMap[tab]) {
             contentMap[tab].classList.add('active');
         }
+
+        // Update filter for the current tab
+        this.currentFilter.mode = tab;
     }
 
     async loadRecordData() {
@@ -134,6 +148,16 @@ class PlayerRecords {
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const data = await response.json();
             this.records = data.records || {};
+
+            // Extract last updated times
+            if (this.records.ROOT && this.records.ROOT.last_updated) {
+                this.lastUpdated = {
+                    conquest: this.records.ROOT.last_updated.conquest || null,
+                    control: this.records.ROOT.last_updated.control || null,
+                    hardpoint: this.records.ROOT.last_updated.hardpoint || null,
+                    'kill-confirmed': this.records.ROOT.last_updated['kill-confirmed'] || null
+                };
+            }
 
             this.elements.loadingProgressBar.style.width = '100%';
             this.elements.loadingProgressPercent.textContent = '100%';
@@ -174,10 +198,16 @@ class PlayerRecords {
 
                     // Process each record
                     for (const record of playerRecords) {
+                        // Determine match type based on tech value
+                        const tech = record.tech || 0;
+                        const matchType = tech < 40 ? 'pve' : 'pvp';
+
                         const enrichedRecord = {
                             ...record,
                             playerId: playerId,
-                            mode: mode
+                            mode: mode,
+                            matchType: matchType,
+                            tech: tech
                         };
                         this.recordsByMode[mode].push(enrichedRecord);
                         this.players.get(playerId).records.push(enrichedRecord);
@@ -310,6 +340,78 @@ class PlayerRecords {
 
         // Sort by stat value (descending) and then by date
         return this.sortRecordsByStatAndDate(filteredRecords, statKey);
+    }
+
+    renderLastUpdated() {
+        const modeDisplayNames = {
+            'conquest': 'Conquest',
+            'control': 'Control',
+            'hardpoint': 'Hardpoint',
+            'kill-confirmed': 'Kill Confirmed'
+        };
+
+        // Add last updated to each mode tab header
+        for (const [mode, timestamp] of Object.entries(this.lastUpdated)) {
+            if (!timestamp) continue;
+
+            const tabContentId = `tabContent${mode.charAt(0).toUpperCase() + mode.slice(1).replace('-', '')}`;
+            const tabContent = document.getElementById(tabContentId);
+            if (!tabContent) continue;
+
+            // Find or create the last updated element
+            let lastUpdatedEl = tabContent.querySelector('.mode-last-updated');
+            if (!lastUpdatedEl) {
+                lastUpdatedEl = document.createElement('div');
+                lastUpdatedEl.className = 'mode-last-updated';
+                const header = tabContent.querySelector('.mode-stats-header');
+                if (header) {
+                    header.appendChild(lastUpdatedEl);
+                }
+            }
+
+            const date = new Date(timestamp);
+            const formattedDate = date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZone: 'UTC'
+            });
+            lastUpdatedEl.innerHTML = `<p class="last-updated-text"><i class="fas fa-clock"></i> Last Updated: ${formattedDate} UTC</p>`;
+        }
+
+        // Also add to global tab
+        const globalHeader = document.querySelector('#tabContentGlobal .global-stats-header');
+        if (globalHeader) {
+            let globalUpdated = globalHeader.querySelector('.global-last-updated');
+            if (!globalUpdated) {
+                globalUpdated = document.createElement('div');
+                globalUpdated.className = 'global-last-updated';
+                globalHeader.appendChild(globalUpdated);
+            }
+
+            // Find the most recent update across all modes
+            let mostRecent = null;
+            for (const timestamp of Object.values(this.lastUpdated)) {
+                if (timestamp && (!mostRecent || new Date(timestamp) > new Date(mostRecent))) {
+                    mostRecent = timestamp;
+                }
+            }
+
+            if (mostRecent) {
+                const date = new Date(mostRecent);
+                const formattedDate = date.toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZone: 'UTC'
+                });
+                globalUpdated.innerHTML = `<p class="last-updated-text"><i class="fas fa-clock"></i> Last Updated: ${formattedDate} UTC</p>`;
+            }
+        }
     }
 
     renderGlobalStats() {
@@ -451,7 +553,7 @@ class PlayerRecords {
             }
         });
 
-        // 3. Records by Category - REMOVED "Other" category
+        // 3. Records by Category
         const categoryData = this.getCategoryStats();
         const categoryLabels = ['Damage', 'Kills', 'Assists', 'XP', 'Captures', 'Confirms', 'Denies'];
         const categoryColors = [
@@ -463,7 +565,6 @@ class PlayerRecords {
             'rgba(155, 89, 182, 0.8)',
             'rgba(230, 126, 34, 0.8)'
         ];
-        // Use all 7 categories
         const filteredData = categoryData;
 
         const ctx3 = document.getElementById('globalRecordsByCategoryChart').getContext('2d');
@@ -496,14 +597,13 @@ class PlayerRecords {
             }
         });
 
-        // 4. Player Records Distribution - Custom bins: 1-2, 2-3, 3-4, 4-5, 5-6
+        // 4. Player Records Distribution
         const playerRecordCounts = [];
         for (const player of this.players.values()) {
             playerRecordCounts.push(player.totalRecords);
         }
         playerRecordCounts.sort((a, b) => a - b);
 
-        // Custom bins: 1-2, 2-3, 3-4, 4-5, 5-6
         const binEdges = [1, 2, 3, 4, 5, 6];
         const histogram = Array(binEdges.length - 1).fill(0);
 
@@ -514,7 +614,6 @@ class PlayerRecords {
                     break;
                 }
             }
-            // If count >= 6, add to the last bin
             if (count >= binEdges[binEdges.length - 1]) {
                 histogram[histogram.length - 1]++;
             }
@@ -592,7 +691,6 @@ class PlayerRecords {
             }
         }
 
-        // Use the new sorting method that considers both stat value and date
         const sorted = this.sortRecordsByStatAndDate(allRecords, statKey);
         return sorted.slice(0, limit);
     }
@@ -631,13 +729,11 @@ class PlayerRecords {
             }
         }
 
-        // Ensure we have some data
         const total = damage + kills + assists + xp + captures + confirms + denies;
         if (total === 0) {
             return [1, 1, 1, 1, 1, 1, 1];
         }
 
-        // Return all 7 categories
         return [damage, kills, assists, xp, captures, confirms, denies];
     }
 
@@ -662,7 +758,7 @@ class PlayerRecords {
         const records = this.getUniqueTopRecords(statKey, 20);
 
         if (!records.length) {
-            tbody.innerHTML = `<tr><td colspan="8" class="no-data">No records found for ${statLabel}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" class="no-data">No records found for ${statLabel}</td></tr>`;
             return;
         }
 
@@ -673,6 +769,8 @@ class PlayerRecords {
             const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
             const recordDate = this.getRecordDate(record.proof);
             const modeDisplayName = this.getModeDisplayName(record.mode);
+            const matchTypeLabel = record.matchType === 'pvp' ? 'PvP' : 'PvE';
+            const matchTypeClass = record.matchType === 'pvp' ? 'match-type-pvp' : 'match-type-pve';
 
             html += `
         <tr>
@@ -680,13 +778,14 @@ class PlayerRecords {
           <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);">${record.playerId}</strong></td>
           <td>${this.formatNumber(record[statKey] || 0)}</td>
           <td><span class="mode-badge">${modeDisplayName}</span></td>
+          <td><span class="match-type-badge ${matchTypeClass}">${matchTypeLabel}</span></td>
           <td>${record.vehicle || 'N/A'}</td>
           <td>${record.agent || 'N/A'}</td>
           <td>${recordDate}</td>
           <td>
             <div class="action-buttons">
-              ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i> Proof</button>` : ''}
-              <button class="action-btn action-btn-profile" data-playerid="${record.playerId}" data-statkey="${statKey}"><i class="fas fa-user"></i> Profile</button>
+              ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i></button>` : ''}
+              <button class="action-btn action-btn-profile" data-playerid="${record.playerId}" data-statkey="${statKey}"><i class="fas fa-user"></i></button>
             </div>
           </td>
         </tr>
@@ -868,6 +967,7 @@ class PlayerRecords {
                     <th>Rank</th>
                     <th>Player</th>
                     <th>${config.label}</th>
+                    <th>Type</th>
                     <th>Vehicle</th>
                     <th>Date</th>
                     <th>Actions</th>
@@ -888,10 +988,10 @@ class PlayerRecords {
             }
 
             container.innerHTML = `
-        <div class="mode-content">
-          ${cardsHtml}
-        </div>
-      `;
+            <div class="mode-content">
+              ${cardsHtml}
+            </div>
+          `;
 
             // Add event listeners for view full leaderboard buttons
             container.querySelectorAll('.view-full-btn').forEach(btn => {
@@ -924,15 +1024,14 @@ class PlayerRecords {
 
     getModeTopRecords(mode, statKey, limit = 5) {
         const records = this.recordsByMode[mode] || [];
-        // Use the new sorting method that considers both stat value and date
         const sorted = this.sortRecordsByStatAndDate(records, statKey);
         return sorted.slice(0, limit);
     }
 
-    // UPDATED: Uses unique players for mode table rows
+    // Uses unique players for mode table rows
     renderModeTableRows(records, statKey, mode) {
         if (!records.length) {
-            return `<tr><td colspan="6" class="no-data">No records found</td></tr>`;
+            return `<tr><td colspan="7" class="no-data">No records found</td></tr>`;
         }
 
         let rank = 1;
@@ -941,17 +1040,21 @@ class PlayerRecords {
         for (const record of records) {
             const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
             const recordDate = this.getRecordDate(record.proof);
+            const matchTypeLabel = record.matchType === 'pvp' ? 'PvP' : 'PvE';
+            const matchTypeClass = record.matchType === 'pvp' ? 'match-type-pvp' : 'match-type-pve';
+
             html += `
         <tr>
           <td><span class="rank-badge ${rankClass}">${rank}</span></td>
           <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);">${record.playerId}</strong></td>
           <td>${this.formatNumber(record[statKey] || 0)}</td>
+          <td><span class="match-type-badge ${matchTypeClass}">${matchTypeLabel}</span></td>
           <td>${record.vehicle || 'N/A'}</td>
           <td>${recordDate}</td>
           <td>
             <div class="action-buttons">
-              ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i> Proof</button>` : ''}
-              <button class="action-btn action-btn-profile" data-playerid="${record.playerId}" data-statkey="${statKey}"><i class="fas fa-user"></i> Profile</button>
+              ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i></button>` : ''}
+              <button class="action-btn action-btn-profile" data-playerid="${record.playerId}" data-statkey="${statKey}"><i class="fas fa-user"></i></button>
             </div>
           </td>
         </tr>
@@ -962,7 +1065,7 @@ class PlayerRecords {
         return html;
     }
 
-    // UPDATED: Uses unique players for full leaderboard
+    // Uses unique players for full leaderboard
     showFullLeaderboard(mode, statKey, label) {
         // Use unique players for this mode and stat
         const sorted = this.getUniqueTopRecords(statKey, 1000, mode);
@@ -1007,7 +1110,7 @@ class PlayerRecords {
         // Build leaderboard HTML
         let html = `
       <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);" id="leaderboardModal" data-mode="${mode}" data-stat="${statKey}" data-label="${label}">
-        <div style="background: var(--card-bg); border-radius: 1rem; border: 1px solid var(--border-color); padding: 2rem; max-width: 900px; width: 95%; max-height: 85vh; overflow-y: auto; position: relative;">
+        <div style="background: var(--card-bg); border-radius: 1rem; border: 1px solid var(--border-color); padding: 2rem; max-width: 1000px; width: 95%; max-height: 85vh; overflow-y: auto; position: relative;">
           <button style="position: sticky; top: 0; float: right; background: var(--bg-tertiary); border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer; padding: 0.5rem; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; z-index: 1;" onclick="document.getElementById('leaderboardModal').remove()">
             <i class="fas fa-times"></i>
           </button>
@@ -1024,6 +1127,7 @@ class PlayerRecords {
                   <th>Rank</th>
                   <th>Player</th>
                   <th>${statLabel}</th>
+                  <th>Type</th>
                   <th>Vehicle</th>
                   <th>Agent</th>
                   <th>Date</th>
@@ -1037,19 +1141,22 @@ class PlayerRecords {
         for (const record of pageRecords) {
             const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
             const recordDate = this.getRecordDate(record.proof);
+            const matchTypeLabel = record.matchType === 'pvp' ? 'PvP' : 'PvE';
+            const matchTypeClass = record.matchType === 'pvp' ? 'match-type-pvp' : 'match-type-pve';
 
             html += `
         <tr>
           <td><span class="rank-badge ${rankClass}">${rank}</span></td>
           <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);">${record.playerId}</strong></td>
           <td>${this.formatNumber(record[statKey] || 0)}</td>
+          <td><span class="match-type-badge ${matchTypeClass}">${matchTypeLabel}</span></td>
           <td>${record.vehicle || 'N/A'}</td>
           <td>${record.agent || 'N/A'}</td>
           <td>${recordDate}</td>
           <td>
             <div class="action-buttons">
-              ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i> Proof</button>` : ''}
-              <button class="action-btn action-btn-profile" data-playerid="${record.playerId}" data-statkey="${statKey}"><i class="fas fa-user"></i> Profile</button>
+              ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i></button>` : ''}
+              <button class="action-btn action-btn-profile" data-playerid="${record.playerId}" data-statkey="${statKey}"><i class="fas fa-user"></i></button>
             </div>
           </td>
         </tr>
@@ -1191,6 +1298,7 @@ class PlayerRecords {
                   <tr>
                     <th>${statLabel}</th>
                     <th>Mode</th>
+                    <th>Type</th>
                     <th>Vehicle</th>
                     <th>Agent</th>
                     <th>Date</th>
@@ -1205,17 +1313,20 @@ class PlayerRecords {
             const recordDate = this.getRecordDate(record.proof);
             const modeDisplayName = this.getModeDisplayName(record.mode);
             const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
+            const matchTypeLabel = record.matchType === 'pvp' ? 'PvP' : 'PvE';
+            const matchTypeClass = record.matchType === 'pvp' ? 'match-type-pvp' : 'match-type-pve';
 
             html += `
         <tr>
           <td><span class="rank-badge ${rankClass}">${this.formatNumber(record[statKey] || 0)}</span></td>
           <td><span class="mode-badge">${modeDisplayName}</span></td>
+          <td><span class="match-type-badge ${matchTypeClass}">${matchTypeLabel}</span></td>
           <td>${record.vehicle || 'N/A'}</td>
           <td>${record.agent || 'N/A'}</td>
           <td>${recordDate}</td>
           <td>
             <div class="action-buttons">
-              ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i> Proof</button>` : ''}
+              ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i></button>` : ''}
             </div>
           </td>
         </tr>
@@ -1452,15 +1563,11 @@ class PlayerRecords {
           <ul class="guidelines-list">
             <li>
               <i class="fas fa-check-circle"></i>
-              <span>Only original, <strong>unedited</strong>, and <strong>uncropped</strong> screenshots of the <span class="highlight">YOUR PERFORMANCE</span> after-match screen are eligible.</span>
+              <span>Only original, <strong>unedited</strong>, and <strong>uncropped</strong> screenshots of the <span class="highlight">End of Match</span> screen are eligible.</span>
             </li>
             <li>
               <i class="fas fa-check-circle"></i>
               <span>Screenshots must be submitted in the official Discord server's <span class="discord-highlight">#clips-and-highlights</span> channel.</span>
-            </li>
-            <li>
-              <i class="fas fa-check-circle"></i>
-              <span>Due to software limitations, only screenshots captured with the game language set to <span class="highlight">English</span> can be processed and indexed in the player records database.</span>
             </li>
             <li>
               <i class="fas fa-check-circle"></i>
@@ -1586,6 +1693,40 @@ toastStyles.textContent = `
   .player-name-clickable:hover {
     color: #ff6b00 !important;
     text-decoration: underline;
+  }
+
+  .match-type-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .match-type-pvp {
+    background: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.3);
+  }
+  .match-type-pve {
+    background: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+    border: 1px solid rgba(46, 204, 113, 0.3);
+  }
+
+  .last-updated-text {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    opacity: 0.8;
+  }
+  .last-updated-text i {
+    margin-right: 0.4rem;
+  }
+
+  .global-last-updated {
+    margin-top: 0.5rem;
   }
 `;
 document.head.appendChild(toastStyles);
