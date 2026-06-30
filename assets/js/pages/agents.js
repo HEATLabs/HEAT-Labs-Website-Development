@@ -93,6 +93,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const agentStatusHTML = agent.status && agent.status.trim() !== '' ?
             `<div class="agent-status">${agent.status}</div>` : '';
 
+        // Add star icon for featured agents
+        const featuredStar = agent.featured ?
+            '<i class="fas fa-star" style="color: #ff8300; margin-right: 6px;" title="Featured"></i>' : '';
+
         card.innerHTML = `
             <div class="agent-img-container">
                 <div class="agent-views-counter">
@@ -103,7 +107,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 ${agentStatusHTML}
             </div>
             <div class="agent-info">
-                <h3>${agent.name}</h3>
+                <h3>${featuredStar}${agent.name}</h3>
                 <div class="agent-meta">
                     <span><i class="fa-solid fa-bolt"></i> ${agent.specialty}</span>
                     <span><i class="fa-solid fa-dna"></i> ${agent.trait}</span>

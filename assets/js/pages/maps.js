@@ -86,6 +86,10 @@ function createMapCard(map) {
     // Format size display - show "Unknown Size" if it's unknown
     const sizeDisplay = map.size === 'Unknown Size' ? 'Unknown Size' : map.size;
 
+    // Add star icon for featured maps
+    const featuredStar = map.featured ?
+        '<i class="fas fa-star" style="color: #ff8300; margin-right: 6px;" title="Featured"></i>' : '';
+
     card.innerHTML = `
         <div class="map-img-container">
             <div class="map-views-counter">
@@ -96,7 +100,7 @@ function createMapCard(map) {
             <div class="map-tag">${map.status}</div>
         </div>
         <div class="map-info">
-            <h3>${map.name}</h3>
+            <h3>${featuredStar}${map.name}</h3>
             <div class="map-meta items-center">
                 <span><i class="fas fa-ruler-combined"></i> ${sizeDisplay}</span>
                 <span><i class="fas fa-route"></i> ${map.type}</span>

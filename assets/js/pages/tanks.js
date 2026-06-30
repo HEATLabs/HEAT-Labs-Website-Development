@@ -289,6 +289,10 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
 
+        // Add star icon for featured tanks
+        const featuredStar = tank.featured ?
+            '<i class="fas fa-star" style="color: #ff8300; margin-right: 6px;" title="Featured"></i>' : '';
+
         card.innerHTML = `
             <div class="tank-img-container">
                 <div class="tank-views-counter">
@@ -299,7 +303,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 ${tankClassHTML}
             </div>
             <div class="tank-info">
-                <h3>${tank.name}</h3>
+                <h3>${featuredStar}${tank.name}</h3>
                 <div class="tank-meta">
                     <span><i class="fas fa-flag"></i> ${tank.nation}</span>
                     <span><i class="fas fa-layer-group"></i> ${tank.type}</span>
