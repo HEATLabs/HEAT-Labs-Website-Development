@@ -439,12 +439,52 @@ class PlayerRecords {
         if (this.elements.globalTopDamage) this.elements.globalTopDamage.textContent = this.formatNumber(highestDamage);
     }
 
+    // Helper method to get distribution data for bar charts
+    getDistributionData(field) {
+        const distribution = {};
+        for (const mode of ['conquest', 'control', 'hardpoint', 'kill-confirmed']) {
+            for (const record of this.recordsByMode[mode] || []) {
+                let value = record[field];
+                if (value !== undefined && value !== null && value !== '') {
+                    // Special handling for outcome - ensure "Draw" is included if present
+                    if (field === 'outcome') {
+                        // Normalize outcome values
+                        if (value.toLowerCase() === 'victory') value = 'Victory';
+                        else if (value.toLowerCase() === 'defeat') value = 'Defeat';
+                        else if (value.toLowerCase() === 'draw') value = 'Draw';
+                    }
+                    const key = String(value);
+                    distribution[key] = (distribution[key] || 0) + 1;
+                }
+            }
+        }
+        // Sort by count descending and take top 10, combine others
+        const sorted = Object.entries(distribution).sort((a, b) => b[1] - a[1]);
+        const top = sorted.slice(0, 10);
+        const others = sorted.slice(10);
+        const result = {};
+        for (const [key, count] of top) {
+            result[key] = count;
+        }
+        if (others.length > 0) {
+            const othersCount = others.reduce((sum, [, count]) => sum + count, 0);
+            result['Others'] = othersCount;
+        }
+        return result;
+    }
+
     renderGlobalCharts() {
         const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-primary') || '#ffffff';
         const secondaryColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') || '#999';
 
         // Destroy existing global charts
         this.destroyGlobalCharts();
+
+        // Get all records for distribution
+        const allRecords = [];
+        for (const mode of ['conquest', 'control', 'hardpoint', 'kill-confirmed']) {
+            allRecords.push(...(this.recordsByMode[mode] || []));
+        }
 
         // 1. Records by Mode
         const modeLabels = ['Conquest', 'Control', 'Hardpoint', 'Kill Confirmed'];
@@ -670,10 +710,266 @@ class PlayerRecords {
                 }
             }
         });
+
+        // 5. Map Distribution (Bar Chart)
+        const mapData = this.getDistributionData('map');
+        const mapLabels = Object.keys(mapData);
+        const mapValues = Object.values(mapData);
+        const mapColors = this.generateBarColors(mapLabels.length);
+
+        const ctx5 = document.getElementById('globalMapChart').getContext('2d');
+        this.globalCharts.mapDistribution = new Chart(ctx5, {
+            type: 'bar',
+            data: {
+                labels: mapLabels,
+                datasets: [{
+                    label: 'Records',
+                    data: mapValues,
+                    backgroundColor: mapColors,
+                    borderColor: mapColors.map(c => c.replace('0.7', '1')),
+                    borderWidth: 1.5,
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false,
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: secondaryColor,
+                            stepSize: 1,
+                        },
+                        grid: {
+                            color: 'rgba(255,255,255,0.05)',
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: secondaryColor,
+                            maxTicksLimit: 10,
+                            font: {
+                                size: 8
+                            },
+                        },
+                        grid: {
+                            display: false,
+                        }
+                    }
+                }
+            }
+        });
+
+        // 6. Outcome Distribution
+        const outcomeData = this.getDistributionData('outcome');
+        const outcomeLabels = Object.keys(outcomeData);
+        const outcomeValues = Object.values(outcomeData);
+        const outcomeColors = {
+            'Victory': 'rgba(46, 204, 113, 0.7)',
+            'Defeat': 'rgba(231, 76, 60, 0.7)',
+            'Draw': 'rgba(241, 196, 15, 0.7)'
+        };
+        const outcomeBorderColors = {
+            'Victory': 'rgba(46, 204, 113, 1)',
+            'Defeat': 'rgba(231, 76, 60, 1)',
+            'Draw': 'rgba(241, 196, 15, 1)'
+        };
+        const outcomeColorArray = outcomeLabels.map(label => outcomeColors[label] || 'rgba(155, 89, 182, 0.7)');
+        const outcomeBorderArray = outcomeLabels.map(label => outcomeBorderColors[label] || 'rgba(155, 89, 182, 1)');
+
+        const ctx6 = document.getElementById('globalOutcomeChart').getContext('2d');
+        this.globalCharts.outcomeDistribution = new Chart(ctx6, {
+            type: 'bar',
+            data: {
+                labels: outcomeLabels,
+                datasets: [{
+                    label: 'Records',
+                    data: outcomeValues,
+                    backgroundColor: outcomeColorArray,
+                    borderColor: outcomeBorderArray,
+                    borderWidth: 1.5,
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false,
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: secondaryColor,
+                            stepSize: 1,
+                        },
+                        grid: {
+                            color: 'rgba(255,255,255,0.05)',
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: secondaryColor,
+                            font: {
+                                size: 10
+                            },
+                        },
+                        grid: {
+                            display: false,
+                        }
+                    }
+                }
+            }
+        });
+
+        // 7. Tank Distribution (Bar Chart)
+        const tankData = this.getDistributionData('vehicle');
+        const tankLabels = Object.keys(tankData);
+        const tankValues = Object.values(tankData);
+        const tankColors = this.generateBarColors(tankLabels.length);
+
+        const ctx7 = document.getElementById('globalTankChart').getContext('2d');
+        this.globalCharts.tankDistribution = new Chart(ctx7, {
+            type: 'bar',
+            data: {
+                labels: tankLabels,
+                datasets: [{
+                    label: 'Records',
+                    data: tankValues,
+                    backgroundColor: tankColors,
+                    borderColor: tankColors.map(c => c.replace('0.7', '1')),
+                    borderWidth: 1.5,
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false,
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: secondaryColor,
+                            stepSize: 1,
+                        },
+                        grid: {
+                            color: 'rgba(255,255,255,0.05)',
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: secondaryColor,
+                            font: {
+                                size: 7
+                            },
+                            maxRotation: 45,
+                            minRotation: 0,
+                        },
+                        grid: {
+                            display: false,
+                        }
+                    }
+                }
+            }
+        });
+
+        // 8. Agent Distribution (Bar Chart)
+        const agentData = this.getDistributionData('agent');
+        const agentLabels = Object.keys(agentData);
+        const agentValues = Object.values(agentData);
+        const agentColors = this.generateBarColors(agentLabels.length);
+
+        const ctx8 = document.getElementById('globalAgentChart').getContext('2d');
+        this.globalCharts.agentDistribution = new Chart(ctx8, {
+            type: 'bar',
+            data: {
+                labels: agentLabels,
+                datasets: [{
+                    label: 'Records',
+                    data: agentValues,
+                    backgroundColor: agentColors,
+                    borderColor: agentColors.map(c => c.replace('0.7', '1')),
+                    borderWidth: 1.5,
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false,
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: secondaryColor,
+                            stepSize: 1,
+                        },
+                        grid: {
+                            color: 'rgba(255,255,255,0.05)',
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: secondaryColor,
+                            maxTicksLimit: 10,
+                            font: {
+                                size: 8
+                            },
+                        },
+                        grid: {
+                            display: false,
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Helper to generate colors for bar charts
+    generateBarColors(count) {
+        const colors = [
+            'rgba(255, 131, 0, 0.7)',
+            'rgba(52, 152, 219, 0.7)',
+            'rgba(46, 204, 113, 0.7)',
+            'rgba(155, 89, 182, 0.7)',
+            'rgba(241, 196, 15, 0.7)',
+            'rgba(231, 76, 60, 0.7)',
+            'rgba(26, 188, 156, 0.7)',
+            'rgba(230, 126, 34, 0.7)',
+            'rgba(149, 165, 166, 0.7)',
+            'rgba(142, 68, 173, 0.7)',
+            'rgba(44, 62, 80, 0.7)',
+            'rgba(39, 174, 96, 0.7)'
+        ];
+        const result = [];
+        for (let i = 0; i < count; i++) {
+            result.push(colors[i % colors.length]);
+        }
+        return result;
     }
 
     destroyGlobalCharts() {
-        for (const key of ['recordsByMode', 'topDamage', 'recordsByCategory', 'playerRecords']) {
+        const chartKeys = ['recordsByMode', 'topDamage', 'recordsByCategory', 'playerRecords',
+                          'mapDistribution', 'outcomeDistribution', 'tankDistribution', 'agentDistribution'];
+        for (const key of chartKeys) {
             if (this.globalCharts[key]) {
                 this.globalCharts[key].destroy();
                 delete this.globalCharts[key];
