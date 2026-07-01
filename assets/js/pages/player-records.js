@@ -440,7 +440,7 @@ class PlayerRecords {
     }
 
     // Helper method to get distribution data for bar charts
-    getDistributionData(field) {
+    getDistributionData(field, sortAlphabetically = true) {
         const distribution = {};
         for (const mode of ['conquest', 'control', 'hardpoint', 'kill-confirmed']) {
             for (const record of this.recordsByMode[mode] || []) {
@@ -458,16 +458,19 @@ class PlayerRecords {
                 }
             }
         }
-        // Sort by count descending and take top 10, combine others
-        const sorted = Object.entries(distribution).sort((a, b) => b[1] - a[1]);
-        const top = sorted.slice(0, 10);
-        const others = sorted.slice(10);
+
+        // Sort entries alphabetically by key (label name)
+        const sortedEntries = Object.entries(distribution).sort((a, b) => a[0].localeCompare(b[0]));
+
         const result = {};
-        for (const [key, count] of top) {
+        const limitedEntries = sortedEntries.slice(0, 10);
+        for (const [key, count] of limitedEntries) {
             result[key] = count;
         }
-        if (others.length > 0) {
-            const othersCount = others.reduce((sum, [, count]) => sum + count, 0);
+
+        // If there are more than 10 entries, add an "Others" category
+        if (sortedEntries.length > 10) {
+            const othersCount = sortedEntries.slice(10).reduce((sum, [, count]) => sum + count, 0);
             result['Others'] = othersCount;
         }
         return result;
@@ -712,7 +715,7 @@ class PlayerRecords {
         });
 
         // 5. Map Distribution (Bar Chart)
-        const mapData = this.getDistributionData('map');
+        const mapData = this.getDistributionData('map', true);
         const mapLabels = Object.keys(mapData);
         const mapValues = Object.values(mapData);
         const mapColors = this.generateBarColors(mapLabels.length);
@@ -767,7 +770,7 @@ class PlayerRecords {
         });
 
         // 6. Outcome Distribution
-        const outcomeData = this.getDistributionData('outcome');
+        const outcomeData = this.getDistributionData('outcome', true);
         const outcomeLabels = Object.keys(outcomeData);
         const outcomeValues = Object.values(outcomeData);
         const outcomeColors = {
@@ -832,7 +835,7 @@ class PlayerRecords {
         });
 
         // 7. Tank Distribution (Bar Chart)
-        const tankData = this.getDistributionData('vehicle');
+        const tankData = this.getDistributionData('vehicle', true);
         const tankLabels = Object.keys(tankData);
         const tankValues = Object.values(tankData);
         const tankColors = this.generateBarColors(tankLabels.length);
@@ -888,7 +891,7 @@ class PlayerRecords {
         });
 
         // 8. Agent Distribution (Bar Chart)
-        const agentData = this.getDistributionData('agent');
+        const agentData = this.getDistributionData('agent', true);
         const agentLabels = Object.keys(agentData);
         const agentValues = Object.values(agentData);
         const agentColors = this.generateBarColors(agentLabels.length);
