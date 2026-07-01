@@ -183,6 +183,38 @@ body.is-scrolling .meme-card:hover {
 	font-size: 0.8rem;
 }
 
+/* Copy Button Styles */
+.meme-copy-btn {
+	background: var(--accent-color);
+	color: white;
+	border: none;
+	padding: 0.6rem 1rem;
+	border-radius: 0.5rem;
+	font-size: 0.85rem;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	margin-top: 0.75rem;
+	font-weight: 500;
+	width: 100%;
+	letter-spacing: 0.3px;
+}
+
+.meme-copy-btn:hover {
+	background: var(--accent-color-hover);
+}
+
+.meme-copy-btn:active {
+	transform: scale(0.97);
+}
+
+.meme-copy-btn i {
+	font-size: 0.85rem;
+}
+
 /* Loading Indicator */
 .loading-indicator {
 	text-align: center;
@@ -283,6 +315,11 @@ body.is-scrolling .meme-card:hover {
 	.meme-info h3 {
 		font-size: 1rem;
 	}
+
+	.meme-copy-btn {
+		padding: 0.5rem 0.8rem;
+		font-size: 0.8rem;
+	}
 }
 
 @media (max-width: 480px) {
@@ -297,6 +334,11 @@ body.is-scrolling .meme-card:hover {
 
 	.meme-info {
 		padding: 0.875rem;
+	}
+
+	.meme-copy-btn {
+		padding: 0.45rem 0.6rem;
+		font-size: 0.75rem;
 	}
 }
 
@@ -354,17 +396,30 @@ body.is-scrolling .meme-card:hover {
 	background-color: var(--bg-tertiary);
 }
 
+/* Modal Info */
 .meme-modal-info {
 	padding: 1.5rem;
 	border-top: 1px solid var(--border-color);
 	background-color: var(--card-bg);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1.5rem;
+	flex-wrap: wrap;
 }
 
-.meme-modal-info h3 {
+.meme-modal-info-left {
+	flex: 1;
+	min-width: 0;
+}
+
+.meme-modal-info-left h3 {
 	font-size: 1.25rem;
-	margin-bottom: 0.5rem;
+	margin-bottom: 0.25rem;
 	color: var(--text-primary);
 	font-weight: 600;
+	word-wrap: break-word;
+	overflow-wrap: break-word;
 }
 
 .meme-modal-author {
@@ -378,6 +433,35 @@ body.is-scrolling .meme-card:hover {
 .meme-modal-author::before {
 	font-size: 0.9rem;
 	opacity: 0.7;
+}
+
+.meme-modal-copy-btn {
+	background: var(--accent-color);
+	color: white;
+	border: none;
+	padding: 0.7rem 1.5rem;
+	border-radius: 0.5rem;
+	font-size: 0.95rem;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.6rem;
+	font-weight: 500;
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+.meme-modal-copy-btn:hover {
+	background: var(--accent-color-hover);
+}
+
+.meme-modal-copy-btn:active {
+	transform: scale(0.95);
+}
+
+.meme-modal-copy-btn i {
+	font-size: 0.95rem;
 }
 
 .meme-modal-close {
@@ -409,6 +493,31 @@ body.is-scrolling .meme-card:hover {
 	pointer-events: none;
 }
 
+/* Copy Notification */
+.copy-notification {
+	position: fixed;
+	bottom: 2rem;
+	left: 50%;
+	transform: translateX(-50%) translateY(100px);
+	background-color: var(--card-bg);
+	color: var(--text-primary);
+	padding: 0.75rem 1.5rem;
+	border-radius: 0.5rem;
+	border: 1px solid var(--accent-color);
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+	z-index: 10000;
+	opacity: 0;
+	transition: all 0.4s ease;
+	font-weight: 500;
+	pointer-events: none;
+	max-width: 90%;
+}
+
+.copy-notification.visible {
+	opacity: 1;
+	transform: translateX(-50%) translateY(0);
+}
+
 /* Loading Skeleton Animation */
 @keyframes skeleton-loading {
 	0% {
@@ -432,4 +541,44 @@ body.is-scrolling .meme-card:hover {
 /* Prevent body scroll when modal is open */
 body.modal-open {
 	overflow: hidden;
+}
+
+/* Responsive Modal Adjustments */
+@media (max-width: 768px) {
+	.meme-modal-info {
+		padding: 1.25rem;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 1rem;
+	}
+
+	.meme-modal-info-left {
+		text-align: center;
+	}
+
+	.meme-modal-author {
+		justify-content: center;
+	}
+
+	.meme-modal-copy-btn {
+		padding: 0.6rem 1.2rem;
+		font-size: 0.9rem;
+		justify-content: center;
+		width: 100%;
+	}
+}
+
+@media (max-width: 480px) {
+	.meme-modal-info {
+		padding: 1rem;
+	}
+
+	.meme-modal-info-left h3 {
+		font-size: 1.1rem;
+	}
+
+	.meme-modal-copy-btn {
+		padding: 0.5rem 1rem;
+		font-size: 0.85rem;
+	}
 }

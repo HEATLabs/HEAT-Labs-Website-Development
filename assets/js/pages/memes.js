@@ -85,6 +85,72 @@ document.addEventListener('DOMContentLoaded', function() {
         return columns;
     }
 
+    // Copy link to clipboard
+    function copyToClipboard(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                showCopyNotification('Meme copied to clipboard!');
+            }).catch(() => {
+                fallbackCopy(text);
+            });
+        } else {
+            fallbackCopy(text);
+        }
+    }
+
+    // Fallback copy method for older browsers
+    function fallbackCopy(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            showCopyNotification('Meme copied to clipboard!');
+        } catch (err) {
+            showCopyNotification('Failed to copy meme');
+        }
+        document.body.removeChild(textarea);
+    }
+
+    // Show copy notification
+    function showCopyNotification(message) {
+        // Check if notification already exists
+        let notification = document.querySelector('.copy-notification');
+        if (!notification) {
+            notification = document.createElement('div');
+            notification.className = 'copy-notification';
+            document.body.appendChild(notification);
+        }
+
+        notification.textContent = message;
+        notification.classList.add('visible');
+
+        clearTimeout(notification._timeout);
+        notification._timeout = setTimeout(() => {
+            notification.classList.remove('visible');
+        }, 2500);
+    }
+
+    // Create copy button HTML
+    function createCopyButton(link) {
+        const button = document.createElement('button');
+        button.className = 'meme-copy-btn';
+        button.innerHTML = `<i class="fas fa-copy"></i> Copy Meme`;
+        button.title = 'Copy meme to clipboard';
+
+        button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            copyToClipboard(link);
+        });
+
+        return button;
+    }
+
     // Create meme card HTML
     function createMemeCard(meme) {
         const card = document.createElement('div');
@@ -130,11 +196,19 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
 
+        // Add copy button to info section
+        const copyBtn = createCopyButton(meme.path);
+        infoDiv.appendChild(copyBtn);
+
         card.appendChild(imgContainer);
         card.appendChild(infoDiv);
 
         // Add click event for modal preview
-        card.addEventListener('click', () => openMemeModal(meme));
+        card.addEventListener('click', (e) => {
+            // Don't open modal if clicking the copy button
+            if (e.target.closest('.meme-copy-btn')) return;
+            openMemeModal(meme);
+        });
 
         return card;
     }
@@ -249,8 +323,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     </button>
                     <img class="meme-modal-img" alt="${meme.name}">
                     <div class="meme-modal-info">
-                        <h3>${meme.name}</h3>
-                        <div class="meme-modal-author">By ${meme.author}</div>
+                        <div class="meme-modal-info-left">
+                            <h3>${meme.name}</h3>
+                            <div class="meme-modal-author">By ${meme.author}</div>
+                        </div>
+                        <button class="meme-modal-copy-btn">
+                            <i class="fas fa-copy"></i> Copy Meme
+                        </button>
                     </div>
                 </div>
             `;
@@ -262,6 +341,16 @@ document.addEventListener('DOMContentLoaded', function() {
             modalOverlay.addEventListener('click', (e) => {
                 if (e.target === modalOverlay) {
                     closeMemeModal();
+                }
+            });
+
+            // Add copy button event for modal
+            const modalCopyBtn = modalOverlay.querySelector('.meme-modal-copy-btn');
+            modalCopyBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const img = modalOverlay.querySelector('.meme-modal-img');
+                if (img) {
+                    copyToClipboard(img.src);
                 }
             });
         }
