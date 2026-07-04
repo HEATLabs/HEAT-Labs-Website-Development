@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let draggedItemOriginalIndex = 0;
     let draggedItemClone = null;
     let isDragging = false;
+    let dragData = null;
 
     // Initialize the tier list creator
     function init() {
@@ -419,12 +420,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function createItemElement(item) {
         const itemElement = document.createElement('div');
         itemElement.className = 'tier-item';
-        itemElement.draggable = true;
         itemElement.dataset.id = item.id;
         itemElement.dataset.type = item.type;
 
+        // Use img tag with draggable false - this is the simplest approach
         itemElement.innerHTML = `
-            <img src="${item.image}" alt="${item.name}" draggable="false">
+            <img src="${item.image}" alt="${item.name}" draggable="false" class="item-image">
             <div class="item-name">${item.name}</div>
         `;
 
@@ -438,18 +439,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Remove all existing event listeners first
         items.forEach(item => {
-            item.removeEventListener('dragstart', dragStart);
-            item.removeEventListener('dragend', dragEnd);
+            item.removeEventListener('mousedown', handleMouseDown);
             item.removeEventListener('touchstart', handleTouchStart);
             item.removeEventListener('touchmove', handleTouchMove);
             item.removeEventListener('touchend', handleTouchEnd);
         });
 
         containers.forEach(container => {
-            container.removeEventListener('dragover', dragOver);
-            container.removeEventListener('dragenter', dragEnter);
-            container.removeEventListener('dragleave', dragLeave);
-            container.removeEventListener('drop', drop);
+            container.removeEventListener('mouseup', handleContainerMouseUp);
+            container.removeEventListener('mouseover', handleContainerMouseOver);
+            container.removeEventListener('mouseout', handleContainerMouseOut);
             container.removeEventListener('touchmove', handleContainerTouchMove);
             container.removeEventListener('touchend', handleContainerTouchEnd);
         });
@@ -457,8 +456,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add new event listeners
         items.forEach(item => {
             // Mouse events
-            item.addEventListener('dragstart', dragStart);
-            item.addEventListener('dragend', dragEnd);
+            item.addEventListener('mousedown', handleMouseDown);
 
             // Touch events
             item.addEventListener('touchstart', handleTouchStart, {
@@ -471,11 +469,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         containers.forEach(container => {
-            // Mouse events
-            container.addEventListener('dragover', dragOver);
-            container.addEventListener('dragenter', dragEnter);
-            container.addEventListener('dragleave', dragLeave);
-            container.addEventListener('drop', drop);
+            // Mouse events for hover effects
+            container.addEventListener('mouseup', handleContainerMouseUp);
+            container.addEventListener('mouseover', handleContainerMouseOver);
+            container.addEventListener('mouseout', handleContainerMouseOut);
 
             // Touch events
             container.addEventListener('touchmove', handleContainerTouchMove, {
@@ -483,71 +480,159 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             container.addEventListener('touchend', handleContainerTouchEnd);
         });
+
+        // Global mouse up to clean up
+        document.removeEventListener('mouseup', handleGlobalMouseUp);
+        document.addEventListener('mouseup', handleGlobalMouseUp);
     }
 
-    // Mouse drag and drop event handlers
-    function dragStart(e) {
-        this.classList.add('dragging');
-        e.dataTransfer.setData('text/plain', this.dataset.id);
-        e.dataTransfer.effectAllowed = 'move';
-    }
-
-    function dragEnd() {
-        this.classList.remove('dragging');
-    }
-
-    function dragOver(e) {
+    // Mouse drag handlers
+    function handleMouseDown(e) {
+        // Prevent text selection during drag
         e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
+
+        // Only handle left click
+        if (e.button !== 0) return;
+
+        const item = this;
+
+        // Store the drag data
+        dragData = {
+            item: item,
+            originalParent: item.parentNode,
+            originalIndex: Array.from(item.parentNode.children).indexOf(item),
+            offsetX: e.offsetX || (e.clientX - item.getBoundingClientRect().left),
+            offsetY: e.offsetY || (e.clientY - item.getBoundingClientRect().top)
+        };
+
+        // Create a clone for visual feedback
+        const clone = item.cloneNode(true);
+        clone.style.position = 'fixed';
+        clone.style.zIndex = '1000';
+        clone.style.pointerEvents = 'none';
+        clone.style.width = item.offsetWidth + 'px';
+        clone.style.left = (e.clientX - dragData.offsetX) + 'px';
+        clone.style.top = (e.clientY - dragData.offsetY) + 'px';
+        clone.classList.add('dragging');
+        document.body.appendChild(clone);
+
+        dragData.clone = clone;
+
+        // Hide original
+        item.style.opacity = '0.3';
+        item.style.transform = 'scale(0.95)';
+
+        isDragging = true;
+
+        // Add mousemove handler
+        document.addEventListener('mousemove', handleMouseMove);
     }
 
-    function dragEnter(e) {
-        e.preventDefault();
+    function handleMouseMove(e) {
+        if (!isDragging || !dragData) return;
+
+        // Move the clone
+        const clone = dragData.clone;
+        clone.style.left = (e.clientX - dragData.offsetX) + 'px';
+        clone.style.top = (e.clientY - dragData.offsetY) + 'px';
+
+        // Find the container under the cursor
+        const elementUnderCursor = document.elementFromPoint(e.clientX, e.clientY);
+        const container = elementUnderCursor ? elementUnderCursor.closest('.tier-items, .unranked-items') : null;
+
+        // Highlight potential drop target
+        document.querySelectorAll('.tier-items, .unranked-items').forEach(el => {
+            el.classList.remove('drag-over');
+        });
+
+        if (container) {
+            container.classList.add('drag-over');
+            dragData.currentContainer = container;
+        } else {
+            dragData.currentContainer = null;
+        }
+    }
+
+    function handleGlobalMouseUp(e) {
+        if (!isDragging || !dragData) return;
+
+        // Remove mousemove handler
+        document.removeEventListener('mousemove', handleMouseMove);
+
+        // Find the container under the cursor
+        const elementUnderCursor = document.elementFromPoint(e.clientX, e.clientY);
+        const container = elementUnderCursor ? elementUnderCursor.closest('.tier-items, .unranked-items') : null;
+
+        // Remove highlight from all containers
+        document.querySelectorAll('.tier-items, .unranked-items').forEach(el => {
+            el.classList.remove('drag-over');
+        });
+
+        // Move the item to the new container if valid
+        const item = dragData.item;
+        if (container && container !== item.parentNode) {
+            // Insert at the correct position based on mouse location
+            const itemsInContainer = [...container.querySelectorAll('.tier-item')];
+            let inserted = false;
+
+            for (let i = 0; i < itemsInContainer.length; i++) {
+                const rect = itemsInContainer[i].getBoundingClientRect();
+                if (e.clientY < rect.top + rect.height / 2) {
+                    container.insertBefore(item, itemsInContainer[i]);
+                    inserted = true;
+                    break;
+                }
+            }
+
+            if (!inserted) {
+                container.appendChild(item);
+            }
+        } else if (container && container === item.parentNode) {
+            // Reorder within the same container
+            const itemsInContainer = [...container.querySelectorAll('.tier-item')];
+            let inserted = false;
+
+            // Remove the item from its current position
+            const currentIndex = itemsInContainer.indexOf(item);
+            if (currentIndex !== -1) {
+                itemsInContainer.splice(currentIndex, 1);
+            }
+
+            // Find where to insert
+            for (let i = 0; i < itemsInContainer.length; i++) {
+                const rect = itemsInContainer[i].getBoundingClientRect();
+                if (e.clientY < rect.top + rect.height / 2) {
+                    container.insertBefore(item, itemsInContainer[i]);
+                    inserted = true;
+                    break;
+                }
+            }
+
+            if (!inserted) {
+                container.appendChild(item);
+            }
+        }
+
+        // Clean up
+        item.style.opacity = '';
+        item.style.transform = '';
+        dragData.clone.remove();
+        dragData = null;
+        isDragging = false;
+    }
+
+    function handleContainerMouseUp() {
+        // This is handled by global mouse up
+    }
+
+    function handleContainerMouseOver(e) {
+        if (!isDragging) return;
         this.classList.add('drag-over');
     }
 
-    function dragLeave() {
+    function handleContainerMouseOut() {
+        if (!isDragging) return;
         this.classList.remove('drag-over');
-    }
-
-    function drop(e) {
-        e.preventDefault();
-        this.classList.remove('drag-over');
-
-        const id = e.dataTransfer.getData('text/plain');
-        const draggedItem = document.querySelector(`.tier-item[data-id="${id}"]`);
-        const isDragging = document.querySelector('.dragging');
-
-        if (draggedItem && isDragging) {
-            // Get the mouse position
-            const dropY = e.clientY;
-
-            // Get all items in the container
-            const itemsInContainer = [...this.querySelectorAll('.tier-item:not(.dragging)')];
-
-            // Find the closest item based on position
-            const closestItem = itemsInContainer.reduce((closest, child) => {
-                const box = child.getBoundingClientRect();
-                const offset = dropY - box.top - box.height / 2;
-
-                if (offset < 0 && offset > closest.offset) {
-                    return {
-                        offset: offset,
-                        element: child
-                    };
-                } else {
-                    return closest;
-                }
-            }, {
-                offset: Number.NEGATIVE_INFINITY
-            });
-
-            if (closestItem.element) {
-                this.insertBefore(draggedItem, closestItem.element);
-            } else {
-                this.appendChild(draggedItem);
-            }
-        }
     }
 
     // Touch event handlers
@@ -555,26 +640,28 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isDragging) return;
 
         const touch = e.touches[0];
+        const item = this;
+
         touchStartX = touch.clientX;
         touchStartY = touch.clientY;
-        draggedItem = this;
-        draggedItemOriginalParent = this.parentNode;
-        draggedItemOriginalIndex = Array.from(this.parentNode.children).indexOf(this);
+        draggedItem = item;
+        draggedItemOriginalParent = item.parentNode;
+        draggedItemOriginalIndex = Array.from(item.parentNode.children).indexOf(item);
 
         // Create a clone for visual feedback
-        draggedItemClone = this.cloneNode(true);
+        draggedItemClone = item.cloneNode(true);
         draggedItemClone.style.position = 'fixed';
         draggedItemClone.style.zIndex = '1000';
-        draggedItemClone.style.width = `${this.offsetWidth}px`;
-        draggedItemClone.style.height = `${this.offsetHeight}px`;
-        draggedItemClone.style.left = `${this.getBoundingClientRect().left}px`;
-        draggedItemClone.style.top = `${this.getBoundingClientRect().top}px`;
+        draggedItemClone.style.width = item.offsetWidth + 'px';
+        draggedItemClone.style.left = (touch.clientX - 50) + 'px';
+        draggedItemClone.style.top = (touch.clientY - 30) + 'px';
         draggedItemClone.style.pointerEvents = 'none';
+        draggedItemClone.style.transform = 'scale(0.95)';
         draggedItemClone.classList.add('dragging');
         document.body.appendChild(draggedItemClone);
 
         // Hide original while dragging
-        this.style.visibility = 'hidden';
+        item.style.opacity = '0.3';
 
         isDragging = true;
         e.preventDefault();
@@ -588,13 +675,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const deltaY = touch.clientY - touchStartY;
 
         // Move the clone
-        draggedItemClone.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+        if (draggedItemClone) {
+            draggedItemClone.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0.95)`;
+        }
 
         // Find the container under the touch point
-        const touchX = touch.clientX;
-        const touchY = touch.clientY;
-        const elementUnderTouch = document.elementFromPoint(touchX, touchY);
-        const container = elementUnderTouch.closest('.tier-items, .unranked-items');
+        const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY);
+        const container = elementUnderTouch ? elementUnderTouch.closest('.tier-items, .unranked-items') : null;
 
         // Highlight potential drop target
         document.querySelectorAll('.tier-items, .unranked-items').forEach(el => {
@@ -613,10 +700,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Find the container under the touch point
         const touch = e.changedTouches[0];
-        const touchX = touch.clientX;
-        const touchY = touch.clientY;
-        const elementUnderTouch = document.elementFromPoint(touchX, touchY);
-        const container = elementUnderTouch.closest('.tier-items, .unranked-items');
+        const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY);
+        const container = elementUnderTouch ? elementUnderTouch.closest('.tier-items, .unranked-items') : null;
 
         // Remove highlight from all containers
         document.querySelectorAll('.tier-items, .unranked-items').forEach(el => {
@@ -624,11 +709,26 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         // Move the item to the new container if valid
-        if (container) {
-            container.appendChild(draggedItem);
-        } else {
+        if (container && draggedItem) {
+            // Find the correct position within the container
+            const itemsInContainer = [...container.querySelectorAll('.tier-item')];
+            let inserted = false;
+
+            for (let i = 0; i < itemsInContainer.length; i++) {
+                const rect = itemsInContainer[i].getBoundingClientRect();
+                if (touch.clientY < rect.top + rect.height / 2) {
+                    container.insertBefore(draggedItem, itemsInContainer[i]);
+                    inserted = true;
+                    break;
+                }
+            }
+
+            if (!inserted) {
+                container.appendChild(draggedItem);
+            }
+        } else if (!container && draggedItem && draggedItemOriginalParent) {
             // Return to original position if no valid container
-            if (draggedItemOriginalParent && draggedItemOriginalParent.children[draggedItemOriginalIndex]) {
+            if (draggedItemOriginalParent.children[draggedItemOriginalIndex]) {
                 draggedItemOriginalParent.insertBefore(draggedItem, draggedItemOriginalParent.children[draggedItemOriginalIndex]);
             } else {
                 draggedItemOriginalParent.appendChild(draggedItem);
@@ -636,8 +736,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Clean up
-        draggedItem.style.visibility = '';
-        draggedItemClone.remove();
+        if (draggedItem) {
+            draggedItem.style.opacity = '';
+            draggedItem.style.transform = '';
+        }
+        if (draggedItemClone) {
+            draggedItemClone.remove();
+        }
+
         draggedItem = null;
         draggedItemClone = null;
         isDragging = false;
