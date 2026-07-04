@@ -85,6 +85,9 @@ document.addEventListener('DOMContentLoaded', function() {
         card.setAttribute('data-state', agent.state);
         card.setAttribute('data-featured', agent.featured ? 'true' : 'false');
 
+        // Get the detail page URL
+        const detailUrl = `agents/${agent.slug}`;
+
         // Get number of compatible tanks
         const tankCount = agent.compatibleTanks ? agent.compatibleTanks.length : 0;
         const tankText = tankCount === 1 ? '1 Vehicle' : `${tankCount} Vehicles`;
@@ -98,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
             '<i class="fas fa-star" style="color: #ff8300; margin-right: 6px;" title="Featured"></i>' : '';
 
         card.innerHTML = `
-            <div class="agent-img-container">
+            <div class="agent-img-container" data-url="${detailUrl}">
                 <div class="agent-views-counter">
                     <i class="fas fa-eye"></i>
                     <span class="views-count">0</span>
@@ -114,12 +117,50 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span><i class="fa-solid fa-gear"></i> ${tankText}</span>
                 </div>
                 <div class="agent-buttons">
-                    <a href="agents/${agent.slug}" class="btn-accent">
+                    <a href="${detailUrl}" class="btn-accent">
                         <i class="fas fa-info-circle mr-2"></i>Details
                     </a>
                 </div>
             </div>
         `;
+
+        // Make the image container clickable to navigate to the agent detail page
+        const imgContainer = card.querySelector('.agent-img-container');
+        if (imgContainer) {
+            // Add click event listener to the image container
+            imgContainer.addEventListener('click', function(e) {
+                // Prevent navigation if clicking on the details button or its children
+                if (e.target.closest('.btn-accent')) {
+                    return;
+                }
+                // Navigate to the agent detail page
+                const url = this.getAttribute('data-url');
+                if (url) {
+                    window.location.href = url;
+                }
+            });
+
+            // Add touch support for mobile
+            imgContainer.addEventListener('touchstart', function() {
+                // Store touch start time to differentiate between tap and scroll
+                this._touchStartTime = Date.now();
+            }, { passive: true });
+
+            imgContainer.addEventListener('touchend', function(e) {
+                // Prevent navigation if clicking on the details button or its children
+                if (e.target.closest('.btn-accent')) {
+                    return;
+                }
+                // Only navigate if it was a quick tap (not a scroll)
+                const touchDuration = Date.now() - (this._touchStartTime || 0);
+                if (touchDuration < 300) {
+                    const url = this.getAttribute('data-url');
+                    if (url) {
+                        window.location.href = url;
+                    }
+                }
+            }, { passive: true });
+        }
 
         return card;
     }
@@ -166,6 +207,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Update view counters
         updateAgentViewCounters();
+
+        // Apply default filter (if any)
+        filterAgents();
     }
 
     // Initialize filter buttons

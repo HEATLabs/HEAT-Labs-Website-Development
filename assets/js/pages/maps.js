@@ -73,6 +73,9 @@ function createMapCard(map) {
     card.setAttribute('data-state', map.state);
     card.setAttribute('data-featured', map.featured ? 'true' : 'false');
 
+    // Get the map detail page URL
+    const detailUrl = `maps/${map.slug}`;
+
     // Calculate area for sorting if size is known
     let area = 0;
     if (map.size !== 'Unknown Size' && map.size.includes('x')) {
@@ -91,7 +94,7 @@ function createMapCard(map) {
         '<i class="fas fa-star" style="color: #ff8300; margin-right: 6px;" title="Featured"></i>' : '';
 
     card.innerHTML = `
-        <div class="map-img-container">
+        <div class="map-img-container" data-url="${detailUrl}">
             <div class="map-views-counter">
                 <i class="fas fa-eye"></i>
                 <span class="views-count">0</span>
@@ -106,11 +109,40 @@ function createMapCard(map) {
                 <span><i class="fas fa-route"></i> ${map.type}</span>
             </div>
             <p class="map-desc">${map.description}</p>
-            <a href="maps/${map.slug}" class="btn-accent btn-map">
+            <a href="${detailUrl}" class="btn-accent btn-map">
                 <i class="fas fa-map-marked-alt mr-2"></i>View Map
             </a>
         </div>
     `;
+
+    // Make the image container clickable to navigate to the map detail page
+    const imgContainer = card.querySelector('.map-img-container');
+    if (imgContainer) {
+        // Add click event listener to the image container
+        imgContainer.addEventListener('click', function() {
+            const url = this.getAttribute('data-url');
+            if (url) {
+                window.location.href = url;
+            }
+        });
+
+        // Add touch support for mobile
+        imgContainer.addEventListener('touchstart', function() {
+            // Store touch start time to differentiate between tap and scroll
+            this._touchStartTime = Date.now();
+        }, { passive: true });
+
+        imgContainer.addEventListener('touchend', function() {
+            // Only navigate if it was a quick tap (not a scroll)
+            const touchDuration = Date.now() - (this._touchStartTime || 0);
+            if (touchDuration < 300) {
+                const url = this.getAttribute('data-url');
+                if (url) {
+                    window.location.href = url;
+                }
+            }
+        }, { passive: true });
+    }
 
     return card;
 }

@@ -355,6 +355,9 @@ document.addEventListener('DOMContentLoaded', function() {
         card.setAttribute('data-state', tank.state);
         card.setAttribute('data-featured', tank.featured ? 'true' : 'false');
 
+        // Get the tank detail page URL
+        const detailUrl = `tanks/${tank.slug}`;
+
         // Only show tank class (bubble) if it exists and isn't empty
         const tankClassHTML = tank.class && tank.class.trim() !== '' ?
             `<div class="tank-class">${tank.class}</div>` : '';
@@ -385,7 +388,7 @@ document.addEventListener('DOMContentLoaded', function() {
             `<span><i class="fas fa-user"></i> Unknown</span>`;
 
         card.innerHTML = `
-            <div class="tank-img-container">
+            <div class="tank-img-container" data-url="${detailUrl}">
                 <div class="tank-views-counter">
                     <i class="fas fa-eye"></i>
                     <span class="views-count">0</span>
@@ -410,7 +413,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 ${statsHTML}
                 <div class="tank-buttons">
-                    <a href="tanks/${tank.slug}" class="btn-accent">
+                    <a href="${detailUrl}" class="btn-accent">
                         <i class="fas fa-chart-bar mr-2"></i>Statistics
                     </a>
                     <button class="btn-outline compare-btn" data-tank-id="${tank.id}">
@@ -419,6 +422,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
         `;
+
+        // Make the image container clickable to navigate to the tank detail page
+        const imgContainer = card.querySelector('.tank-img-container');
+        if (imgContainer) {
+            // Add click event listener to the image container
+            imgContainer.addEventListener('click', function(e) {
+                // Prevent navigation if clicking on the compare button or its children
+                if (e.target.closest('.compare-btn')) {
+                    return;
+                }
+                // Navigate to the tank detail page
+                const url = this.getAttribute('data-url');
+                if (url) {
+                    window.location.href = url;
+                }
+            });
+
+            // Add touch support for mobile
+            imgContainer.addEventListener('touchstart', function(e) {
+                // Store touch start time to differentiate between tap and scroll
+                this._touchStartTime = Date.now();
+            }, { passive: true });
+
+            imgContainer.addEventListener('touchend', function(e) {
+                // Prevent navigation if clicking on the compare button or its children
+                if (e.target.closest('.compare-btn')) {
+                    return;
+                }
+                // Only navigate if it was a quick tap (not a scroll)
+                const touchDuration = Date.now() - (this._touchStartTime || 0);
+                if (touchDuration < 300) {
+                    const url = this.getAttribute('data-url');
+                    if (url) {
+                        window.location.href = url;
+                    }
+                }
+            }, { passive: true });
+        }
 
         return card;
     }
