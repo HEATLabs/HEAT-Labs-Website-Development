@@ -120,7 +120,15 @@ class PlayerRecords {
     // Update the PvE toggle button text/color
     updatePveToggleButton(tab) {
         const isEnabled = this.pveToggleState[tab] !== false;
-        const buttonId = `pveToggle${tab.charAt(0).toUpperCase() + tab.slice(1).replace('-', '')}`;
+        // Map tab names to button IDs correctly
+        let buttonId;
+        if (tab === 'global') {
+            buttonId = 'pveToggleGlobal';
+        } else if (tab === 'kill-confirmed') {
+            buttonId = 'pveToggleKillconfirmed';
+        } else {
+            buttonId = `pveToggle${tab.charAt(0).toUpperCase() + tab.slice(1)}`;
+        }
         const button = document.getElementById(buttonId);
         if (button) {
             if (isEnabled) {
@@ -144,13 +152,23 @@ class PlayerRecords {
 
     // Check if PvE records should be included for a given tab
     isPveIncluded(tab) {
+        // If the tab is 'global', check the global toggle state
+        if (tab === 'global') {
+            return this.pveToggleState['global'] !== false;
+        }
+        // For mode tabs, check the mode-specific toggle state
         return this.pveToggleState[tab] !== false;
     }
 
     // Get filtered records for a mode (excluding PvE if toggle is OFF)
-    getFilteredRecordsForMode(mode) {
+    // This now checks the global toggle state when called from global context
+    getFilteredRecordsForMode(mode, useGlobalFilter = false) {
         const allRecords = this.recordsByMode[mode] || [];
-        const includePve = this.isPveIncluded(mode);
+        // If useGlobalFilter is true, use the global toggle state
+        // Otherwise use the mode-specific toggle state
+        const includePve = useGlobalFilter
+            ? this.isPveIncluded('global')
+            : this.isPveIncluded(mode);
         return allRecords.filter(record => {
             if (includePve) return true;
             // Exclude PvE records (matchType === 'pve')
@@ -163,7 +181,8 @@ class PlayerRecords {
         const allRecords = [];
         const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed'];
         for (const mode of modes) {
-            const filtered = this.getFilteredRecordsForMode(mode);
+            // For global tab, always use the global filter
+            const filtered = this.getFilteredRecordsForMode(mode, true);
             allRecords.push(...filtered);
         }
         return allRecords;
@@ -612,9 +631,10 @@ class PlayerRecords {
                 }
             }
         } else {
+            // For global tab, use all modes with the global PvE filter
             const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed'];
             for (const modeName of modes) {
-                const filteredRecords = this.getFilteredRecordsForMode(modeName);
+                const filteredRecords = this.getFilteredRecordsForMode(modeName, true);
                 for (const record of filteredRecords) {
                     if (record[statKey] !== undefined && record[statKey] !== null) {
                         allRecords.push(record);
@@ -665,9 +685,16 @@ class PlayerRecords {
 
         // Get all records for this player that have this stat
         const allRecords = player.records || [];
-        const filteredRecords = allRecords.filter(record =>
-            record[statKey] !== undefined && record[statKey] !== null && record[statKey] > 0
-        );
+        const filteredRecords = allRecords.filter(record => {
+            // Check if the stat exists and is valid
+            if (record[statKey] === undefined || record[statKey] === null || record[statKey] <= 0) {
+                return false;
+            }
+            // Check PvE filter for this record's mode
+            const mode = record.mode;
+            const includePve = this.isPveIncluded('global');
+            return includePve || record.matchType !== 'pve';
+        });
 
         // Sort by stat value (descending) and then by date
         return this.sortRecordsByStatAndDate(filteredRecords, statKey);
@@ -762,7 +789,7 @@ class PlayerRecords {
         // Count modes that have records (after filtering)
         const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed'];
         for (const mode of modes) {
-            const filtered = this.getFilteredRecordsForMode(mode);
+            const filtered = this.getFilteredRecordsForMode(mode, true);
             if (filtered.length > 0) {
                 modeCount++;
             }
@@ -780,7 +807,8 @@ class PlayerRecords {
         const modes = modeFilter ? [modeFilter] : ['conquest', 'control', 'hardpoint', 'kill-confirmed'];
 
         for (const mode of modes) {
-            const filteredRecords = this.getFilteredRecordsForMode(mode);
+            // For global distribution, use the global filter
+            const filteredRecords = this.getFilteredRecordsForMode(mode, true);
             for (const record of filteredRecords) {
                 let value = record[field];
                 if (value !== undefined && value !== null && value !== '') {
@@ -827,10 +855,10 @@ class PlayerRecords {
         // 1. Records by Mode
         const modeLabels = ['Conquest', 'Control', 'Hardpoint', 'Kill Confirmed'];
         const modeData = [
-            this.getFilteredRecordsForMode('conquest').length,
-            this.getFilteredRecordsForMode('control').length,
-            this.getFilteredRecordsForMode('hardpoint').length,
-            this.getFilteredRecordsForMode('kill-confirmed').length
+            this.getFilteredRecordsForMode('conquest', true).length,
+            this.getFilteredRecordsForMode('control', true).length,
+            this.getFilteredRecordsForMode('hardpoint', true).length,
+            this.getFilteredRecordsForMode('kill-confirmed', true).length
         ];
 
         const ctx1 = document.getElementById('globalRecordsByModeChart').getContext('2d');
@@ -877,7 +905,7 @@ class PlayerRecords {
             }
         });
 
-        // Top Damage Records
+        // 2. Top Damage Records
         const topDamage = this.getUniqueTopRecords('damage_caused', 10);
         const damageLabels = topDamage.map(r => r.playerId.substring(0, 12) + (r.playerId.length > 12 ? '...' : ''));
         const damageValues = topDamage.map(r => r.damage_caused || 0);
@@ -978,11 +1006,10 @@ class PlayerRecords {
         // 4. Player Records Distribution
         const playerRecordCounts = [];
         for (const player of this.players.values()) {
-            // Count only records that are included based on current filters
+            // Count only records that are included based on global filter
             let count = 0;
             for (const record of player.records) {
-                const mode = record.mode;
-                const includePve = this.isPveIncluded(mode);
+                const includePve = this.isPveIncluded('global');
                 if (includePve || record.matchType !== 'pve') {
                     count++;
                 }
