@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
         minSpeed: 15,
 
         // Duration range in milliseconds (min and max spin time)
-        minDuration: 5000, // 3 seconds minimum
+        minDuration: 5000, // 5 seconds minimum
         maxDuration: 10000, // 10 seconds maximum
 
         // Speed reduction factors (how quickly it slows down)
@@ -80,15 +80,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Filter tanks to only include those with "class": "Available Now"
+    function filterAvailableTanks(tankData) {
+        return tankData.filter(tank => tank.class === "Available Now");
+    }
+
     // Create roulette items
     function createRouletteItems(tankData) {
         rouletteWheel.innerHTML = '';
 
-        // Store the original tanks array for result selection
-        tanks = tankData;
+        // Filter to only Available Now tanks
+        const availableTanks = filterAvailableTanks(tankData);
+
+        // Store the filtered tanks array for result selection
+        tanks = availableTanks;
+
+        if (tanks.length === 0) {
+            rouletteWheel.innerHTML = '<p class="text-center py-10">No "Available Now" tanks found. Please check back later.</p>';
+            spinButton.disabled = true;
+            return;
+        }
 
         // Create a version of the tank data with special prizes inserted
-        const tanksWithSpecial = [...tankData];
+        const tanksWithSpecial = [...tanks];
         const specialPrize = {
             ...rouletteConfig.specialPrize,
             isSpecial: true
@@ -137,6 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (rouletteWheel.firstChild) {
             itemWidth = rouletteWheel.firstChild.getBoundingClientRect().width;
         }
+        spinButton.disabled = false;
     }
 
     // Reset wheel position when nearing the end to create infinite effect
@@ -159,6 +174,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Start the spinning animation
     function startSpinning() {
+        if (tanks.length === 0) {
+            return;
+        }
+
         isSpinning = true;
         spinButton.disabled = true;
         resultCard.classList.remove('visible');
@@ -336,15 +355,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Get the original tank index from the data attribute
                     const originalIndex = finalCenterItem.getAttribute('data-original-index');
 
-                    if (originalIndex !== 'null') {
-                        selectedTank = tanks[originalIndex];
+                    if (originalIndex !== 'null' && originalIndex !== null) {
+                        selectedTank = tanks[parseInt(originalIndex)];
                     } else {
                         // This shouldn't happen since we avoid special prizes, but just in case
                         const nonSpecialItems = Array.from(items).filter(item =>
                             item.getAttribute('data-is-special') === 'false'
                         );
                         const randomItem = nonSpecialItems[Math.floor(Math.random() * nonSpecialItems.length)];
-                        selectedTank = tanks[randomItem.getAttribute('data-original-index')];
+                        if (randomItem) {
+                            const idx = randomItem.getAttribute('data-original-index');
+                            if (idx !== 'null' && idx !== null) {
+                                selectedTank = tanks[parseInt(idx)];
+                            }
+                        }
                     }
 
                     if (selectedTank) {
@@ -411,7 +435,9 @@ document.addEventListener('DOMContentLoaded', function() {
             createRouletteItems(tankData);
 
             // Set up spin button
-            spinButton.addEventListener('click', startSpinning);
+            if (tanks.length > 0) {
+                spinButton.addEventListener('click', startSpinning);
+            }
         } else {
             rouletteWheel.innerHTML = '<p class="text-center py-10">Failed to load tank data. Please try again later.</p>';
             spinButton.disabled = true;
