@@ -131,6 +131,59 @@ function isValidTankStats(stats) {
     });
 }
 
+// Helper function to format and style credit badges
+function getCreditBadge(credits) {
+    if (!credits || credits === 'Unknown' || credits === '0' || credits === '') {
+        return {
+            display: 'Unknown',
+            icon: 'fa-question-circle',
+            className: 'unknown'
+        };
+    }
+
+    const lower = String(credits).toLowerCase();
+
+    if (lower === 'free' || lower === 'free tank' || lower === 'free tank') {
+        return {
+            display: 'Free',
+            icon: 'fa-gift',
+            className: 'free'
+        };
+    }
+
+    if (lower === 'starter tank' || lower === 'starter') {
+        return {
+            display: 'Starter',
+            icon: 'fa-star',
+            className: 'starter'
+        };
+    }
+
+    if (lower.includes('free in battle pass') || lower.includes('battle pass')) {
+        return {
+            display: 'Battle Pass',
+            icon: 'fa-trophy',
+            className: 'battle-pass'
+        };
+    }
+
+    // Check if it's a number string
+    const num = parseInt(String(credits).replace(/,/g, ''));
+    if (!isNaN(num) && num > 0) {
+        return {
+            display: num.toLocaleString() + '',
+            icon: 'fa-coins',
+            className: ''
+        };
+    }
+
+    return {
+        display: credits,
+        icon: 'fa-coins',
+        className: ''
+    };
+}
+
 // Function to fetch tank data based on ID
 async function fetchTankData(tankId) {
     try {
@@ -895,20 +948,37 @@ function populateAgents(agents) {
 function updateTankPageElements(tank) {
     // Update page title and meta tags
     document.title = `${tank.name} - HEAT Labs`;
-    document.querySelector('meta[property="og:title"]').content = `HEAT Labs - ${tank.name}`;
-    document.querySelector('meta[name="twitter:title"]').content = `HEAT Labs - ${tank.name}`;
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.content = `HEAT Labs - ${tank.name}`;
+    const twitterTitle = document.querySelector('meta[name="twitter:title"]');
+    if (twitterTitle) twitterTitle.content = `HEAT Labs - ${tank.name}`;
 
     // Update tank header information
     const tankHeader = document.querySelector('.tank-header');
     if (tankHeader) {
-        const typeBadge = tankHeader.querySelector('.tank-type-badge');
-        if (typeBadge && tank.type !== "Unknown") {
-            typeBadge.textContent = tank.type;
-        }
+        const tankMeta = tankHeader.querySelector('.tank-meta');
 
-        const nationSpan = tankHeader.querySelector('.tank-meta span:nth-child(2)');
-        if (nationSpan) {
+        if (tankMeta) {
+            // Clear the meta container but keep the structure
+            tankMeta.innerHTML = '';
+
+            // Type Badge
+            const typeSpan = document.createElement('span');
+            typeSpan.className = 'tank-type-badge';
+            typeSpan.textContent = tank.type !== "Unknown" ? tank.type : 'Unknown';
+            tankMeta.appendChild(typeSpan);
+
+            // Credit Badge
+            const creditInfo = getCreditBadge(tank.credits);
+            const creditSpan = document.createElement('span');
+            creditSpan.className = `tank-credit-badge ${creditInfo.className}`;
+            creditSpan.innerHTML = `<i class="fas ${creditInfo.icon}"></i> ${creditInfo.display}`;
+            tankMeta.appendChild(creditSpan);
+
+            // Nation
+            const nationSpan = document.createElement('span');
             nationSpan.innerHTML = `<i class="fas fa-flag mr-1"></i> ${tank.nation}`;
+            tankMeta.appendChild(nationSpan);
         }
 
         const tankTitle = tankHeader.querySelector('.tank-title');
