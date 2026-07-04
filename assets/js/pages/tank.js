@@ -103,16 +103,22 @@ async function fetchViewCount() {
 function displayViewCounter(views) {
     const tankMeta = document.querySelector('.tank-meta');
     if (tankMeta) {
-        // Check if view counter already exists
-        if (!tankMeta.querySelector('.map-views-counter')) {
-            const viewCounter = document.createElement('span');
-            viewCounter.className = 'map-views-counter';
-            viewCounter.innerHTML = `
-                <i class="fas fa-eye"></i>
-                <span class="map-views-count">${views.totalViews.toLocaleString()}</span> views
-            `;
-            tankMeta.appendChild(viewCounter);
+        // Remove existing view counter if it exists
+        const existingCounter = tankMeta.querySelector('.map-views-counter');
+        if (existingCounter) {
+            existingCounter.remove();
         }
+
+        // Create view counter
+        const viewCounter = document.createElement('span');
+        viewCounter.className = 'map-views-counter';
+        viewCounter.innerHTML = `
+            <i class="fas fa-eye"></i>
+            <span class="map-views-count">${views.totalViews.toLocaleString()}</span> views
+        `;
+
+        // Always append views counter at the end
+        tankMeta.appendChild(viewCounter);
     }
 }
 
@@ -204,7 +210,7 @@ async function fetchTankData(tankId) {
 
         // Fetch and populate agents data if available
         if (tank.agents) {
-            await fetchAndPopulateAgents(tank.agents, tank.id);
+            await fetchAndPopulateAgents(tank.agents, tank.id, tank);
         }
 
         // Fetch stock data if available
@@ -890,7 +896,7 @@ function adjustTooltipPosition() {
     });
 }
 
-async function fetchAndPopulateAgents(agentsUrl, tankId) {
+async function fetchAndPopulateAgents(agentsUrl, tankId, tank) {
     try {
         const agentsResponse = await fetch(agentsUrl);
         const agentsData = await agentsResponse.json();
@@ -898,11 +904,8 @@ async function fetchAndPopulateAgents(agentsUrl, tankId) {
         if (agentsData && agentsData.agents && agentsData.agents.length > 0) {
             populateAgents(agentsData.agents);
 
-            // Update agent count in header
-            const agentCountSpan = document.querySelector('.tank-header .tank-meta span:nth-child(3)');
-            if (agentCountSpan) {
-                agentCountSpan.innerHTML = `<i class="fas fa-users mr-1"></i> Number of Agents: ${agentsData.agents.length}`;
-            }
+            // Update agent display in the tank header meta section
+            updateAgentDisplayInHeader(agentsData.agents, tank);
 
             // Reinitialize agent modals after populating agents
             initializeAgentModals();
@@ -912,6 +915,45 @@ async function fetchAndPopulateAgents(agentsUrl, tankId) {
     } catch (error) {
         console.error('Error fetching agents data:', error);
     }
+}
+
+// New function to update agent display in the tank header
+function updateAgentDisplayInHeader(agents, tank) {
+    const tankMeta = document.querySelector('.tank-meta');
+    if (!tankMeta) return;
+
+    // Find the existing agents span or create a new one
+    let agentsSpan = tankMeta.querySelector('.tank-agents-display');
+    if (!agentsSpan) {
+        agentsSpan = document.createElement('span');
+        agentsSpan.className = 'tank-agents-display';
+
+        // Insert before the views counter if it exists, otherwise append
+        const viewsCounter = tankMeta.querySelector('.map-views-counter');
+        if (viewsCounter) {
+            tankMeta.insertBefore(agentsSpan, viewsCounter);
+        } else {
+            tankMeta.appendChild(agentsSpan);
+        }
+    }
+
+    // Get agent names from the agents array
+    const agentNames = agents.map(agent => agent.name);
+
+    // Build the agent display HTML
+    let agentHTML = `<i class="fas fa-user"></i> `;
+
+    if (agentNames.length === 0) {
+        agentHTML += 'Unknown';
+    } else if (agentNames.length === 1) {
+        agentHTML += agentNames[0];
+    } else if (agentNames.length === 2) {
+        agentHTML += `${agentNames[0]}, ${agentNames[1]}`;
+    } else {
+        agentHTML += `${agentNames[0]}, ${agentNames[1]} +${agentNames.length - 2}`;
+    }
+
+    agentsSpan.innerHTML = agentHTML;
 }
 
 function populateAgents(agents) {
