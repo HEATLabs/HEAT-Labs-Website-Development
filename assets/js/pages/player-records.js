@@ -29,6 +29,9 @@ class PlayerRecords {
             statKey: 'damage_caused'
         };
 
+        // PvE toggle state per tab (persisted in localStorage)
+        this.pveToggleState = this.loadPveToggleState();
+
         // DOM elements
         this.elements = {
             loadingProgress: document.getElementById('loadingProgress'),
@@ -71,10 +74,326 @@ class PlayerRecords {
         this.init();
     }
 
+    // Load PvE toggle state from localStorage
+    loadPveToggleState() {
+        const defaultState = {
+            global: true,
+            conquest: true,
+            control: true,
+            hardpoint: true,
+            'kill-confirmed': true
+        };
+        try {
+            const saved = localStorage.getItem('playerRecords_pveToggle');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // Merge with defaults to ensure all keys exist
+                return {
+                    ...defaultState,
+                    ...parsed
+                };
+            }
+        } catch (e) {
+            console.warn('Failed to load PvE toggle state:', e);
+        }
+        return defaultState;
+    }
+
+    // Save PvE toggle state to localStorage
+    savePveToggleState() {
+        try {
+            localStorage.setItem('playerRecords_pveToggle', JSON.stringify(this.pveToggleState));
+        } catch (e) {
+            console.warn('Failed to save PvE toggle state:', e);
+        }
+    }
+
+    // Toggle PvE state for a specific tab
+    togglePveState(tab) {
+        this.pveToggleState[tab] = !this.pveToggleState[tab];
+        this.savePveToggleState();
+        this.updatePveToggleButton(tab);
+        // Refresh all data for this tab
+        this.refreshTab(tab);
+    }
+
+    // Update the PvE toggle button text/color
+    updatePveToggleButton(tab) {
+        const isEnabled = this.pveToggleState[tab] !== false;
+        const buttonId = `pveToggle${tab.charAt(0).toUpperCase() + tab.slice(1).replace('-', '')}`;
+        const button = document.getElementById(buttonId);
+        if (button) {
+            if (isEnabled) {
+                button.innerHTML = '<i class="fas fa-robot"></i> Include PvE: ON';
+                button.style.background = '#2ecc71';
+            } else {
+                button.innerHTML = '<i class="fas fa-robot"></i> Include PvE: OFF';
+                button.style.background = '#e74c3c';
+            }
+        }
+    }
+
+    // Update all PvE toggle buttons to reflect current state
+    updateAllPveToggleButtons() {
+        this.updatePveToggleButton('global');
+        this.updatePveToggleButton('conquest');
+        this.updatePveToggleButton('control');
+        this.updatePveToggleButton('hardpoint');
+        this.updatePveToggleButton('kill-confirmed');
+    }
+
+    // Check if PvE records should be included for a given tab
+    isPveIncluded(tab) {
+        return this.pveToggleState[tab] !== false;
+    }
+
+    // Get filtered records for a mode (excluding PvE if toggle is OFF)
+    getFilteredRecordsForMode(mode) {
+        const allRecords = this.recordsByMode[mode] || [];
+        const includePve = this.isPveIncluded(mode);
+        return allRecords.filter(record => {
+            if (includePve) return true;
+            // Exclude PvE records (matchType === 'pve')
+            return record.matchType !== 'pve';
+        });
+    }
+
+    // Get all filtered records across modes (for global tab)
+    getAllFilteredRecords() {
+        const allRecords = [];
+        const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed'];
+        for (const mode of modes) {
+            const filtered = this.getFilteredRecordsForMode(mode);
+            allRecords.push(...filtered);
+        }
+        return allRecords;
+    }
+
+    // Refresh a specific tab's content
+    refreshTab(tab) {
+        if (tab === 'global') {
+            this.renderGlobalStats();
+            this.destroyGlobalCharts();
+            this.renderGlobalCharts();
+            this.renderGlobalTables();
+        } else {
+            // Re-render the specific mode tab
+            this.renderModeTab(tab);
+        }
+    }
+
+    // Render a single mode tab
+    renderModeTab(mode) {
+        const container = {
+            conquest: this.elements.conquestContent,
+            control: this.elements.controlContent,
+            hardpoint: this.elements.hardpointContent,
+            'kill-confirmed': this.elements.killConfirmedContent
+        } [mode];
+
+        if (!container) return;
+
+        const records = this.getFilteredRecordsForMode(mode);
+        const modeDisplayNames = {
+            'conquest': 'Conquest',
+            'control': 'Control',
+            'hardpoint': 'Hardpoint',
+            'kill-confirmed': 'Kill Confirmed'
+        };
+
+        // Base stat configs for all modes
+        const baseStatConfigs = [{
+                key: 'damage_caused',
+                label: 'Damage',
+                icon: 'fa-bolt',
+                color: 'var(--accent-color)'
+            },
+            {
+                key: 'destroyed',
+                label: 'Kills',
+                icon: 'fa-skull',
+                color: '#e74c3c'
+            },
+            {
+                key: 'assists',
+                label: 'Assists',
+                icon: 'fa-handshake',
+                color: '#3498db'
+            },
+            {
+                key: 'XP',
+                label: 'XP',
+                icon: 'fa-star',
+                color: '#f1c40f'
+            },
+            {
+                key: 'credits',
+                label: 'Credits',
+                icon: 'fa-coins',
+                color: '#f39c12'
+            },
+            {
+                key: 'intel',
+                label: 'Intel',
+                icon: 'fa-microchip',
+                color: '#1abc9c'
+            }
+        ];
+
+        const modeStatConfigs = {
+            'conquest': [
+                ...baseStatConfigs,
+                {
+                    key: 'captures',
+                    label: 'Captures',
+                    icon: 'fa-flag-checkered',
+                    color: '#2ecc71'
+                },
+                {
+                    key: 'damage_blocked',
+                    label: 'Blocked',
+                    icon: 'fa-shield',
+                    color: '#9b59b6'
+                }
+            ],
+            'control': [
+                ...baseStatConfigs,
+                {
+                    key: 'captures',
+                    label: 'Captures',
+                    icon: 'fa-flag-checkered',
+                    color: '#2ecc71'
+                },
+                {
+                    key: 'damage_blocked',
+                    label: 'Blocked',
+                    icon: 'fa-shield',
+                    color: '#9b59b6'
+                }
+            ],
+            'hardpoint': [
+                ...baseStatConfigs,
+                {
+                    key: 'captures',
+                    label: 'Captures',
+                    icon: 'fa-flag-checkered',
+                    color: '#2ecc71'
+                },
+                {
+                    key: 'damage_blocked',
+                    label: 'Blocked',
+                    icon: 'fa-shield',
+                    color: '#9b59b6'
+                }
+            ],
+            'kill-confirmed': [
+                ...baseStatConfigs,
+                {
+                    key: 'confirms',
+                    label: 'Confirms',
+                    icon: 'fa-check-double',
+                    color: '#2ecc71'
+                },
+                {
+                    key: 'denies',
+                    label: 'Denies',
+                    icon: 'fa-ban',
+                    color: '#9b59b6'
+                }
+            ]
+        };
+
+        const statConfigs = modeStatConfigs[mode] || baseStatConfigs;
+
+        if (!records.length) {
+            const noRecordsMsg = this.isPveIncluded(mode) ?
+                `No records available for ${modeDisplayNames[mode]} mode` :
+                `No PvP records available for ${modeDisplayNames[mode]} mode (PvE is currently hidden)`;
+            container.innerHTML = `
+                <div class="no-results">
+                    <i class="fas fa-search fa-3x"></i>
+                    <h3>No Records Found</h3>
+                    <p>${noRecordsMsg}</p>
+                </div>
+            `;
+            return;
+        }
+
+        let cardsHtml = '';
+        for (const config of statConfigs) {
+            const topRecords = this.getUniqueTopRecords(config.key, 5, mode);
+            cardsHtml += `
+                <div class="mode-stat-card">
+                    <div class="mode-stat-card-header">
+                        <i class="fas ${config.icon}" style="color: ${config.color};"></i>
+                        <h3>Top ${config.label}</h3>
+                    </div>
+                    <div class="mode-stat-card-body">
+                        <table class="records-table">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Player</th>
+                                    <th>${config.label}</th>
+                                    <th>Type</th>
+                                    <th>Vehicle</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${this.renderModeTableRows(topRecords, config.key, mode)}
+                            </tbody>
+                        </table>
+                        <div class="view-full-btn-container">
+                            <button class="view-full-btn" data-mode="${mode}" data-stat="${config.key}" data-label="${config.label}">
+                                <i class="fas fa-list"></i> View Full ${config.label} Leaderboard
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        container.innerHTML = `
+            <div class="mode-content">
+                ${cardsHtml}
+            </div>
+        `;
+
+        // Add event listeners for view full leaderboard buttons
+        container.querySelectorAll('.view-full-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const mode = btn.dataset.mode;
+                const statKey = btn.dataset.stat;
+                const label = btn.dataset.label;
+                this.showFullLeaderboard(mode, statKey, label);
+            });
+        });
+
+        // Add event listeners for proof buttons
+        container.querySelectorAll('.action-btn-proof').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const proofUrl = btn.dataset.proof;
+                this.showProofModal(proofUrl);
+            });
+        });
+
+        // Add event listeners for profile buttons
+        container.querySelectorAll('.action-btn-profile, .player-name-clickable').forEach(el => {
+            el.addEventListener('click', () => {
+                const playerId = el.dataset.playerid;
+                const statKey = el.dataset.statkey || 'damage_caused';
+                this.showPlayerProfile(playerId, statKey);
+            });
+        });
+    }
+
     async init() {
         this.setupEventListeners();
         await this.loadRecordData();
         this.processRecords();
+        this.updateAllPveToggleButtons();
         this.renderGlobalStats();
         this.renderGlobalCharts();
         this.renderGlobalTables();
@@ -97,6 +416,15 @@ class PlayerRecords {
             if (btn) {
                 btn.addEventListener('click', () => this.showGuidelinesModal());
             }
+        });
+
+        // PvE toggle buttons - all tabs
+        const pveToggleBtns = document.querySelectorAll('.pve-toggle-btn');
+        pveToggleBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab;
+                this.togglePveState(tab);
+            });
         });
     }
 
@@ -277,14 +605,17 @@ class PlayerRecords {
 
         // Get records from specific mode or all modes
         if (mode) {
-            for (const record of this.recordsByMode[mode] || []) {
+            const filteredRecords = this.getFilteredRecordsForMode(mode);
+            for (const record of filteredRecords) {
                 if (record[statKey] !== undefined && record[statKey] !== null) {
                     allRecords.push(record);
                 }
             }
         } else {
-            for (const modeName of ['conquest', 'control', 'hardpoint', 'kill-confirmed']) {
-                for (const record of this.recordsByMode[modeName] || []) {
+            const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed'];
+            for (const modeName of modes) {
+                const filteredRecords = this.getFilteredRecordsForMode(modeName);
+                for (const record of filteredRecords) {
                     if (record[statKey] !== undefined && record[statKey] !== null) {
                         allRecords.push(record);
                     }
@@ -415,35 +746,42 @@ class PlayerRecords {
     }
 
     renderGlobalStats() {
-        let totalRecords = 0;
+        const allFilteredRecords = this.getAllFilteredRecords();
+        let totalRecords = allFilteredRecords.length;
         let highestDamage = 0;
         let modeCount = 0;
+        const uniquePlayers = new Set();
 
-        for (const mode of ['conquest', 'control', 'hardpoint', 'kill-confirmed']) {
-            if (this.records[mode] && Object.keys(this.records[mode]).length > 0) {
+        for (const record of allFilteredRecords) {
+            uniquePlayers.add(record.playerId);
+            if (record.damage_caused && record.damage_caused > highestDamage) {
+                highestDamage = record.damage_caused;
+            }
+        }
+
+        // Count modes that have records (after filtering)
+        const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed'];
+        for (const mode of modes) {
+            const filtered = this.getFilteredRecordsForMode(mode);
+            if (filtered.length > 0) {
                 modeCount++;
-                const modeRecords = this.recordsByMode[mode] || [];
-                totalRecords += modeRecords.length;
-
-                for (const record of modeRecords) {
-                    if (record.damage_caused && record.damage_caused > highestDamage) {
-                        highestDamage = record.damage_caused;
-                    }
-                }
             }
         }
 
         if (this.elements.globalTotalRecords) this.elements.globalTotalRecords.textContent = totalRecords;
-        if (this.elements.globalRecordHolders) this.elements.globalRecordHolders.textContent = this.players.size;
+        if (this.elements.globalRecordHolders) this.elements.globalRecordHolders.textContent = uniquePlayers.size;
         if (this.elements.globalModesCount) this.elements.globalModesCount.textContent = modeCount;
         if (this.elements.globalTopDamage) this.elements.globalTopDamage.textContent = this.formatNumber(highestDamage);
     }
 
     // Helper method to get distribution data for bar charts
-    getDistributionData(field, sortAlphabetically = true) {
+    getDistributionData(field, sortAlphabetically = true, modeFilter = null) {
         const distribution = {};
-        for (const mode of ['conquest', 'control', 'hardpoint', 'kill-confirmed']) {
-            for (const record of this.recordsByMode[mode] || []) {
+        const modes = modeFilter ? [modeFilter] : ['conquest', 'control', 'hardpoint', 'kill-confirmed'];
+
+        for (const mode of modes) {
+            const filteredRecords = this.getFilteredRecordsForMode(mode);
+            for (const record of filteredRecords) {
                 let value = record[field];
                 if (value !== undefined && value !== null && value !== '') {
                     // Special handling for outcome - ensure "Draw" is included if present
@@ -483,19 +821,16 @@ class PlayerRecords {
         // Destroy existing global charts
         this.destroyGlobalCharts();
 
-        // Get all records for distribution
-        const allRecords = [];
-        for (const mode of ['conquest', 'control', 'hardpoint', 'kill-confirmed']) {
-            allRecords.push(...(this.recordsByMode[mode] || []));
-        }
+        // Get all filtered records for distribution
+        const allFilteredRecords = this.getAllFilteredRecords();
 
         // 1. Records by Mode
         const modeLabels = ['Conquest', 'Control', 'Hardpoint', 'Kill Confirmed'];
         const modeData = [
-            this.recordsByMode.conquest.length,
-            this.recordsByMode.control.length,
-            this.recordsByMode.hardpoint.length,
-            this.recordsByMode['kill-confirmed'].length
+            this.getFilteredRecordsForMode('conquest').length,
+            this.getFilteredRecordsForMode('control').length,
+            this.getFilteredRecordsForMode('hardpoint').length,
+            this.getFilteredRecordsForMode('kill-confirmed').length
         ];
 
         const ctx1 = document.getElementById('globalRecordsByModeChart').getContext('2d');
@@ -643,7 +978,18 @@ class PlayerRecords {
         // 4. Player Records Distribution
         const playerRecordCounts = [];
         for (const player of this.players.values()) {
-            playerRecordCounts.push(player.totalRecords);
+            // Count only records that are included based on current filters
+            let count = 0;
+            for (const record of player.records) {
+                const mode = record.mode;
+                const includePve = this.isPveIncluded(mode);
+                if (includePve || record.matchType !== 'pve') {
+                    count++;
+                }
+            }
+            if (count > 0) {
+                playerRecordCounts.push(count);
+            }
         }
         playerRecordCounts.sort((a, b) => a - b);
 
@@ -971,7 +1317,8 @@ class PlayerRecords {
 
     destroyGlobalCharts() {
         const chartKeys = ['recordsByMode', 'topDamage', 'recordsByCategory', 'playerRecords',
-                          'mapDistribution', 'outcomeDistribution', 'tankDistribution', 'agentDistribution'];
+            'mapDistribution', 'outcomeDistribution', 'tankDistribution', 'agentDistribution'
+        ];
         for (const key of chartKeys) {
             if (this.globalCharts[key]) {
                 this.globalCharts[key].destroy();
@@ -981,15 +1328,7 @@ class PlayerRecords {
     }
 
     getTopRecords(statKey, limit = 10) {
-        const allRecords = [];
-        for (const mode of ['conquest', 'control', 'hardpoint', 'kill-confirmed']) {
-            for (const record of this.recordsByMode[mode] || []) {
-                if (record[statKey] !== undefined && record[statKey] !== null) {
-                    allRecords.push(record);
-                }
-            }
-        }
-
+        const allRecords = this.getAllFilteredRecords();
         const sorted = this.sortRecordsByStatAndDate(allRecords, statKey);
         return sorted.slice(0, limit);
     }
@@ -1003,29 +1342,28 @@ class PlayerRecords {
             confirms = 0,
             denies = 0;
 
-        for (const mode of ['conquest', 'control', 'hardpoint', 'kill-confirmed']) {
-            for (const record of this.recordsByMode[mode] || []) {
-                if (record.damage_caused && record.damage_caused > 30000) damage++;
-                else if (record.damage_caused && record.damage_caused > 0) damage++;
+        const allRecords = this.getAllFilteredRecords();
+        for (const record of allRecords) {
+            if (record.damage_caused && record.damage_caused > 30000) damage++;
+            else if (record.damage_caused && record.damage_caused > 0) damage++;
 
-                if (record.destroyed && record.destroyed > 15) kills++;
-                else if (record.destroyed) kills++;
+            if (record.destroyed && record.destroyed > 15) kills++;
+            else if (record.destroyed) kills++;
 
-                if (record.assists && record.assists > 10) assists++;
-                else if (record.assists) assists++;
+            if (record.assists && record.assists > 10) assists++;
+            else if (record.assists) assists++;
 
-                if (record.XP && record.XP > 10000) xp++;
-                else if (record.XP) xp++;
+            if (record.XP && record.XP > 10000) xp++;
+            else if (record.XP) xp++;
 
-                if (record.captures && record.captures > 3) captures++;
-                else if (record.captures) captures++;
+            if (record.captures && record.captures > 3) captures++;
+            else if (record.captures) captures++;
 
-                if (record.confirms && record.confirms > 10) confirms++;
-                else if (record.confirms) confirms++;
+            if (record.confirms && record.confirms > 10) confirms++;
+            else if (record.confirms) confirms++;
 
-                if (record.denies && record.denies > 2) denies++;
-                else if (record.denies) denies++;
-            }
+            if (record.denies && record.denies > 2) denies++;
+            else if (record.denies) denies++;
         }
 
         const total = damage + kills + assists + xp + captures + confirms + denies;
@@ -1042,7 +1380,7 @@ class PlayerRecords {
         this.renderGlobalTable('assists', 'Assists', this.elements.globalAssistsTableBody);
         this.renderGlobalTable('XP', 'XP', this.elements.globalXPTableBody);
         this.renderGlobalTable('captures', 'Captures', this.elements.globalCapturesTableBody);
-        this.renderGlobalTable('damage_blocked', 'Damage Blocked', this.elements.globalBlockedTableBody);
+        this.renderGlobalTable('damage_blocked', 'Blocked', this.elements.globalBlockedTableBody);
         this.renderGlobalTable('credits', 'Credits', this.elements.globalCreditsTableBody);
         this.renderGlobalTable('intel', 'Intel', this.elements.globalIntelTableBody);
         this.renderGlobalTable('confirms', 'Confirms', this.elements.globalConfirmsTableBody);
@@ -1057,7 +1395,13 @@ class PlayerRecords {
         const records = this.getUniqueTopRecords(statKey, 20);
 
         if (!records.length) {
-            tbody.innerHTML = `<tr><td colspan="9" class="no-data">No records found for ${statLabel}</td></tr>`;
+            const allRecords = this.getAllFilteredRecords();
+            const hasRecords = allRecords.some(r => r[statKey] !== undefined && r[statKey] !== null && r[statKey] > 0);
+            if (!hasRecords) {
+                tbody.innerHTML = `<tr><td colspan="9" class="no-data">No ${statLabel} records found (PvE may be hidden)</td></tr>`;
+            } else {
+                tbody.innerHTML = `<tr><td colspan="9" class="no-data">No records found for ${statLabel}</td></tr>`;
+            }
             return;
         }
 
@@ -1072,23 +1416,23 @@ class PlayerRecords {
             const matchTypeClass = record.matchType === 'pvp' ? 'match-type-pvp' : 'match-type-pve';
 
             html += `
-        <tr>
-          <td><span class="rank-badge ${rankClass}">${rank}</span></td>
-          <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);">${record.playerId}</strong></td>
-          <td>${this.formatNumber(record[statKey] || 0)}</td>
-          <td><span class="mode-badge">${modeDisplayName}</span></td>
-          <td><span class="match-type-badge ${matchTypeClass}">${matchTypeLabel}</span></td>
-          <td>${record.vehicle || 'N/A'}</td>
-          <td>${record.agent || 'N/A'}</td>
-          <td>${recordDate}</td>
-          <td>
-            <div class="action-buttons">
-              ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i></button>` : ''}
-              <button class="action-btn action-btn-profile" data-playerid="${record.playerId}" data-statkey="${statKey}"><i class="fas fa-user"></i></button>
-            </div>
-          </td>
-        </tr>
-      `;
+                <tr>
+                    <td><span class="rank-badge ${rankClass}">${rank}</span></td>
+                    <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);">${record.playerId}</strong></td>
+                    <td>${this.formatNumber(record[statKey] || 0)}</td>
+                    <td><span class="mode-badge">${modeDisplayName}</span></td>
+                    <td><span class="match-type-badge ${matchTypeClass}">${matchTypeLabel}</span></td>
+                    <td>${record.vehicle || 'N/A'}</td>
+                    <td>${record.agent || 'N/A'}</td>
+                    <td>${recordDate}</td>
+                    <td>
+                        <div class="action-buttons">
+                            ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i></button>` : ''}
+                            <button class="action-btn action-btn-profile" data-playerid="${record.playerId}" data-statkey="${statKey}"><i class="fas fa-user"></i></button>
+                        </div>
+                    </td>
+                </tr>
+            `;
             rank++;
         }
 
@@ -1114,215 +1458,13 @@ class PlayerRecords {
 
     renderModeTabs() {
         const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed'];
-        const modeDisplayNames = {
-            'conquest': 'Conquest',
-            'control': 'Control',
-            'hardpoint': 'Hardpoint',
-            'kill-confirmed': 'Kill Confirmed'
-        };
-
-        // Base stat configs for all modes
-        const baseStatConfigs = [{
-                key: 'damage_caused',
-                label: 'Damage',
-                icon: 'fa-bolt',
-                color: 'var(--accent-color)'
-            },
-            {
-                key: 'destroyed',
-                label: 'Kills',
-                icon: 'fa-skull',
-                color: '#e74c3c'
-            },
-            {
-                key: 'assists',
-                label: 'Assists',
-                icon: 'fa-handshake',
-                color: '#3498db'
-            },
-            {
-                key: 'XP',
-                label: 'XP',
-                icon: 'fa-star',
-                color: '#f1c40f'
-            },
-            {
-                key: 'credits',
-                label: 'Credits',
-                icon: 'fa-coins',
-                color: '#f39c12'
-            },
-            {
-                key: 'intel',
-                label: 'Intel',
-                icon: 'fa-microchip',
-                color: '#1abc9c'
-            }
-        ];
-
-        // Mode-specific stat configs
-        const modeStatConfigs = {
-            'conquest': [
-                ...baseStatConfigs,
-                {
-                    key: 'captures',
-                    label: 'Captures',
-                    icon: 'fa-flag-checkered',
-                    color: '#2ecc71'
-                },
-                {
-                    key: 'damage_blocked',
-                    label: 'Damage Blocked',
-                    icon: 'fa-shield',
-                    color: '#9b59b6'
-                }
-            ],
-            'control': [
-                ...baseStatConfigs,
-                {
-                    key: 'captures',
-                    label: 'Captures',
-                    icon: 'fa-flag-checkered',
-                    color: '#2ecc71'
-                },
-                {
-                    key: 'damage_blocked',
-                    label: 'Damage Blocked',
-                    icon: 'fa-shield',
-                    color: '#9b59b6'
-                }
-            ],
-            'hardpoint': [
-                ...baseStatConfigs,
-                {
-                    key: 'captures',
-                    label: 'Captures',
-                    icon: 'fa-flag-checkered',
-                    color: '#2ecc71'
-                },
-                {
-                    key: 'damage_blocked',
-                    label: 'Damage Blocked',
-                    icon: 'fa-shield',
-                    color: '#9b59b6'
-                }
-            ],
-            'kill-confirmed': [
-                ...baseStatConfigs,
-                {
-                    key: 'confirms',
-                    label: 'Confirms',
-                    icon: 'fa-check-double',
-                    color: '#2ecc71'
-                },
-                {
-                    key: 'denies',
-                    label: 'Denies',
-                    icon: 'fa-ban',
-                    color: '#9b59b6'
-                }
-            ]
-        };
-
-        const contentMap = {
-            'conquest': this.elements.conquestContent,
-            'control': this.elements.controlContent,
-            'hardpoint': this.elements.hardpointContent,
-            'kill-confirmed': this.elements.killConfirmedContent
-        };
-
         for (const mode of modes) {
-            const container = contentMap[mode];
-            if (!container) continue;
-
-            const records = this.recordsByMode[mode] || [];
-            const statConfigs = modeStatConfigs[mode] || baseStatConfigs;
-
-            if (!records.length) {
-                container.innerHTML = `
-          <div class="no-results">
-            <i class="fas fa-search fa-3x"></i>
-            <h3>No Records Found</h3>
-            <p>No records available for ${modeDisplayNames[mode]} mode</p>
-          </div>
-        `;
-                continue;
-            }
-
-            let cardsHtml = '';
-            for (const config of statConfigs) {
-                // Use unique players for each stat
-                const topRecords = this.getUniqueTopRecords(config.key, 5, mode);
-                cardsHtml += `
-          <div class="mode-stat-card">
-            <div class="mode-stat-card-header">
-              <i class="fas ${config.icon}" style="color: ${config.color};"></i>
-              <h3>Top ${config.label}</h3>
-            </div>
-            <div class="mode-stat-card-body">
-              <table class="records-table">
-                <thead>
-                  <tr>
-                    <th>Rank</th>
-                    <th>Player</th>
-                    <th>${config.label}</th>
-                    <th>Type</th>
-                    <th>Vehicle</th>
-                    <th>Date</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${this.renderModeTableRows(topRecords, config.key, mode)}
-                </tbody>
-              </table>
-              <div class="view-full-btn-container">
-                <button class="view-full-btn" data-mode="${mode}" data-stat="${config.key}" data-label="${config.label}">
-                  <i class="fas fa-list"></i> View Full ${config.label} Leaderboard
-                </button>
-              </div>
-            </div>
-          </div>
-        `;
-            }
-
-            container.innerHTML = `
-            <div class="mode-content">
-              ${cardsHtml}
-            </div>
-          `;
-
-            // Add event listeners for view full leaderboard buttons
-            container.querySelectorAll('.view-full-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const mode = btn.dataset.mode;
-                    const statKey = btn.dataset.stat;
-                    const label = btn.dataset.label;
-                    this.showFullLeaderboard(mode, statKey, label);
-                });
-            });
-
-            // Add event listeners for proof buttons
-            container.querySelectorAll('.action-btn-proof').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const proofUrl = btn.dataset.proof;
-                    this.showProofModal(proofUrl);
-                });
-            });
-
-            // Add event listeners for profile buttons
-            container.querySelectorAll('.action-btn-profile, .player-name-clickable').forEach(el => {
-                el.addEventListener('click', () => {
-                    const playerId = el.dataset.playerid;
-                    const statKey = el.dataset.statkey || 'damage_caused';
-                    this.showPlayerProfile(playerId, statKey);
-                });
-            });
+            this.renderModeTab(mode);
         }
     }
 
     getModeTopRecords(mode, statKey, limit = 5) {
-        const records = this.recordsByMode[mode] || [];
+        const records = this.getFilteredRecordsForMode(mode);
         const sorted = this.sortRecordsByStatAndDate(records, statKey);
         return sorted.slice(0, limit);
     }
@@ -1330,7 +1472,9 @@ class PlayerRecords {
     // Uses unique players for mode table rows
     renderModeTableRows(records, statKey, mode) {
         if (!records.length) {
-            return `<tr><td colspan="7" class="no-data">No records found</td></tr>`;
+            const includePve = this.isPveIncluded(mode);
+            const msg = includePve ? 'No records found' : 'No PvP records found (PvE is currently hidden)';
+            return `<tr><td colspan="7" class="no-data">${msg}</td></tr>`;
         }
 
         let rank = 1;
@@ -1343,21 +1487,21 @@ class PlayerRecords {
             const matchTypeClass = record.matchType === 'pvp' ? 'match-type-pvp' : 'match-type-pve';
 
             html += `
-        <tr>
-          <td><span class="rank-badge ${rankClass}">${rank}</span></td>
-          <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);">${record.playerId}</strong></td>
-          <td>${this.formatNumber(record[statKey] || 0)}</td>
-          <td><span class="match-type-badge ${matchTypeClass}">${matchTypeLabel}</span></td>
-          <td>${record.vehicle || 'N/A'}</td>
-          <td>${recordDate}</td>
-          <td>
-            <div class="action-buttons">
-              ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i></button>` : ''}
-              <button class="action-btn action-btn-profile" data-playerid="${record.playerId}" data-statkey="${statKey}"><i class="fas fa-user"></i></button>
-            </div>
-          </td>
-        </tr>
-      `;
+                <tr>
+                    <td><span class="rank-badge ${rankClass}">${rank}</span></td>
+                    <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);">${record.playerId}</strong></td>
+                    <td>${this.formatNumber(record[statKey] || 0)}</td>
+                    <td><span class="match-type-badge ${matchTypeClass}">${matchTypeLabel}</span></td>
+                    <td>${record.vehicle || 'N/A'}</td>
+                    <td>${recordDate}</td>
+                    <td>
+                        <div class="action-buttons">
+                            ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i></button>` : ''}
+                            <button class="action-btn action-btn-profile" data-playerid="${record.playerId}" data-statkey="${statKey}"><i class="fas fa-user"></i></button>
+                        </div>
+                    </td>
+                </tr>
+            `;
             rank++;
         }
 
@@ -1370,7 +1514,11 @@ class PlayerRecords {
         const sorted = this.getUniqueTopRecords(statKey, 1000, mode);
 
         if (!sorted.length) {
-            this.showToast(`No records found for ${label} in ${this.getModeDisplayName(mode)}`, 'error');
+            const includePve = this.isPveIncluded(mode);
+            const msg = includePve ?
+                `No records found for ${label} in ${this.getModeDisplayName(mode)}` :
+                `No PvP records found for ${label} in ${this.getModeDisplayName(mode)} (PvE is currently hidden)`;
+            this.showToast(msg, 'error');
             return;
         }
 
@@ -1396,7 +1544,7 @@ class PlayerRecords {
             'assists': 'Assists',
             'XP': 'XP',
             'captures': 'Captures',
-            'damage_blocked': 'Damage Blocked',
+            'damage_blocked': 'Blocked',
             'credits': 'Credits',
             'intel': 'Intel',
             'confirms': 'Confirms',
@@ -1408,33 +1556,33 @@ class PlayerRecords {
 
         // Build leaderboard HTML
         let html = `
-      <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);" id="leaderboardModal" data-mode="${mode}" data-stat="${statKey}" data-label="${label}">
-        <div style="background: var(--card-bg); border-radius: 1rem; border: 1px solid var(--border-color); padding: 2rem; max-width: 1000px; width: 95%; max-height: 85vh; overflow-y: auto; position: relative;">
-          <button style="position: sticky; top: 0; float: right; background: var(--bg-tertiary); border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer; padding: 0.5rem; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; z-index: 1;" onclick="document.getElementById('leaderboardModal').remove()">
-            <i class="fas fa-times"></i>
-          </button>
-          <h3 style="text-align: center; color: var(--text-primary); margin-bottom: 0.5rem;">
-            <i class="fas fa-trophy" style="color: var(--accent-color);"></i> ${statLabel} Leaderboard (${modeName})
-          </h3>
-          <p style="text-align: center; color: var(--text-secondary); margin-bottom: 1rem;">
-            Showing ${startIndex + 1}-${endIndex} of ${sorted.length} entries
-          </p>
-          <div class="table-wrapper">
-            <table class="records-table">
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Player</th>
-                  <th>${statLabel}</th>
-                  <th>Type</th>
-                  <th>Vehicle</th>
-                  <th>Agent</th>
-                  <th>Date</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-    `;
+            <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);" id="leaderboardModal" data-mode="${mode}" data-stat="${statKey}" data-label="${label}">
+                <div style="background: var(--card-bg); border-radius: 1rem; border: 1px solid var(--border-color); padding: 2rem; max-width: 1000px; width: 95%; max-height: 85vh; overflow-y: auto; position: relative;">
+                    <button style="position: sticky; top: 0; float: right; background: var(--bg-tertiary); border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer; padding: 0.5rem; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; z-index: 1;" onclick="document.getElementById('leaderboardModal').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <h3 style="text-align: center; color: var(--text-primary); margin-bottom: 0.5rem;">
+                        <i class="fas fa-trophy" style="color: var(--accent-color);"></i> ${statLabel} Leaderboard (${modeName})
+                    </h3>
+                    <p style="text-align: center; color: var(--text-secondary); margin-bottom: 1rem;">
+                        Showing ${startIndex + 1}-${endIndex} of ${sorted.length} entries
+                    </p>
+                    <div class="table-wrapper">
+                        <table class="records-table">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Player</th>
+                                    <th>${statLabel}</th>
+                                    <th>Type</th>
+                                    <th>Vehicle</th>
+                                    <th>Agent</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+        `;
 
         let rank = startIndex + 1;
         for (const record of pageRecords) {
@@ -1444,44 +1592,44 @@ class PlayerRecords {
             const matchTypeClass = record.matchType === 'pvp' ? 'match-type-pvp' : 'match-type-pve';
 
             html += `
-        <tr>
-          <td><span class="rank-badge ${rankClass}">${rank}</span></td>
-          <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);">${record.playerId}</strong></td>
-          <td>${this.formatNumber(record[statKey] || 0)}</td>
-          <td><span class="match-type-badge ${matchTypeClass}">${matchTypeLabel}</span></td>
-          <td>${record.vehicle || 'N/A'}</td>
-          <td>${record.agent || 'N/A'}</td>
-          <td>${recordDate}</td>
-          <td>
-            <div class="action-buttons">
-              ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i></button>` : ''}
-              <button class="action-btn action-btn-profile" data-playerid="${record.playerId}" data-statkey="${statKey}"><i class="fas fa-user"></i></button>
-            </div>
-          </td>
-        </tr>
-      `;
+                <tr>
+                    <td><span class="rank-badge ${rankClass}">${rank}</span></td>
+                    <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);">${record.playerId}</strong></td>
+                    <td>${this.formatNumber(record[statKey] || 0)}</td>
+                    <td><span class="match-type-badge ${matchTypeClass}">${matchTypeLabel}</span></td>
+                    <td>${record.vehicle || 'N/A'}</td>
+                    <td>${record.agent || 'N/A'}</td>
+                    <td>${recordDate}</td>
+                    <td>
+                        <div class="action-buttons">
+                            ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i></button>` : ''}
+                            <button class="action-btn action-btn-profile" data-playerid="${record.playerId}" data-statkey="${statKey}"><i class="fas fa-user"></i></button>
+                        </div>
+                    </td>
+                </tr>
+            `;
             rank++;
         }
 
         html += `
-              </tbody>
-            </table>
-          </div>
-          <div style="display: flex; justify-content: center; align-items: center; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap;">
-            <button onclick="window.playerRecordsInstance.goToLeaderboardPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled style="opacity: 0.4; cursor: not-allowed;"' : ''} style="padding: 0.4rem 1rem; border: 1px solid var(--border-color); border-radius: 0.4rem; background: var(--bg-tertiary); color: var(--text-primary); cursor: pointer; font-weight: 600;">
-              <i class="fas fa-chevron-left"></i> Previous
-            </button>
-            <span style="color: var(--text-secondary);">Page ${currentPage} of ${totalPages}</span>
-            <button onclick="window.playerRecordsInstance.goToLeaderboardPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled style="opacity: 0.4; cursor: not-allowed;"' : ''} style="padding: 0.4rem 1rem; border: 1px solid var(--border-color); border-radius: 0.4rem; background: var(--bg-tertiary); color: var(--text-primary); cursor: pointer; font-weight: 600;">
-              Next <i class="fas fa-chevron-right"></i>
-            </button>
-          </div>
-          <div style="text-align: center; margin-top: 0.75rem;">
-            <button onclick="document.getElementById('leaderboardModal').remove()" style="padding: 0.5rem 2rem; border: none; border-radius: 0.5rem; background: var(--accent-color); color: #fff; font-weight: 600; cursor: pointer;">Close</button>
-          </div>
-        </div>
-      </div>
-    `;
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap;">
+                        <button onclick="window.playerRecordsInstance.goToLeaderboardPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled style="opacity: 0.4; cursor: not-allowed;"' : ''} style="padding: 0.4rem 1rem; border: 1px solid var(--border-color); border-radius: 0.4rem; background: var(--bg-tertiary); color: var(--text-primary); cursor: pointer; font-weight: 600;">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </button>
+                        <span style="color: var(--text-secondary);">Page ${currentPage} of ${totalPages}</span>
+                        <button onclick="window.playerRecordsInstance.goToLeaderboardPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled style="opacity: 0.4; cursor: not-allowed;"' : ''} style="padding: 0.4rem 1rem; border: 1px solid var(--border-color); border-radius: 0.4rem; background: var(--bg-tertiary); color: var(--text-primary); cursor: pointer; font-weight: 600;">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div style="text-align: center; margin-top: 0.75rem;">
+                        <button onclick="document.getElementById('leaderboardModal').remove()" style="padding: 0.5rem 2rem; border: none; border-radius: 0.5rem; background: var(--accent-color); color: #fff; font-weight: 600; cursor: pointer;">Close</button>
+                    </div>
+                </div>
+            </div>
+        `;
 
         // Remove existing modal if any
         const existingModal = document.getElementById('leaderboardModal');
@@ -1557,7 +1705,7 @@ class PlayerRecords {
             'assists': 'Assists',
             'XP': 'XP',
             'captures': 'Captures',
-            'damage_blocked': 'Damage Blocked',
+            'damage_blocked': 'Blocked',
             'credits': 'Credits',
             'intel': 'Intel',
             'confirms': 'Confirms',
@@ -1575,37 +1723,37 @@ class PlayerRecords {
 
         // Build the profile modal
         let html = `
-      <div class="profile-modal-overlay" id="profileModal">
-        <div class="profile-modal-content">
-          <button class="profile-modal-close" onclick="document.getElementById('profileModal').remove()">
-            <i class="fas fa-times"></i>
-          </button>
-          <div class="profile-header">
-            <div class="profile-avatar">
-              <i class="fas fa-user-circle"></i>
-            </div>
-            <div class="profile-info">
-              <h2>${playerId}</h2>
-              <p><i class="fas fa-trophy" style="color: var(--accent-color, #ff8300);"></i> ${allRecords.length} ${statLabel} record${allRecords.length > 1 ? 's' : ''}</p>
-            </div>
-          </div>
-          <div class="profile-records">
-            <h3><i class="fas fa-chart-bar" style="color: var(--accent-color, #ff8300);"></i> ${statLabel} Records</h3>
-            <div class="table-wrapper">
-              <table class="records-table profile-records-table">
-                <thead>
-                  <tr>
-                    <th>${statLabel}</th>
-                    <th>Mode</th>
-                    <th>Type</th>
-                    <th>Vehicle</th>
-                    <th>Agent</th>
-                    <th>Date</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-    `;
+            <div class="profile-modal-overlay" id="profileModal">
+                <div class="profile-modal-content">
+                    <button class="profile-modal-close" onclick="document.getElementById('profileModal').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div class="profile-header">
+                        <div class="profile-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="profile-info">
+                            <h2>${playerId}</h2>
+                            <p><i class="fas fa-trophy" style="color: var(--accent-color, #ff8300);"></i> ${allRecords.length} ${statLabel} record${allRecords.length > 1 ? 's' : ''}</p>
+                        </div>
+                    </div>
+                    <div class="profile-records">
+                        <h3><i class="fas fa-chart-bar" style="color: var(--accent-color, #ff8300);"></i> ${statLabel} Records</h3>
+                        <div class="table-wrapper">
+                            <table class="records-table profile-records-table">
+                                <thead>
+                                    <tr>
+                                        <th>${statLabel}</th>
+                                        <th>Mode</th>
+                                        <th>Type</th>
+                                        <th>Vehicle</th>
+                                        <th>Agent</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+        `;
 
         let rank = 1;
         for (const record of allRecords) {
@@ -1616,34 +1764,34 @@ class PlayerRecords {
             const matchTypeClass = record.matchType === 'pvp' ? 'match-type-pvp' : 'match-type-pve';
 
             html += `
-        <tr>
-          <td><span class="rank-badge ${rankClass}">${this.formatNumber(record[statKey] || 0)}</span></td>
-          <td><span class="mode-badge">${modeDisplayName}</span></td>
-          <td><span class="match-type-badge ${matchTypeClass}">${matchTypeLabel}</span></td>
-          <td>${record.vehicle || 'N/A'}</td>
-          <td>${record.agent || 'N/A'}</td>
-          <td>${recordDate}</td>
-          <td>
-            <div class="action-buttons">
-              ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i></button>` : ''}
-            </div>
-          </td>
-        </tr>
-      `;
+                <tr>
+                    <td><span class="rank-badge ${rankClass}">${this.formatNumber(record[statKey] || 0)}</span></td>
+                    <td><span class="mode-badge">${modeDisplayName}</span></td>
+                    <td><span class="match-type-badge ${matchTypeClass}">${matchTypeLabel}</span></td>
+                    <td>${record.vehicle || 'N/A'}</td>
+                    <td>${record.agent || 'N/A'}</td>
+                    <td>${recordDate}</td>
+                    <td>
+                        <div class="action-buttons">
+                            ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i></button>` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `;
             rank++;
         }
 
         html += `
-                </tbody>
-              </table>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="profile-footer">
+                        <button onclick="document.getElementById('profileModal').remove()" class="profile-close-btn">Close</button>
+                    </div>
+                </div>
             </div>
-          </div>
-          <div class="profile-footer">
-            <button onclick="document.getElementById('profileModal').remove()" class="profile-close-btn">Close</button>
-          </div>
-        </div>
-      </div>
-    `;
+        `;
 
         // Remove existing profile modal if any
         const existingModal = document.getElementById('profileModal');
@@ -1706,18 +1854,18 @@ class PlayerRecords {
         }
 
         const html = `
-      <div class="proof-modal-overlay" id="proofModal">
-        <div class="proof-modal-content">
-          <button class="proof-modal-close" onclick="document.getElementById('proofModal').remove()">
-            <i class="fas fa-times"></i>
-          </button>
-          <img src="${proofUrl}" alt="Proof Image" class="proof-modal-image" loading="lazy">
-          <div class="proof-modal-info">
-            <p><strong>Record Date:</strong> ${this.getRecordDate(proofUrl)}</p>
-          </div>
-        </div>
-      </div>
-    `;
+            <div class="proof-modal-overlay" id="proofModal">
+                <div class="proof-modal-content">
+                    <button class="proof-modal-close" onclick="document.getElementById('proofModal').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <img src="${proofUrl}" alt="Proof Image" class="proof-modal-image" loading="lazy">
+                    <div class="proof-modal-info">
+                        <p><strong>Record Date:</strong> ${this.getRecordDate(proofUrl)}</p>
+                    </div>
+                </div>
+            </div>
+        `;
 
         document.body.insertAdjacentHTML('beforeend', html);
 
@@ -1786,18 +1934,18 @@ class PlayerRecords {
             toastContainer = document.createElement('div');
             toastContainer.id = 'toastContainer';
             toastContainer.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 1100;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 8px;
-        pointer-events: none;
-        max-width: 90%;
-      `;
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 1100;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+                pointer-events: none;
+                max-width: 90%;
+            `;
             document.body.appendChild(toastContainer);
         }
 
@@ -1810,26 +1958,26 @@ class PlayerRecords {
         else if (type === 'error') iconClass = 'fas fa-times-circle';
 
         toast.innerHTML = `
-      <i class="${iconClass}"></i>
-      <span>${message}</span>
-    `;
+            <i class="${iconClass}"></i>
+            <span>${message}</span>
+        `;
 
         toast.style.cssText = `
-      background-color: var(--card-bg);
-      color: var(--text-primary);
-      padding: 0.75rem 1.25rem;
-      border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      pointer-events: auto;
-      min-width: 250px;
-      max-width: 100%;
-      border-left: 4px solid ${type === 'success' ? '#4CAF50' : type === 'warning' ? '#FF9800' : type === 'error' ? '#F44336' : '#2196F3'};
-      animation: toastSlideIn 0.3s ease-out;
-      transition: all 0.3s ease;
-    `;
+            background-color: var(--card-bg);
+            color: var(--text-primary);
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: auto;
+            min-width: 250px;
+            max-width: 100%;
+            border-left: 4px solid ${type === 'success' ? '#4CAF50' : type === 'warning' ? '#FF9800' : type === 'error' ? '#F44336' : '#2196F3'};
+            animation: toastSlideIn 0.3s ease-out;
+            transition: all 0.3s ease;
+        `;
 
         toastContainer.appendChild(toast);
 
@@ -1852,49 +2000,49 @@ class PlayerRecords {
         }
 
         const html = `
-      <div class="guidelines-modal-overlay" id="guidelinesModal">
-        <div class="guidelines-modal-content">
-          <button class="guidelines-modal-close" onclick="document.getElementById('guidelinesModal').remove()">
-            <i class="fas fa-times"></i>
-          </button>
-          <h2><i class="fas fa-book"></i> Submission Guidelines</h2>
-          <p class="guidelines-subtitle">Please read these guidelines carefully before submitting any records.</p>
-          <ul class="guidelines-list">
-            <li>
-              <i class="fas fa-check-circle"></i>
-              <span>Only original, <strong>unedited</strong>, and <strong>uncropped</strong> screenshots of the <span class="highlight">End of Match</span> screen are eligible.</span>
-            </li>
-            <li>
-              <i class="fas fa-check-circle"></i>
-              <span>Screenshots must be submitted in the official Discord server's <span class="discord-highlight">#clips-and-highlights</span> channel.</span>
-            </li>
-            <li>
-              <i class="fas fa-check-circle"></i>
-              <span>Do <strong>not</strong> hover over any badge, statistic, or metric while taking your screenshot of the <span class="highlight">YOUR PERFORMANCE</span> tab, as this may interfere with verification and result in your submission being rejected.</span>
-            </li>
-            <li>
-              <i class="fas fa-check-circle"></i>
-              <span>Any submission where statistics, badges, player names, or other required data elements are <strong>covered, obscured, cropped, blurred, or otherwise unreadable</strong> will be considered <strong>incomplete</strong> and will <strong>not</strong> be accepted.</span>
-            </li>
-            <li>
-              <i class="fas fa-check-circle"></i>
-              <span>Any submissions that do not meet these requirements will <strong>not</strong> be accepted.</span>
-            </li>
-            <li>
-              <i class="fas fa-check-circle"></i>
-              <span>All record submissions are manually reviewed and verified by the HEAT Labs team before being added to the database.</span>
-            </li>
-            <li>
-              <i class="fas fa-check-circle"></i>
-              <span>Records are updated every <strong>24 to 72 hours</strong> as this process takes time to validate all new submissions.</span>
-            </li>
-          </ul>
-          <div class="guidelines-footer">
-            <p>Questions? Join our <a href="https://discord.heatlabs.net" target="_blank">Discord server</a> for assistance.</p>
-          </div>
-        </div>
-      </div>
-    `;
+            <div class="guidelines-modal-overlay" id="guidelinesModal">
+                <div class="guidelines-modal-content">
+                    <button class="guidelines-modal-close" onclick="document.getElementById('guidelinesModal').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <h2><i class="fas fa-book"></i> Submission Guidelines</h2>
+                    <p class="guidelines-subtitle">Please read these guidelines carefully before submitting any records.</p>
+                    <ul class="guidelines-list">
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            <span>Only original, <strong>unedited</strong>, and <strong>uncropped</strong> screenshots of the <span class="highlight">End of Match</span> screen are eligible.</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            <span>Screenshots must be submitted in the official Discord server's <span class="discord-highlight">#clips-and-highlights</span> channel.</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            <span>Do <strong>not</strong> hover over any badge, statistic, or metric while taking your screenshot of the <span class="highlight">YOUR PERFORMANCE</span> tab, as this may interfere with verification and result in your submission being rejected.</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            <span>Any submission where statistics, badges, player names, or other required data elements are <strong>covered, obscured, cropped, blurred, or otherwise unreadable</strong> will be considered <strong>incomplete</strong> and will <strong>not</strong> be accepted.</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            <span>Any submissions that do not meet these requirements will <strong>not</strong> be accepted.</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            <span>All record submissions are manually reviewed and verified by the HEAT Labs team before being added to the database.</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            <span>Records are updated every <strong>24 to 72 hours</strong> as this process takes time to validate all new submissions.</span>
+                        </li>
+                    </ul>
+                    <div class="guidelines-footer">
+                        <p>Questions? Join our <a href="https://discord.heatlabs.net" target="_blank">Discord server</a> for assistance.</p>
+                    </div>
+                </div>
+            </div>
+        `;
 
         document.body.insertAdjacentHTML('beforeend', html);
 
@@ -1962,71 +2110,90 @@ class PlayerRecords {
 // Add toast animation styles
 const toastStyles = document.createElement('style');
 toastStyles.textContent = `
-  @keyframes toastSlideIn {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
+    @keyframes toastSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
-    to {
-      opacity: 1;
-      transform: translateY(0);
+
+    .mode-badge {
+        display: inline-block;
+        padding: 0.15rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
     }
-  }
 
-  .mode-badge {
-    display: inline-block;
-    padding: 0.15rem 0.5rem;
-    border-radius: 0.25rem;
-    font-size: 0.7rem;
-    font-weight: 600;
-    background: var(--bg-tertiary);
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
+    .player-name-clickable {
+        cursor: pointer;
+        transition: color 0.2s ease;
+    }
+    .player-name-clickable:hover {
+        color: #ff6b00 !important;
+        text-decoration: underline;
+    }
 
-  .player-name-clickable {
-    cursor: pointer;
-    transition: color 0.2s ease;
-  }
-  .player-name-clickable:hover {
-    color: #ff6b00 !important;
-    text-decoration: underline;
-  }
+    .match-type-badge {
+        display: inline-block;
+        padding: 0.15rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    .match-type-pvp {
+        background: rgba(231, 76, 60, 0.2);
+        color: #e74c3c;
+        border: 1px solid rgba(231, 76, 60, 0.3);
+    }
+    .match-type-pve {
+        background: rgba(46, 204, 113, 0.2);
+        color: #2ecc71;
+        border: 1px solid rgba(46, 204, 113, 0.3);
+    }
 
-  .match-type-badge {
-    display: inline-block;
-    padding: 0.15rem 0.5rem;
-    border-radius: 0.25rem;
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
-  .match-type-pvp {
-    background: rgba(231, 76, 60, 0.2);
-    color: #e74c3c;
-    border: 1px solid rgba(231, 76, 60, 0.3);
-  }
-  .match-type-pve {
-    background: rgba(46, 204, 113, 0.2);
-    color: #2ecc71;
-    border: 1px solid rgba(46, 204, 113, 0.3);
-  }
+    .last-updated-text {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        margin-top: 0.5rem;
+        opacity: 0.8;
+    }
+    .last-updated-text i {
+        margin-right: 0.4rem;
+    }
 
-  .last-updated-text {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    margin-top: 0.5rem;
-    opacity: 0.8;
-  }
-  .last-updated-text i {
-    margin-right: 0.4rem;
-  }
+    .global-last-updated {
+        margin-top: 0.5rem;
+    }
 
-  .global-last-updated {
-    margin-top: 0.5rem;
-  }
+    /* PvE Toggle Button */
+    .pve-toggle-btn {
+        padding: 0.5rem 1.5rem;
+        border: none;
+        border-radius: 0.5rem;
+        color: #fff;
+        font-weight: 600;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all var(--transition-speed, 0.3s);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .pve-toggle-btn:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
 `;
 document.head.appendChild(toastStyles);
 
