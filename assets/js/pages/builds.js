@@ -259,8 +259,9 @@ function showBuildDetailModal(build) {
                         </div>
                     </div>
                     <div class="build-detail-author">
-                        <span>Created by: ${build.buildAuthor}</span>
-                        <span>Date: ${formatDate(build.buildDate)}</span>
+                        <span class="author-name">${build.buildAuthor}</span>
+                        <span class="author-version">${build.buildVersion || 'Unknown'}</span>
+                        <span class="author-date">${formatDate(build.buildDate)}</span>
                     </div>
                 </div>
 
@@ -507,20 +508,95 @@ function truncateDescription(description) {
     return plainText.substring(0, 60).trim() + '...';
 }
 
+// Function to get unique versions from builds and sort them intelligently
+function getUniqueVersions(builds) {
+    const versions = new Set();
+
+    builds.forEach(build => {
+        if (build.buildVersion) {
+            versions.add(build.buildVersion);
+        }
+    });
+
+    // Convert to array and sort intelligently
+    return Array.from(versions).sort((a, b) => {
+        // If both are "Alpha #X" format, sort by number
+        const alphaMatchA = a.match(/Alpha\s*#?\s*(\d+)/i);
+        const alphaMatchB = b.match(/Alpha\s*#?\s*(\d+)/i);
+
+        if (alphaMatchA && alphaMatchB) {
+            return parseInt(alphaMatchA[1]) - parseInt(alphaMatchB[1]);
+        }
+
+        // If both are "Beta #X" format, sort by number
+        const betaMatchA = a.match(/Beta\s*#?\s*(\d+)/i);
+        const betaMatchB = b.match(/Beta\s*#?\s*(\d+)/i);
+
+        if (betaMatchA && betaMatchB) {
+            return parseInt(betaMatchA[1]) - parseInt(betaMatchB[1]);
+        }
+
+        // If one is Alpha and the other is Beta, Alpha comes first
+        const isAlphaA = /Alpha/i.test(a);
+        const isAlphaB = /Alpha/i.test(b);
+        const isBetaA = /Beta/i.test(a);
+        const isBetaB = /Beta/i.test(b);
+
+        if (isAlphaA && isBetaB) return -1;
+        if (isBetaA && isAlphaB) return 1;
+
+        // If one has a number and the other doesn't, number comes first
+        const hasNumberA = /\d/.test(a);
+        const hasNumberB = /\d/.test(b);
+
+        if (hasNumberA && !hasNumberB) return -1;
+        if (!hasNumberA && hasNumberB) return 1;
+
+        // Default: alphabetical
+        return a.localeCompare(b);
+    });
+}
+
+// Function to populate version filter with unique versions
+function populateVersionFilter() {
+    const versionFilter = document.getElementById('versionFilter');
+
+    // Get unique versions sorted intelligently
+    const sortedVersions = getUniqueVersions(originalBuilds);
+
+    // Clear existing options (keep 'All Versions')
+    while (versionFilter.options.length > 1) {
+        versionFilter.remove(1);
+    }
+
+    // Add version options
+    sortedVersions.forEach(version => {
+        const option = document.createElement('option');
+        option.value = version;
+        option.textContent = version;
+        versionFilter.appendChild(option);
+    });
+
+    // If only one version exists, select it automatically
+    if (sortedVersions.length === 1 && versionFilter.value !== sortedVersions[0]) {
+        versionFilter.value = sortedVersions[0];
+    }
+}
+
 // Function to update builds display based on filters
 function updateBuildsDisplay() {
     const sortFilter = document.getElementById('sortFilter');
     const tankFilter = document.getElementById('tankFilter');
     const nationFilter = document.getElementById('nationFilter');
     const typeFilter = document.getElementById('typeFilter');
-    const buildsPerPageFilter = document.getElementById('buildsPerPage');
+    const versionFilter = document.getElementById('versionFilter');
     const buildsGrid = document.querySelector('.builds-grid');
 
     const sortValue = sortFilter.value;
     const tankValue = tankFilter.value;
     const nationValue = nationFilter.value;
     const typeValue = typeFilter.value;
-    buildsPerPage = buildsPerPageFilter.value === 'all' ? originalBuilds.length : parseInt(buildsPerPageFilter.value);
+    const versionValue = versionFilter.value;
 
     // Filter builds
     let filteredBuilds = originalBuilds;
@@ -535,6 +611,10 @@ function updateBuildsDisplay() {
 
     if (typeValue !== 'all') {
         filteredBuilds = filteredBuilds.filter(build => build.tankType === typeValue);
+    }
+
+    if (versionValue !== 'all') {
+        filteredBuilds = filteredBuilds.filter(build => build.buildVersion === versionValue);
     }
 
     // Sort builds
@@ -592,6 +672,7 @@ function updateBuildsDisplay() {
         buildCard.dataset.tankId = build.tankId;
         buildCard.dataset.nation = build.tankNation;
         buildCard.dataset.type = build.tankType;
+        buildCard.dataset.version = build.buildVersion || '';
 
         buildCard.innerHTML = `
             <div class="build-header">
@@ -605,12 +686,19 @@ function updateBuildsDisplay() {
                 <p class="build-description">${truncateDescription(build.buildDescription || 'No description provided.')}</p>
 
                 <div class="build-meta">
-                    <span class="build-author">
-                        <i class="fas fa-user"></i> ${build.buildAuthor}
-                    </span>
-                    <span class="build-date">
-                        <i class="fas fa-calendar-alt"></i> ${formatDate(build.buildDate)}
-                    </span>
+                    <div class="build-meta-row">
+                        <span class="build-author">
+                            <i class="fas fa-user"></i> ${build.buildAuthor}
+                        </span>
+                        <span class="build-date">
+                            <i class="fas fa-calendar-alt"></i> ${formatDate(build.buildDate)}
+                        </span>
+                    </div>
+                    <div class="build-meta-row">
+                        <span class="build-version">
+                            <i class="fas fa-tag"></i> ${build.buildVersion || 'Unknown'}
+                        </span>
+                    </div>
                 </div>
 
                 <div class="build-modules">
@@ -648,6 +736,9 @@ function updateBuildsDisplay() {
             }, index * 100);
         });
     }, 50);
+
+    // Populate version filter with available versions
+    populateVersionFilter();
 }
 
 // Function to update filter options based on current selections
@@ -693,6 +784,9 @@ function updateFilterOptions() {
 
     // Update type filter options based on available nations
     updateTypeOptions();
+
+    // Populate version filter
+    populateVersionFilter();
 }
 
 // Function to update nation options based on current type selection
@@ -857,7 +951,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const tankFilter = document.getElementById('tankFilter');
     const nationFilter = document.getElementById('nationFilter');
     const typeFilter = document.getElementById('typeFilter');
-    const buildsPerPageFilter = document.getElementById('buildsPerPage');
+    const versionFilter = document.getElementById('versionFilter');
 
     // First fetch tank data, then builds data
     fetchTankData();
@@ -885,7 +979,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateBuildsDisplay();
     });
 
-    buildsPerPageFilter.addEventListener('change', () => {
+    versionFilter.addEventListener('change', () => {
         currentPage = 1;
         updateBuildsDisplay();
     });
