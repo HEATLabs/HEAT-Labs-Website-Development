@@ -6,6 +6,9 @@ document.addEventListener('DOMContentLoaded', function() {
         status: ['Available Now']
     };
 
+    // Store agents data globally
+    let agentsData = [];
+
     document.addEventListener('click', function(event) {
         const sidebar = document.querySelector('.comparison-sidebar');
         const trigger = document.querySelector('.comparison-trigger');
@@ -205,6 +208,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Fetch agents data from JSON file
+    async function fetchAgentsData() {
+        try {
+            const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/agents.json');
+            if (!response.ok) {
+                throw new Error('Failed to load agents data');
+            }
+            const data = await response.json();
+            return data.agents || [];
+        } catch (error) {
+            console.error('Error loading agents data:', error);
+            return []; // Return empty array if there's an error
+        }
+    }
+
+    // Find agent for a given tank slug
+    function findAgentForTank(tankSlug, agents) {
+        if (!agents || agents.length === 0) return null;
+
+        // Check if the tank slug matches any compatible tank in agents
+        for (const agent of agents) {
+            if (agent.compatibleTanks && agent.compatibleTanks.length > 0) {
+                for (const compatTank of agent.compatibleTanks) {
+                    // Match by slug
+                    if (compatTank.slug === tankSlug) {
+                        return agent.name;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     async function fetchViewCount(imageName) {
         try {
             const response = await fetch(`https://views.heatlabs.net/api/stats?image=pcwstats-tracker-pixel-${imageName}.png`);
@@ -309,7 +345,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Create tank card HTML
-    function createTankCard(tank) {
+    function createTankCard(tank, agents) {
         const card = document.createElement('div');
         card.className = 'tank-card';
         card.setAttribute('data-nation', tank.nation);
@@ -342,6 +378,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const creditsDisplay = formatCredits(tank.credits);
         const creditsIcon = getCreditsIcon(tank.credits);
 
+        // Find agent for this tank
+        const agentName = findAgentForTank(tank.slug, agents);
+        const agentDisplay = agentName ?
+            `<span><i class="fas fa-user"></i> ${agentName}</span>` :
+            `<span><i class="fas fa-user"></i> Unknown</span>`;
+
         card.innerHTML = `
             <div class="tank-img-container">
                 <div class="tank-views-counter">
@@ -358,8 +400,13 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="tank-info">
                 <h3>${featuredStar}${tank.name}</h3>
                 <div class="tank-meta">
-                    <span><i class="fas fa-flag"></i> ${tank.nation}</span>
-                    <span><i class="fas fa-layer-group"></i> ${tank.type}</span>
+                    <div class="tank-meta-row">
+                        <span><i class="fas fa-flag"></i> ${tank.nation}</span>
+                        <span><i class="fas fa-layer-group"></i> ${tank.type}</span>
+                    </div>
+                    <div class="tank-meta-row tank-meta-agent">
+                        ${agentDisplay}
+                    </div>
                 </div>
                 ${statsHTML}
                 <div class="tank-buttons">
@@ -401,6 +448,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Render all tank cards
     async function renderTankCards() {
+        // Load agents data first
+        agentsData = await fetchAgentsData();
+
         const tanks = await fetchTankData();
         tanksGrid.innerHTML = ''; // Clear existing cards
 
@@ -416,7 +466,7 @@ document.addEventListener('DOMContentLoaded', function() {
         sortedTanks.forEach(tank => {
             // Only create cards for tanks with state: "displayed"
             if (tank.state === "displayed") {
-                const card = createTankCard(tank);
+                const card = createTankCard(tank, agentsData);
                 tanksGrid.appendChild(card);
             }
         });
