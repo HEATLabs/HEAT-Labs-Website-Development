@@ -263,6 +263,51 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
     }
 
+    // Format credits value for display
+    function formatCredits(credits) {
+        if (!credits || credits === 'Unknown') {
+            return 'Unknown';
+        }
+        if (credits.toLowerCase() === 'free') {
+            return 'Free';
+        }
+        if (credits.toLowerCase() === 'starter tank') {
+            return 'Starter Tank';
+        }
+        if (credits.toLowerCase() === 'free in battle pass') {
+            return 'Free in Battle Pass';
+        }
+        // If it's a number string, format it with commas
+        const num = parseInt(credits.replace(/,/g, ''));
+        if (!isNaN(num)) {
+            return num.toLocaleString() + ' Credits';
+        }
+        return credits;
+    }
+
+    // Determine icon for credits display - different icons for different types
+    function getCreditsIcon(credits) {
+        if (!credits || credits === 'Unknown') {
+            return 'fa-question-circle';
+        }
+        const lower = credits.toLowerCase();
+        if (lower === 'free') {
+            return 'fa-gift';
+        }
+        if (lower === 'starter tank') {
+            return 'fa-star';
+        }
+        if (lower === 'free in battle pass') {
+            return 'fa-trophy';
+        }
+        // Check if it's a number
+        const num = parseInt(credits.replace(/,/g, ''));
+        if (!isNaN(num)) {
+            return 'fa-coins';
+        }
+        return 'fa-coins';
+    }
+
     // Create tank card HTML
     function createTankCard(tank) {
         const card = document.createElement('div');
@@ -293,6 +338,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const featuredStar = tank.featured ?
             '<i class="fas fa-star" style="color: #ff8300; margin-right: 6px;" title="Featured"></i>' : '';
 
+        // Format credits display
+        const creditsDisplay = formatCredits(tank.credits);
+        const creditsIcon = getCreditsIcon(tank.credits);
+
         card.innerHTML = `
             <div class="tank-img-container">
                 <div class="tank-views-counter">
@@ -301,6 +350,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <img src="${tank.image}" alt="${tank.name} Preview" class="tank-img" onerror="this.src='https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/placeholder/imagefailedtoload.webp'">
                 ${tankClassHTML}
+                <div class="tank-credits-badge">
+                    <i class="fas ${creditsIcon}"></i>
+                    <span>${creditsDisplay}</span>
+                </div>
             </div>
             <div class="tank-info">
                 <h3>${featuredStar}${tank.name}</h3>
