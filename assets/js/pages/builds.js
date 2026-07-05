@@ -103,9 +103,12 @@ function showError(message) {
         </div>
     `;
 
-    document.getElementById('retryLoading').addEventListener('click', () => {
-        fetchTankData();
-    });
+    const retryBtn = document.getElementById('retryLoading');
+    if (retryBtn) {
+        retryBtn.addEventListener('click', () => {
+            fetchTankData();
+        });
+    }
 }
 
 // Function to hide loader
@@ -330,24 +333,30 @@ function showBuildDetailModal(build) {
     document.body.appendChild(modal);
 
     // Add event listeners
-    document.getElementById('closeBuildDetail').addEventListener('click', closeBuildDetailModal);
+    const closeBtn = document.getElementById('closeBuildDetail');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeBuildDetailModal);
+    }
     overlay.addEventListener('click', closeBuildDetailModal);
 
     // Initialize tooltips
     initTooltips();
 
     // Copy build link functionality
-    document.getElementById('copyBuildLink').addEventListener('click', () => {
-        const buildUrl = `${window.location.origin}${window.location.pathname}?tank=${build.tankSlug}&build=${build.buildNumber}`;
-        navigator.clipboard.writeText(buildUrl).then(() => {
-            const button = document.getElementById('copyBuildLink');
-            const originalText = button.innerHTML;
-            button.innerHTML = '<i class="fas fa-check"></i> Link Copied!';
-            setTimeout(() => {
-                button.innerHTML = originalText;
-            }, 2000);
+    const copyBtn = document.getElementById('copyBuildLink');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+            const buildUrl = `${window.location.origin}${window.location.pathname}?tank=${build.tankSlug}&build=${build.buildNumber}`;
+            navigator.clipboard.writeText(buildUrl).then(() => {
+                const button = document.getElementById('copyBuildLink');
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check"></i> Link Copied!';
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                }, 2000);
+            });
         });
-    });
+    }
 
     // Show modal with animation
     setTimeout(() => {
@@ -388,10 +397,15 @@ function handleUrlParams() {
 
         if (targetBuild) {
             // Set filters to match the build's tank
-            document.getElementById('tankFilter').value = targetBuild.tankId;
-            document.getElementById('nationFilter').value = targetBuild.tankNation;
-            document.getElementById('typeFilter').value = targetBuild.tankType;
-            document.getElementById('sortFilter').value = 'featured';
+            const tankFilter = document.getElementById('tankFilter');
+            const nationFilter = document.getElementById('nationFilter');
+            const typeFilter = document.getElementById('typeFilter');
+            const sortFilter = document.getElementById('sortFilter');
+
+            if (tankFilter) tankFilter.value = targetBuild.tankId;
+            if (nationFilter) nationFilter.value = targetBuild.tankNation;
+            if (typeFilter) typeFilter.value = targetBuild.tankType;
+            if (sortFilter) sortFilter.value = 'featured';
 
             // Force update the filter options
             updateFilterOptions();
@@ -418,10 +432,15 @@ function handleUrlParams() {
                     const retryBuild = findBuildByParams(tank, build);
                     if (retryBuild) {
                         // Set filters to match the build's tank
-                        document.getElementById('tankFilter').value = retryBuild.tankId;
-                        document.getElementById('nationFilter').value = retryBuild.tankNation;
-                        document.getElementById('typeFilter').value = retryBuild.tankType;
-                        document.getElementById('sortFilter').value = 'featured';
+                        const tankFilter = document.getElementById('tankFilter');
+                        const nationFilter = document.getElementById('nationFilter');
+                        const typeFilter = document.getElementById('typeFilter');
+                        const sortFilter = document.getElementById('sortFilter');
+
+                        if (tankFilter) tankFilter.value = retryBuild.tankId;
+                        if (nationFilter) nationFilter.value = retryBuild.tankNation;
+                        if (typeFilter) typeFilter.value = retryBuild.tankType;
+                        if (sortFilter) sortFilter.value = 'featured';
 
                         updateFilterOptions();
                         updateBuildsDisplay();
@@ -560,6 +579,10 @@ function getUniqueVersions(builds) {
 // Function to populate version filter with unique versions
 function populateVersionFilter() {
     const versionFilter = document.getElementById('versionFilter');
+    if (!versionFilter) return;
+
+    // Store the current selected value before repopulating
+    const currentValue = versionFilter.value;
 
     // Get unique versions sorted intelligently
     const sortedVersions = getUniqueVersions(originalBuilds);
@@ -577,9 +600,23 @@ function populateVersionFilter() {
         versionFilter.appendChild(option);
     });
 
-    // If only one version exists, select it automatically
-    if (sortedVersions.length === 1 && versionFilter.value !== sortedVersions[0]) {
-        versionFilter.value = sortedVersions[0];
+    // Restore the selected value if it still exists, otherwise default to 'all'
+    if (currentValue && currentValue !== 'all') {
+        // Check if the current value still exists in the options
+        let valueExists = false;
+        for (let i = 0; i < versionFilter.options.length; i++) {
+            if (versionFilter.options[i].value === currentValue) {
+                valueExists = true;
+                break;
+            }
+        }
+        if (valueExists) {
+            versionFilter.value = currentValue;
+        } else {
+            versionFilter.value = 'all';
+        }
+    } else {
+        versionFilter.value = 'all';
     }
 }
 
@@ -591,6 +628,18 @@ function updateBuildsDisplay() {
     const typeFilter = document.getElementById('typeFilter');
     const versionFilter = document.getElementById('versionFilter');
     const buildsGrid = document.querySelector('.builds-grid');
+
+    // Check if all required elements exist
+    if (!sortFilter || !tankFilter || !nationFilter || !typeFilter || !versionFilter || !buildsGrid) {
+        console.warn('Required DOM elements not found, retrying...');
+        // Retry after a short delay if elements aren't ready
+        setTimeout(() => {
+            if (document.getElementById('sortFilter')) {
+                updateBuildsDisplay();
+            }
+        }, 100);
+        return;
+    }
 
     const sortValue = sortFilter.value;
     const tankValue = tankFilter.value;
@@ -720,9 +769,12 @@ function updateBuildsDisplay() {
         buildsGrid.appendChild(buildCard);
 
         // Add event listener to view build button
-        buildCard.querySelector('.btn-view-build').addEventListener('click', () => {
-            showBuildDetailModal(build);
-        });
+        const viewBtn = buildCard.querySelector('.btn-view-build');
+        if (viewBtn) {
+            viewBtn.addEventListener('click', () => {
+                showBuildDetailModal(build);
+            });
+        }
     });
 
     // Update pagination controls
@@ -746,6 +798,17 @@ function updateFilterOptions() {
     const tankFilter = document.getElementById('tankFilter');
     const nationFilter = document.getElementById('nationFilter');
     const typeFilter = document.getElementById('typeFilter');
+
+    // Check if all required elements exist
+    if (!tankFilter || !nationFilter || !typeFilter) {
+        console.warn('Filter elements not found, retrying...');
+        setTimeout(() => {
+            if (document.getElementById('tankFilter')) {
+                updateFilterOptions();
+            }
+        }, 100);
+        return;
+    }
 
     // Get current filter values
     const currentNation = nationFilter.value;
@@ -793,6 +856,9 @@ function updateFilterOptions() {
 function updateNationOptions() {
     const nationFilter = document.getElementById('nationFilter');
     const typeFilter = document.getElementById('typeFilter');
+
+    if (!nationFilter || !typeFilter) return;
+
     const currentType = typeFilter.value;
 
     // Get all unique nations from tank data
@@ -826,6 +892,9 @@ function updateNationOptions() {
 function updateTypeOptions() {
     const typeFilter = document.getElementById('typeFilter');
     const nationFilter = document.getElementById('nationFilter');
+
+    if (!typeFilter || !nationFilter) return;
+
     const currentNation = nationFilter.value;
 
     // Get all unique types from tank data
@@ -945,49 +1014,76 @@ function updatePaginationControls(totalPages) {
     paginationContainer.appendChild(nextButton);
 }
 
-// Initialize builds functionality
-document.addEventListener('DOMContentLoaded', function() {
+// Function to setup filter event listeners
+function setupFilterListeners() {
     const sortFilter = document.getElementById('sortFilter');
     const tankFilter = document.getElementById('tankFilter');
     const nationFilter = document.getElementById('nationFilter');
     const typeFilter = document.getElementById('typeFilter');
     const versionFilter = document.getElementById('versionFilter');
 
+    // Remove existing listeners by cloning and replacing elements
+    const filters = [sortFilter, tankFilter, nationFilter, typeFilter, versionFilter];
+    filters.forEach(filter => {
+        if (filter) {
+            const newFilter = filter.cloneNode(true);
+            filter.parentNode.replaceChild(newFilter, filter);
+        }
+    });
+
+    // Get fresh references
+    const newSortFilter = document.getElementById('sortFilter');
+    const newTankFilter = document.getElementById('tankFilter');
+    const newNationFilter = document.getElementById('nationFilter');
+    const newTypeFilter = document.getElementById('typeFilter');
+    const newVersionFilter = document.getElementById('versionFilter');
+
+    // Add event listeners for filter changes
+    if (newSortFilter) {
+        newSortFilter.addEventListener('change', () => {
+            currentPage = 1;
+            updateBuildsDisplay();
+        });
+    }
+
+    if (newTankFilter) {
+        newTankFilter.addEventListener('change', () => {
+            currentPage = 1;
+            updateBuildsDisplay();
+        });
+    }
+
+    if (newNationFilter) {
+        newNationFilter.addEventListener('change', () => {
+            currentPage = 1;
+            updateFilterOptions();
+            updateBuildsDisplay();
+        });
+    }
+
+    if (newTypeFilter) {
+        newTypeFilter.addEventListener('change', () => {
+            currentPage = 1;
+            updateFilterOptions();
+            updateBuildsDisplay();
+        });
+    }
+
+    if (newVersionFilter) {
+        newVersionFilter.addEventListener('change', () => {
+            currentPage = 1;
+            updateBuildsDisplay();
+        });
+    }
+}
+
+// Initialize builds functionality
+document.addEventListener('DOMContentLoaded', function() {
     // First fetch tank data, then builds data
     fetchTankData();
 
-    // Add event listeners for filter changes
-    sortFilter.addEventListener('change', () => {
-        currentPage = 1;
-        updateBuildsDisplay();
-    });
-
-    tankFilter.addEventListener('change', () => {
-        currentPage = 1;
-        updateBuildsDisplay();
-    });
-
-    nationFilter.addEventListener('change', () => {
-        currentPage = 1;
-        updateFilterOptions();
-        updateBuildsDisplay();
-    });
-
-    typeFilter.addEventListener('change', () => {
-        currentPage = 1;
-        updateFilterOptions();
-        updateBuildsDisplay();
-    });
-
-    versionFilter.addEventListener('change', () => {
-        currentPage = 1;
-        updateBuildsDisplay();
-    });
-
-    // Initialize animations after page load
+    // Setup filter listeners after DOM is ready
     setTimeout(() => {
-        document.querySelectorAll('.build-card').forEach(card => {
-            card.classList.add('animated');
-        });
-    }, 300);
+        setupFilterListeners();
+    }, 100);
 });
