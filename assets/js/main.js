@@ -127,46 +127,68 @@ function getLatestGameVersion(buildsData) {
     try {
         // Extract builds from the data structure
         const builds = buildsData.builds;
-        let latestBuild = null;
-        let latestDate = null;
-        let latestVersion = null;
+        let highestVersion = null;
+        let highestVersionObj = null;
+        let lastUpdated = buildsData.last_updated || new Date().toISOString();
 
-        // Iterate through all game builds to find the latest one
+        // Helper function to compare version strings (handles different formats)
+        function compareVersions(v1, v2) {
+            if (!v1 || !v2) return 0;
+
+            // Normalize version strings: remove leading 'v' and split by dots
+            const parts1 = v1.replace(/^v/, '').split('.');
+            const parts2 = v2.replace(/^v/, '').split('.');
+
+            const maxLen = Math.max(parts1.length, parts2.length);
+
+            for (let i = 0; i < maxLen; i++) {
+                const num1 = parseInt(parts1[i] || '0', 10);
+                const num2 = parseInt(parts2[i] || '0', 10);
+
+                if (num1 > num2) return 1;
+                if (num1 < num2) return -1;
+            }
+
+            return 0;
+        }
+
+        // Iterate through all game builds to find the highest version
         for (const gameName in builds) {
             const gameBuilds = builds[gameName];
 
             for (const buildHash in gameBuilds) {
                 const build = gameBuilds[buildHash];
-                const buildDate = new Date(build.build_info.build_date);
+                let versionName = build.build_info.version_name;
 
-                if (!latestDate || buildDate > latestDate) {
-                    latestDate = buildDate;
-                    latestBuild = build;
+                // If version_name is empty or just whitespace, try to get from patches
+                if (!versionName || versionName.trim() === '') {
+                    if (build.patches && build.patches.length > 0) {
+                        for (const patch of build.patches) {
+                            if (patch.version_to && patch.version_to.trim() !== '') {
+                                versionName = patch.version_to;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // If version_name is still empty, use the hash as identifier
+                if (!versionName || versionName.trim() === '') {
+                    versionName = '0.0.0.0';
+                }
+
+                // Compare and keep the highest version
+                if (!highestVersion || compareVersions(versionName, highestVersion) > 0) {
+                    highestVersion = versionName;
+                    highestVersionObj = build;
                 }
             }
         }
 
-        if (latestBuild) {
-            // Check if version_name is empty and try to get version from patches (Thanks WG)
-            let versionName = latestBuild.build_info.version_name;
-
-            // If version_name is empty or just whitespace, try to get from patches (who needs version names am i right?)
-            if (!versionName || versionName.trim() === '') {
-                // Look through patches to find version_to
-                if (latestBuild.patches && latestBuild.patches.length > 0) {
-                    // Find the first patch with a version_to that's not empty (at least this exists)
-                    for (const patch of latestBuild.patches) {
-                        if (patch.version_to && patch.version_to.trim() !== '') {
-                            versionName = patch.version_to;
-                            break;
-                        }
-                    }
-                }
-            }
-
+        if (highestVersionObj) {
             return {
-                gameVersion: versionName || '0.0.0.0',
-                gameBuildDate: latestBuild.build_info.build_date
+                gameVersion: highestVersion || '0.0.0.0',
+                gameBuildDate: lastUpdated // Use last_updated from the JSON
             };
         }
     } catch (error) {
@@ -265,26 +287,12 @@ function addVersionToFooter(websiteUpdate, gameUpdate, isFallback = false, isWeb
     // Format current date for fallback scenarios
     const currentDate = formatDate(new Date().toISOString().split('T')[0]);
 
-    // Format game build date
+    // Format game build date using last_updated
     let gameBuildFormatted = 'Unknown';
     if (gameUpdate && gameUpdate.gameBuildDate) {
         try {
-            // Parse the build_date string
-            const buildDateStr = gameUpdate.gameBuildDate;
-            const [datePart, timePart] = buildDateStr.split(' ');
-            const [year, month, day] = datePart.split('.');
-            const [hours, minutes, seconds] = timePart.split(':');
-
-            const buildDate = new Date(
-                parseInt(year),
-                parseInt(month) - 1,
-                parseInt(day),
-                parseInt(hours),
-                parseInt(minutes),
-                parseInt(seconds)
-            );
-
-            gameBuildFormatted = formatDate(buildDate.toISOString());
+            // Use last_updated directly - it's already in ISO format
+            gameBuildFormatted = formatDate(gameUpdate.gameBuildDate);
         } catch (error) {
             console.error('Error parsing game build date:', error);
             gameBuildFormatted = formatDate(new Date().toISOString());
