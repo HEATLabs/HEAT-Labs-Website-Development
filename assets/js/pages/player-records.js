@@ -626,7 +626,8 @@ class PlayerRecords {
         if (mode) {
             const filteredRecords = this.getFilteredRecordsForMode(mode);
             for (const record of filteredRecords) {
-                if (record[statKey] !== undefined && record[statKey] !== null) {
+                const value = record[statKey];
+                if (value !== undefined && value !== null && value > 0) {
                     allRecords.push(record);
                 }
             }
@@ -636,7 +637,8 @@ class PlayerRecords {
             for (const modeName of modes) {
                 const filteredRecords = this.getFilteredRecordsForMode(modeName, true);
                 for (const record of filteredRecords) {
-                    if (record[statKey] !== undefined && record[statKey] !== null) {
+                    const value = record[statKey];
+                    if (value !== undefined && value !== null && value > 0) {
                         allRecords.push(record);
                     }
                 }
@@ -687,7 +689,8 @@ class PlayerRecords {
         const allRecords = player.records || [];
         const filteredRecords = allRecords.filter(record => {
             // Check if the stat exists and is valid
-            if (record[statKey] === undefined || record[statKey] === null || record[statKey] <= 0) {
+            const value = record[statKey];
+            if (value === undefined || value === null || value <= 0) {
                 return false;
             }
             // Check PvE filter for this record's mode
