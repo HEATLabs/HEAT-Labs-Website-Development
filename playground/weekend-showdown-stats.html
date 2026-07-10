@@ -418,7 +418,147 @@
       </section>
       <!-- Main Content -->
       <section id="main" class="section">
-        <!-- PLACEHOLDER -->
+        <div class="container mx-auto px-4">
+          <!-- Loading Progress -->
+          <div id="loadingProgress" class="loading-progress" style="display: none;">
+            <div class="loading-progress-bar-container">
+              <div class="loading-progress-bar" id="loadingProgressBar" style="width: 0%;"></div>
+            </div>
+            <div class="loading-progress-text">
+              <span id="loadingProgressLabel">Loading event data...</span>
+              <span id="loadingProgressPercent">0%</span>
+            </div>
+            <p class="loading-progress-hint">Please wait until all data is loaded before searching</p>
+          </div>
+          <!-- Event Info Banner -->
+          <div id="eventInfoBanner" class="event-info-banner">
+            <div class="event-info-grid">
+              <div class="event-info-item">
+                <span class="event-info-label">Event</span>
+                <span class="event-info-value" id="eventTitle">Weekend Showdown</span>
+              </div>
+              <div class="event-info-item">
+                <span class="event-info-label">Status</span>
+                <span class="event-info-value" id="eventStatus">Loading...</span>
+              </div>
+              <div class="event-info-item">
+                <span class="event-info-label">Time Remaining</span>
+                <span class="event-info-value" id="eventCountdown">--</span>
+              </div>
+              <div class="event-info-item">
+                <span class="event-info-label">Next Update</span>
+                <span class="event-info-value" id="nextUpdate">--</span>
+              </div>
+            </div>
+          </div>
+          <!-- Day Selector Tabs -->
+          <div class="day-selector-container">
+            <div class="day-selector-scroll" id="daySelector">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+          <!-- Vehicle Selector -->
+          <div class="vehicle-selector-container">
+            <div class="vehicle-selector-header">
+              <span class="vehicle-selector-label">Select Vehicle:</span>
+              <button id="vehicleSortToggle" class="vehicle-sort-toggle" title="Toggle sort order">
+                <i class="fas fa-sort-alpha-down"></i>
+              </button>
+            </div>
+            <div class="vehicle-selector-scroll" id="vehicleSelector">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+          <!-- Search Section -->
+          <div class="stats-search-section">
+            <div class="stats-search-container">
+              <div class="search-input-wrapper">
+                <i class="fas fa-search search-icon"></i>
+                <input
+                  type="text"
+                  id="playerSearchInput"
+                  class="stats-search-input"
+                  placeholder="Search for a player's stats..."
+                  autocomplete="off"
+                >
+                <button id="clearSearchBtn" class="clear-search-btn" style="display: none;">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+              <div id="searchSuggestions" class="search-suggestions-dropdown" style="display: none;"></div>
+              <div class="search-stats">
+                <span id="totalPlayersCount">0</span> players indexed
+                <span class="search-stats-divider">|</span>
+                <span id="totalShardsCount">0</span> shards loaded
+                <span class="search-stats-divider">|</span>
+                <span id="loadingStatus">Loading...</span>
+              </div>
+            </div>
+          </div>
+          <!-- Board Display -->
+          <div id="boardContainer" class="board-container">
+            <div class="board-header">
+              <h2 id="boardTitle">Loading leaderboard...</h2>
+              <div class="board-meta">
+                <span id="boardMetric">--</span>
+                <span id="boardCount">0 players</span>
+              </div>
+            </div>
+            <div id="boardContent" class="board-content">
+              <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading leaderboard data...</p>
+              </div>
+            </div>
+          </div>
+          <!-- Rewards Section -->
+          <div class="rewards-section">
+            <div class="rewards-header">
+              <h3><i class="fas fa-trophy"></i> Rewards</h3>
+              <span class="rewards-subtitle">Per board, per day</span>
+            </div>
+            <div class="rewards-table-wrapper">
+              <table class="rewards-table" id="rewardsTable">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Tech Reward</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- Search Results -->
+          <div id="searchResults" class="search-results-section" style="display: none;">
+            <div class="search-results-header">
+              <h3>Player Results</h3>
+              <button id="closeSearchResults" class="close-results-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="searchResultsContent" class="search-results-content">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+          <!-- No Results -->
+          <div id="noResults" class="no-results" style="display: none;">
+            <i class="fas fa-search fa-3x"></i>
+            <h3>No Players Found</h3>
+            <p>Try searching with a different nickname</p>
+          </div>
+          <!-- Loading State -->
+          <div id="loadingState" class="loading-state" style="display: none;">
+            <div class="spinner"></div>
+            <p>Loading player data...</p>
+          </div>
+          <!-- Initial State -->
+          <div id="initialState" class="initial-state">
+            <i class="fas fa-trophy fa-4x"></i>
+            <h3>Weekend Showdown</h3>
+            <p>Select a day and vehicle to view the leaderboard, or search for a player's stats</p>
+          </div>
+        </div>
       </section>
       <!-- CTA Section -->
       <section class="cta-section">
