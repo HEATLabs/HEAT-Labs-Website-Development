@@ -74,6 +74,13 @@ class PlayerRecords {
         this.init();
     }
 
+    // Helper method to truncate player names
+    truncatePlayerName(name, maxLength = 14) {
+        if (!name) return 'N/A';
+        if (name.length <= maxLength) return name;
+        return name.substring(0, maxLength) + '...';
+    }
+
     // Load PvE toggle state from localStorage
     loadPveToggleState() {
         const defaultState = {
@@ -910,7 +917,7 @@ class PlayerRecords {
 
         // 2. Top Damage Records
         const topDamage = this.getUniqueTopRecords('damage_caused', 10);
-        const damageLabels = topDamage.map(r => r.playerId.substring(0, 12) + (r.playerId.length > 12 ? '...' : ''));
+        const damageLabels = topDamage.map(r => this.truncatePlayerName(r.playerId, 12));
         const damageValues = topDamage.map(r => r.damage_caused || 0);
 
         const ctx2 = document.getElementById('globalTopDamageChart').getContext('2d');
@@ -1444,11 +1451,12 @@ class PlayerRecords {
             const modeDisplayName = this.getModeDisplayName(record.mode);
             const matchTypeLabel = record.matchType === 'pvp' ? 'PvP' : 'PvE';
             const matchTypeClass = record.matchType === 'pvp' ? 'match-type-pvp' : 'match-type-pve';
+            const truncatedName = this.truncatePlayerName(record.playerId, 14);
 
             html += `
                 <tr>
                     <td><span class="rank-badge ${rankClass}">${rank}</span></td>
-                    <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);">${record.playerId}</strong></td>
+                    <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);" title="${record.playerId}">${truncatedName}</strong></td>
                     <td>${this.formatNumber(record[statKey] || 0)}</td>
                     <td><span class="mode-badge">${modeDisplayName}</span></td>
                     <td><span class="match-type-badge ${matchTypeClass}">${matchTypeLabel}</span></td>
@@ -1515,11 +1523,12 @@ class PlayerRecords {
             const recordDate = this.getRecordDate(record.proof);
             const matchTypeLabel = record.matchType === 'pvp' ? 'PvP' : 'PvE';
             const matchTypeClass = record.matchType === 'pvp' ? 'match-type-pvp' : 'match-type-pve';
+            const truncatedName = this.truncatePlayerName(record.playerId, 14);
 
             html += `
                 <tr>
                     <td><span class="rank-badge ${rankClass}">${rank}</span></td>
-                    <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);">${record.playerId}</strong></td>
+                    <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);" title="${record.playerId}">${truncatedName}</strong></td>
                     <td>${this.formatNumber(record[statKey] || 0)}</td>
                     <td><span class="match-type-badge ${matchTypeClass}">${matchTypeLabel}</span></td>
                     <td>${record.vehicle || 'N/A'}</td>
@@ -1620,11 +1629,12 @@ class PlayerRecords {
             const recordDate = this.getRecordDate(record.proof);
             const matchTypeLabel = record.matchType === 'pvp' ? 'PvP' : 'PvE';
             const matchTypeClass = record.matchType === 'pvp' ? 'match-type-pvp' : 'match-type-pve';
+            const truncatedName = this.truncatePlayerName(record.playerId, 14);
 
             html += `
                 <tr>
                     <td><span class="rank-badge ${rankClass}">${rank}</span></td>
-                    <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);">${record.playerId}</strong></td>
+                    <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);" title="${record.playerId}">${truncatedName}</strong></td>
                     <td>${this.formatNumber(record[statKey] || 0)}</td>
                     <td><span class="match-type-badge ${matchTypeClass}">${matchTypeLabel}</span></td>
                     <td>${record.vehicle || 'N/A'}</td>
@@ -1743,6 +1753,7 @@ class PlayerRecords {
         };
 
         const statLabel = statLabels[statKey] || statKey;
+        const truncatedName = this.truncatePlayerName(playerId, 14);
 
         // Get all records for this player for this specific stat
         const allRecords = this.getPlayerRecordsForStat(playerId, statKey);
@@ -1763,7 +1774,7 @@ class PlayerRecords {
                             <i class="fas fa-user-circle"></i>
                         </div>
                         <div class="profile-info">
-                            <h2>${playerId}</h2>
+                            <h2 title="${playerId}">${truncatedName}</h2>
                             <p><i class="fas fa-trophy" style="color: var(--accent-color, #ff8300);"></i> ${allRecords.length} ${statLabel} record${allRecords.length > 1 ? 's' : ''}</p>
                         </div>
                     </div>
