@@ -30,7 +30,7 @@ class WeekendShowdownStats {
         this.countdownTimer = null;
 
         // Constants
-        this.DATA_BASE = 'https://cdn.wotheat.com/events/weekend-showdown-2026-07-10/data';
+        this.DATA_BASE = '/events/weekend-showdown-2026-07-10/data';
         this.STALE_AFTER_MS = 2 * 60 * 60 * 1000;
 
         // DOM elements
@@ -157,8 +157,6 @@ class WeekendShowdownStats {
 
             // Load meta data
             const metaUrl = this.DATA_BASE + '/meta.json';
-            console.log('Fetching meta from:', metaUrl);
-
             const metaResponse = await fetch(metaUrl);
             if (!metaResponse.ok) throw new Error(`HTTP ${metaResponse.status}`);
             this.meta = await metaResponse.json();
@@ -168,8 +166,6 @@ class WeekendShowdownStats {
             if (majorVersion !== '2') {
                 throw new Error('Unsupported contract version: ' + this.meta.contract_version);
             }
-
-            console.log('Meta loaded:', this.meta.event.title);
 
             // Set initial navigation
             this.navState.day = this.pickDefaultDay(this.meta);
@@ -184,18 +180,9 @@ class WeekendShowdownStats {
 
             // Load shards for search
             this.totalShards = this.meta.shards ? this.meta.shards.count : 256;
+            await this.loadAllShards();
 
-            // Show a message that shards are loading
-            this.elements.loadingProgressLabel.textContent = 'Loading shard data for search...';
-
-            // Load shards in the background
-            this.loadAllShards().then(() => {
-                this.updateStats();
-                this.elements.loadingStatus.textContent = '✓ Data loaded';
-                console.log(`Loaded ${this.playerCache.size} unique players from ${this.shardsLoaded} shards`);
-            });
-
-            // Update UI immediately with meta data
+            // Update UI
             this.updateStats();
             this.updateBoard(this.meta);
             this.isDataLoaded = true;
@@ -207,6 +194,9 @@ class WeekendShowdownStats {
 
             this.elements.loadingProgress.style.display = 'none';
             this.hideLoading();
+            this.elements.loadingStatus.textContent = '✓ Data loaded';
+
+            console.log(`Loaded ${this.playerCache.size} unique players from ${this.shardsLoaded} shards`);
 
         } catch (error) {
             console.error('Error loading event data:', error);
@@ -243,7 +233,7 @@ class WeekendShowdownStats {
             this.shardsLoaded = loaded;
 
             // Update progress (based on total possible buckets)
-            const percent = Math.min(Math.round((loaded / buckets.length) * 100), 100);
+            const percent = Math.round((loaded / buckets.length) * 100);
             this.elements.loadingProgressBar.style.width = `${percent}%`;
             this.elements.loadingProgressPercent.textContent = `${percent}%`;
             this.elements.loadingProgressLabel.textContent =
@@ -591,6 +581,12 @@ class WeekendShowdownStats {
             const remain = Math.max(0, endMs - Date.now());
             this.elements.eventCountdown.textContent = 'Ends in ' + this.formatRemaining(remain);
 
+            // Also update day countdown for active day
+            const activeDay = m.days.find(d => d.index === this.navState.day);
+            if (activeDay && activeDay.state === 'active') {
+                // We'll update the board if needed
+            }
+
             if (remain <= 0) {
                 clearInterval(this.countdownTimer);
                 this.countdownTimer = null;
@@ -733,7 +729,6 @@ class WeekendShowdownStats {
         const container = this.elements.searchResultsContent;
         this.elements.searchResults.style.display = 'block';
         this.elements.noResults.style.display = 'none';
-        this.elements.boardContainer.style.display = 'block';
 
         const displayName = placements.length > 0 ? placements[0].nickname : query;
 
