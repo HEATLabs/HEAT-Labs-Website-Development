@@ -1086,6 +1086,109 @@
 	margin-top: 0.5rem;
 }
 
+@keyframes toastSlideIn {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.mode-badge {
+	display: inline-block;
+	padding: 0.15rem 0.5rem;
+	border-radius: 0.25rem;
+	font-size: 0.7rem;
+	font-weight: 600;
+	background: var(--bg-tertiary);
+	color: var(--text-secondary);
+	text-transform: uppercase;
+	letter-spacing: 0.3px;
+}
+
+.player-name-clickable {
+	cursor: pointer;
+	transition: color 0.2s ease;
+}
+
+.player-name-clickable:hover {
+	color: #ff6b00 !important;
+	text-decoration: underline;
+}
+
+.match-type-badge {
+	display: inline-block;
+	padding: 0.15rem 0.5rem;
+	border-radius: 0.25rem;
+	font-size: 0.7rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.3px;
+}
+
+.match-type-pvp {
+	background: rgba(231, 76, 60, 0.2);
+	color: #e74c3c;
+	border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.match-type-pve {
+	background: rgba(46, 204, 113, 0.2);
+	color: #2ecc71;
+	border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.last-updated-text {
+	font-size: 0.8rem;
+	color: var(--text-secondary);
+	margin-top: 0.5rem;
+	opacity: 0.8;
+}
+
+.last-updated-text i {
+	margin-right: 0.4rem;
+}
+
+.global-last-updated {
+	margin-top: 0.5rem;
+}
+
+/* PvE Toggle Button */
+.pve-toggle-btn {
+	padding: 0.5rem 1.5rem;
+	border: none;
+	border-radius: 0.5rem;
+	color: #fff;
+	font-weight: 600;
+	font-size: 0.85rem;
+	cursor: pointer;
+	transition: all var(--transition-speed, 0.3s);
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.pve-toggle-btn:hover {
+	transform: scale(1.02);
+	box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Player name in stat cards */
+.global-stat-player {
+	font-size: 0.9rem;
+	color: var(--accent-color, #ff8300);
+	margin-top: 0.25rem;
+	font-weight: 700;
+	opacity: 0.85;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 /* Responsive profile modal */
 @media (max-width: 768px) {
 	.profile-modal-content {
