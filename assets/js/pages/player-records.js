@@ -44,7 +44,6 @@ class PlayerRecords {
             globalTotalRecords: document.getElementById('globalTotalRecords'),
             globalRecordHolders: document.getElementById('globalRecordHolders'),
             globalModesCount: document.getElementById('globalModesCount'),
-            globalTopDamage: document.getElementById('globalTopDamage'),
             tabGlobal: document.getElementById('tabGlobal'),
             tabConquest: document.getElementById('tabConquest'),
             tabControl: document.getElementById('tabControl'),
@@ -70,6 +69,25 @@ class PlayerRecords {
             hardpointContent: document.getElementById('hardpointContent'),
             killConfirmedContent: document.getElementById('killConfirmedContent'),
         };
+
+        // Stat counter configurations (all except the 3 basic ones)
+        this.statCounters = [
+            { key: 'damage_caused', label: 'Highest Damage', icon: 'fa-bolt', color: '#ff8300', id: 'statCardDamageCaused' },
+            { key: 'destroyed', label: 'Most Kills', icon: 'fa-skull', color: '#e74c3c', id: 'statCardDestroyed' },
+            { key: 'assists', label: 'Most Assists', icon: 'fa-handshake', color: '#3498db', id: 'statCardAssists' },
+            { key: 'XP', label: 'Highest XP', icon: 'fa-star', color: '#f1c40f', id: 'statCardXP' },
+            { key: 'captures', label: 'Most Captures', icon: 'fa-flag-checkered', color: '#2ecc71', id: 'statCardCaptures' },
+            { key: 'damage_blocked', label: 'Most Blocked', icon: 'fa-shield', color: '#9b59b6', id: 'statCardDamageBlocked' },
+            { key: 'credits', label: 'Most Credits', icon: 'fa-coins', color: '#f39c12', id: 'statCardCredits' },
+            { key: 'intel', label: 'Most Intel', icon: 'fa-microchip', color: '#1abc9c', id: 'statCardIntel' },
+            { key: 'confirms', label: 'Most Confirms', icon: 'fa-check-double', color: '#2ecc71', id: 'statCardConfirms' },
+            { key: 'denies', label: 'Most Denies', icon: 'fa-ban', color: '#9b59b6', id: 'statCardDenies' },
+            { key: 'deaths', label: 'Most Deaths', icon: 'fa-skull-crossbones', color: '#e74c3c', id: 'statCardDeaths' },
+            { key: 'tech', label: 'Most Tech', icon: 'fa-microchip', color: '#00bcd4', id: 'statCardTech' }
+        ];
+
+        // Store stat counter element references
+        this.statCounterElements = {};
 
         this.init();
     }
@@ -626,6 +644,7 @@ class PlayerRecords {
     }
 
     // Get unique players with their best record for a stat (each player appears once)
+    // When tied, keeps the most recent entry (based on proof date)
     getUniqueTopRecords(statKey, limit = 10, mode = null) {
         const allRecords = [];
 
@@ -653,6 +672,7 @@ class PlayerRecords {
         }
 
         // Group by player, keep only their best record for this stat
+        // If tied on value, keep the most recent one
         const playerBestMap = new Map();
         for (const record of allRecords) {
             const playerId = record.playerId;
@@ -669,6 +689,7 @@ class PlayerRecords {
                 } else if (newValue === existingValue) {
                     const existingDate = this.extractDateFromProof(existing.proof);
                     const newDate = this.extractDateFromProof(record.proof);
+                    // If new record has a date and existing doesn't, or new date is more recent
                     if (newDate && (!existingDate || newDate > existingDate)) {
                         playerBestMap.set(playerId, record);
                     }
@@ -785,14 +806,49 @@ class PlayerRecords {
     renderGlobalStats() {
         const allFilteredRecords = this.getAllFilteredRecords();
         let totalRecords = allFilteredRecords.length;
-        let highestDamage = 0;
         let modeCount = 0;
         const uniquePlayers = new Set();
 
+        // Calculate stat maxima for each counter
+        const statMaxima = {};
+        for (const config of this.statCounters) {
+            statMaxima[config.key] = {
+                value: 0,
+                playerId: null,
+                proof: null,
+                record: null,
+                date: null // Store the date for tie-breaking
+            };
+        }
+
         for (const record of allFilteredRecords) {
             uniquePlayers.add(record.playerId);
-            if (record.damage_caused && record.damage_caused > highestDamage) {
-                highestDamage = record.damage_caused;
+
+            // Check each stat counter
+            for (const config of this.statCounters) {
+                const key = config.key;
+                const value = record[key];
+                if (value !== undefined && value !== null && value > 0) {
+                    const current = statMaxima[key];
+                    const recordDate = this.extractDateFromProof(record.proof);
+
+                    // If value is higher, or value is equal and record is more recent
+                    if (value > current.value) {
+                        current.value = value;
+                        current.playerId = record.playerId;
+                        current.proof = record.proof || null;
+                        current.record = record;
+                        current.date = recordDate;
+                    } else if (value === current.value) {
+                        // If tied, keep the most recent one
+                        if (recordDate && (!current.date || recordDate > current.date)) {
+                            current.playerId = record.playerId;
+                            current.proof = record.proof || null;
+                            current.record = record;
+                            current.date = recordDate;
+                        }
+                    }
+                }
             }
         }
 
@@ -805,10 +861,118 @@ class PlayerRecords {
             }
         }
 
+        // Update basic stats
         if (this.elements.globalTotalRecords) this.elements.globalTotalRecords.textContent = totalRecords;
         if (this.elements.globalRecordHolders) this.elements.globalRecordHolders.textContent = uniquePlayers.size;
         if (this.elements.globalModesCount) this.elements.globalModesCount.textContent = modeCount;
-        if (this.elements.globalTopDamage) this.elements.globalTopDamage.textContent = this.formatNumber(highestDamage);
+
+        // Now update the stat counters in the row2 grid
+        this.updateStatCounters(statMaxima);
+    }
+
+    updateStatCounters(statMaxima) {
+        const row2Grid = document.querySelector('.global-stats-grid-row2');
+        if (!row2Grid) return;
+
+        // Clear all existing stat cards in row2
+        row2Grid.innerHTML = '';
+
+        // Create cards for all stat counters
+        for (const config of this.statCounters) {
+            const data = statMaxima[config.key];
+            const value = data ? data.value : 0;
+            const playerId = data ? data.playerId : null;
+            const proof = data ? data.proof : null;
+
+            const card = document.createElement('div');
+            card.className = 'global-stat-card';
+            card.id = config.id || `statCard${config.key.charAt(0).toUpperCase() + config.key.slice(1)}`;
+
+            // Icon
+            const icon = document.createElement('div');
+            icon.className = 'global-stat-icon';
+            icon.innerHTML = `<i class="fas ${config.icon}" style="color: ${config.color};"></i>`;
+            card.appendChild(icon);
+
+            // Value
+            const valueEl = document.createElement('div');
+            valueEl.className = 'global-stat-value';
+            valueEl.id = `globalStat${config.key.charAt(0).toUpperCase() + config.key.slice(1)}`;
+            valueEl.dataset.stat = config.key;
+            valueEl.dataset.player = playerId || '';
+            valueEl.dataset.proof = proof || '';
+            valueEl.dataset.value = value;
+            valueEl.textContent = this.formatNumber(value);
+            card.appendChild(valueEl);
+
+            // Label with info icon
+            const labelEl = document.createElement('div');
+            labelEl.className = 'global-stat-label';
+
+            const labelText = document.createTextNode(config.label + ' ');
+            labelEl.appendChild(labelText);
+
+            const infoEl = document.createElement('span');
+            infoEl.className = 'global-stat-info';
+            infoEl.dataset.stat = config.key;
+            infoEl.dataset.player = playerId || '';
+            infoEl.dataset.proof = proof || '';
+            infoEl.dataset.value = value;
+            infoEl.innerHTML = '<i class="fas fa-info-circle"></i>';
+            labelEl.appendChild(infoEl);
+
+            card.appendChild(labelEl);
+
+            // Player name - display only, NO click functionality
+            if (playerId) {
+                const playerNameEl = document.createElement('div');
+                playerNameEl.className = 'global-stat-player';
+                playerNameEl.textContent = this.truncatePlayerName(playerId, 20);
+                playerNameEl.title = playerId;
+                // No click event listener - just display the name
+                card.appendChild(playerNameEl);
+            }
+
+            // Add to row2 grid
+            row2Grid.appendChild(card);
+
+            // Store reference
+            this.statCounterElements[config.key] = valueEl;
+        }
+
+        // Setup event listeners for stat info clicks (proof modal only)
+        this.setupStatInfoListeners();
+    }
+
+    setupStatInfoListeners() {
+        // Remove existing listeners by cloning and re-adding
+        const infoElements = document.querySelectorAll('.global-stat-info');
+        infoElements.forEach(el => {
+            // Remove old listeners by replacing with clone
+            const newEl = el.cloneNode(true);
+            el.parentNode.replaceChild(newEl, el);
+
+            newEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const statKey = newEl.dataset.stat;
+                const playerId = newEl.dataset.player;
+                const proof = newEl.dataset.proof;
+                const label = newEl.closest('.global-stat-label')?.textContent?.trim() || statKey;
+
+                if (proof) {
+                    // Simply open the proof modal
+                    this.showProofModal(proof);
+                } else if (playerId) {
+                    // If no proof, show player profile
+                    this.showPlayerProfile(playerId, statKey);
+                } else {
+                    this.showToast(`No proof available for ${label}`, 'warning');
+                }
+            });
+        });
+
+        // NOTE: We DO NOT add click listeners to .global-stat-player elements anymore
+        // This prevents the profile modal from opening when clicking player names in stat counters
     }
 
     // Helper method to get distribution data for bar charts
@@ -1894,6 +2058,12 @@ class PlayerRecords {
             profileModal.remove();
         }
 
+        // Close any tooltip
+        const tooltip = document.querySelector('.stat-info-tooltip');
+        if (tooltip) {
+            tooltip.remove();
+        }
+
         const html = `
             <div class="proof-modal-overlay" id="proofModal">
                 <div class="proof-modal-content">
@@ -2234,6 +2404,19 @@ toastStyles.textContent = `
     .pve-toggle-btn:hover {
         transform: scale(1.02);
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Player name in stat cards */
+    .global-stat-player {
+        font-size: 0.9rem;
+        color: var(--accent-color, #ff8300);
+        margin-top: 0.25rem;
+        font-weight: 700;
+        opacity: 0.85;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        /* No pointer-events: none */
     }
 `;
 document.head.appendChild(toastStyles);
