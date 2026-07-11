@@ -31,7 +31,8 @@ const loaderMessages = [
     "Getting esmatty more explosives... ",
     "Messaging SINEWAVE... ",
     "Confusing VEN0M... ",
-    "Building Legocity2000... "
+    "Building Legocity2000... ",
+    "Finding Pyogenic's checkbox... "
 ];
 
 // Function to fetch tank data with error handling and retries
