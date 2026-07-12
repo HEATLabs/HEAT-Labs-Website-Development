@@ -105,7 +105,7 @@
 .tier-row {
 	display: flex;
 	margin-bottom: 0;
-	min-height: 100px;
+	height: 70px; /* Fixed height - rows stay consistent */
 	background-color: var(--bg-secondary);
 	position: relative;
 }
@@ -123,6 +123,7 @@
 	font-size: 2rem;
 	color: #0e0e0e;
 	text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2);
+	flex-shrink: 0;
 }
 
 .tier-s {
@@ -160,28 +161,32 @@
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	padding: 0.5rem;
-	gap: 0.5rem;
-	min-height: 100px;
+	padding: 0.3rem;
+	gap: 0.3rem;
+	height: 70px;
 	background-color: rgba(255, 255, 255, 0.1);
+	overflow-y: auto;
 }
 
+/* Tier Item */
 .tier-item {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	justify-content: center;
-	padding: 8px;
-	border-radius: 8px;
+	justify-content: flex-start;
+	padding: 0;
+	border-radius: 6px;
 	background: var(--tier-item-bg, rgba(255, 255, 255, 0.05));
 	border: 2px solid var(--tier-item-border, rgba(255, 255, 255, 0.1));
 	cursor: grab;
 	user-select: none;
 	-webkit-user-select: none;
-	transition: transform 0.15s ease, opacity 0.15s ease;
-	min-width: 80px;
-	min-height: 80px;
-	gap: 4px;
+	transition: transform 0.15s ease, opacity 0.15s ease, border-color 0.2s ease;
+	width: 120px;
+	height: 70px;
+	flex-shrink: 0;
+	overflow: hidden;
+	position: relative;
 }
 
 .tier-item:active {
@@ -190,72 +195,105 @@
 
 .tier-item:hover {
 	z-index: 10;
-	box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+	box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 	border-color: var(--accent-color);
+	transform: scale(1.08);
 }
 
 .tier-item.dragging {
-	opacity: 0.8;
-	transform: scale(1.05);
+	opacity: 0.85;
+	transform: scale(1.1);
 	z-index: 1000;
 	cursor: grabbing;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
-.tier-item img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-}
-
+/* Image - Fills the entire item box */
 .tier-item .item-image {
-	width: 60px;
-	height: 60px;
-	object-fit: contain;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100% !important;
+	height: 100% !important;
+	object-fit: cover;
 	display: block;
 	pointer-events: none;
 	-webkit-user-drag: none;
 	user-drag: none;
+	margin: 0;
+	padding: 0;
+	border-radius: 4px;
 }
 
+/* Item name - Overlaid on top of image */
 .tier-item .item-name {
-	font-size: 11px;
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	font-size: 9px;
 	text-align: center;
-	font-weight: 500;
-	color: var(--text-color, #e0e0e0);
+	font-weight: 600;
+	color: #ffffff;
 	line-height: 1.2;
-	max-width: 80px;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	pointer-events: none;
+	padding: 2px 4px;
+	background: rgba(0, 0, 0, 0.75);
+	backdrop-filter: blur(4px);
+	-webkit-backdrop-filter: blur(4px);
+	width: 100%;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+	z-index: 1;
+}
+
+/* Dark Theme - Image background fallback */
+.dark-theme .tier-item {
+	--tier-item-bg: rgba(255, 255, 255, 0.05);
+	--tier-item-border: rgba(255, 255, 255, 0.1);
+	background: #1a1a1a;
+}
+
+.dark-theme .tier-item:hover {
+	background: #2a2a2a;
+	border-color: var(--accent-color);
+}
+
+/* Light Theme */
+.light-theme .tier-item {
+	--tier-item-bg: rgba(0, 0, 0, 0.03);
+	--tier-item-border: rgba(0, 0, 0, 0.12);
+	background: #f0f0f0;
+}
+
+.light-theme .tier-item:hover {
+	background: #e8e8e8;
+	border-color: var(--accent-color);
+}
+
+.light-theme .tier-item .item-name {
+	background: rgba(255, 255, 255, 0.85);
+	color: #1a1a1a;
+	text-shadow: none;
+}
+
+.light-theme .tier-items.drag-over,
+.light-theme .unranked-items.drag-over {
+	background: rgba(0, 0, 0, 0.06);
+	border: 2px dashed rgba(0, 0, 0, 0.2);
 }
 
 .tier-items.drag-over,
 .unranked-items.drag-over {
-	background: rgba(255, 255, 255, 0.05);
+	background: rgba(255, 255, 255, 0.08);
 	border: 2px dashed rgba(255, 255, 255, 0.3);
 	border-radius: 8px;
 	transition: all 0.2s ease;
 }
 
-.dark-theme .tier-item {
-	--tier-item-bg: rgba(255, 255, 255, 0.05);
-	--tier-item-border: rgba(255, 255, 255, 0.1);
-	--text-color: #e0e0e0;
-}
-
-.light-theme .tier-item {
-	--tier-item-bg: rgba(0, 0, 0, 0.03);
-	--tier-item-border: rgba(0, 0, 0, 0.1);
-	--text-color: #333333;
-}
-
-.light-theme .tier-items.drag-over,
-.light-theme .unranked-items.drag-over {
-	background: rgba(0, 0, 0, 0.05);
-	border: 2px dashed rgba(0, 0, 0, 0.2);
-}
-
+/* Unranked Section */
 .unranked-section {
 	margin-top: 3rem;
 	background-color: var(--bg-secondary);
@@ -296,9 +334,9 @@
 .unranked-items {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 1rem;
-	padding: 1rem;
-	min-height: 150px;
+	gap: 0.5rem;
+	padding: 0.75rem;
+	min-height: 100px;
 	background-color: rgba(0, 0, 0, 0.05);
 	border-radius: 0.25rem;
 	transition: all 0.3s ease;
@@ -309,11 +347,13 @@
 	border-color: var(--accent-color);
 }
 
+/* Action Buttons */
 .action-buttons {
 	display: flex;
 	justify-content: center;
 	gap: 1.5rem;
 	margin-top: 3rem;
+	flex-wrap: wrap;
 }
 
 .action-button {
@@ -436,7 +476,6 @@
 	background-color: var(--bg-tertiary);
 }
 
-/* Animation when modal appears */
 .share-modal:not(.hidden) {
 	opacity: 1;
 }
@@ -491,12 +530,10 @@
 	background-color: var(--accent-color-hover);
 }
 
-/* Error notification */
 .save-notification.error {
 	background-color: #f44336;
 }
 
-/* Share button */
 .share-button {
 	background-color: #2196F3;
 	color: white;
@@ -508,7 +545,6 @@
 	box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
 }
 
-/* Save Button Styles */
 .save-button {
 	background-color: #4CAF50;
 	color: white;
@@ -520,7 +556,6 @@
 	box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
 }
 
-/* Save Notification */
 .save-notification {
 	position: fixed;
 	bottom: 20px;
@@ -540,13 +575,11 @@
 	opacity: 0;
 }
 
-/* Drag and drop visual feedback */
 .drag-over {
 	background-color: rgba(var(--accent-color-rgb), 0.1) !important;
 	border-color: var(--accent-color) !important;
 }
 
-/* Reset Modal Styles */
 .reset-modal {
 	position: fixed;
 	top: 0;
@@ -626,7 +659,6 @@
 	transform: translateY(-2px);
 }
 
-/* Animation when modal appears */
 .reset-modal:not(.hidden) {
 	opacity: 1;
 }
@@ -635,12 +667,32 @@
 	transform: translateY(0);
 }
 
-/* Prevent scrolling when modal is open */
 body.modal-open {
 	overflow: hidden;
 }
 
-/* Responsive adjustments */
+@media (min-width: 769px) {
+	.tier-row {
+		height: 70px;
+	}
+
+	.tier-items {
+		height: 70px;
+		padding: 0.3rem;
+		gap: 0.3rem;
+	}
+
+	.tier-item {
+		width: 90px;
+		height: 60px;
+	}
+
+	.tier-item .item-name {
+		font-size: 9px;
+		padding: 2px 4px;
+	}
+}
+
 @media (max-width: 768px) {
 	.selection-screen {
 		padding: 1rem;
@@ -651,17 +703,36 @@ body.modal-open {
 	}
 
 	.tier-label {
-		width: 60px;
-		font-size: 1.5rem;
+		width: 55px;
+		font-size: 1.3rem;
+	}
+
+	.tier-row {
+		min-height: 60px;
+		height: auto;
+	}
+
+	.tier-items {
+		min-height: 60px;
+		height: auto;
+		padding: 0.4rem;
+		gap: 0.4rem;
 	}
 
 	.tier-item {
-		width: 100px;
-		height: 70px;
+		width: 75px;
+		height: 55px;
+		border-radius: 4px;
+	}
+
+	.tier-item .item-name {
+		font-size: 8px;
+		padding: 1px 3px;
 	}
 
 	.unranked-items {
-		gap: 0.75rem;
+		gap: 0.5rem;
+		padding: 0.5rem;
 	}
 
 	.action-buttons {
@@ -673,15 +744,83 @@ body.modal-open {
 		width: 100%;
 		justify-content: center;
 	}
+
+	.share-url-container {
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.share-url-input {
+		border-radius: 0.375rem;
+	}
+
+	.copy-url-button {
+		border-radius: 0.375rem;
+		justify-content: center;
+	}
+
+	.tier-item .item-image {
+		border-radius: 3px;
+	}
 }
 
 @media (max-width: 480px) {
+	.tier-row {
+		min-height: 50px;
+		height: auto;
+	}
+
+	.tier-items {
+		min-height: 50px;
+		height: auto;
+		padding: 0.25rem;
+		gap: 0.25rem;
+	}
+
 	.tier-item {
-		width: 90px;
-		height: 60px;
+		width: 60px;
+		height: 45px;
+	}
+
+	.tier-item .item-name {
+		font-size: 7px;
+		padding: 1px 2px;
+	}
+
+	.tier-label {
+		width: 40px;
+		font-size: 1rem;
 	}
 
 	.unranked-title {
-		font-size: 1.1rem;
+		font-size: 1rem;
+	}
+
+	.unranked-items {
+		padding: 0.5rem;
+		gap: 0.3rem;
+		min-height: 60px;
+	}
+}
+
+@media (min-width: 1400px) {
+	.tier-row {
+		height: 85px;
+	}
+
+	.tier-items {
+		height: 85px;
+		padding: 0.5rem;
+		gap: 0.5rem;
+	}
+
+	.tier-item {
+		width: 110px;
+		height: 75px;
+	}
+
+	.tier-item .item-name {
+		font-size: 11px;
+		padding: 3px 6px;
 	}
 }
