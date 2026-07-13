@@ -200,7 +200,7 @@ function updateModPageElements(mod) {
                 const items = quickFactsList.querySelectorAll('li');
                 if (items.length >= 3) {
                     items[0].innerHTML = `<strong>Category:</strong> ${mod.category || 'Info coming soon'}`;
-                    items[1].innerHTML = `<strong>Mod Version:</strong> ${mod.version || 'Info coming soon'}`;
+                    items[1].innerHTML = `<strong>Mod Version:</strong> ${mod.modVersion || 'Info coming soon'}`;
                     items[2].innerHTML = `<strong>Game Version:</strong> ${mod.gameVersion || 'Info coming soon'}`;
                 }
             }
