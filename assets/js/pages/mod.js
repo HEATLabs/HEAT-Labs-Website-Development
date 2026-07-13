@@ -1,5 +1,16 @@
 // mod Page JS for HEAT Labs
 document.addEventListener('DOMContentLoaded', function() {
+    // Get mod ID or slug from meta tag
+    const modIdMeta = document.querySelector('meta[name="mod-id"]');
+    const modSlugMeta = document.querySelector('meta[name="mod-slug"]');
+    const modId = modIdMeta ? modIdMeta.content : null;
+    const modSlug = modSlugMeta ? modSlugMeta.content : null;
+
+    // If mod ID or slug is specified, fetch and populate mod data
+    if (modId || modSlug) {
+        fetchModData(modId, modSlug);
+    }
+
     // Initialize gamemode selector functionality
     const gamemodeButtons = document.querySelectorAll('.gamemode-btn');
     const gamemodeSections = document.querySelectorAll('.gamemode-section');
@@ -54,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Initialize any interactive elements specific to mod pages
-    initializemodPageElements();
+    initializeModPageElements();
 });
 
 // Function to fetch view count from API
@@ -87,7 +98,172 @@ async function fetchViewCount() {
     }
 }
 
-function initializemodPageElements() {
+// Function to fetch mod data based on ID or slug
+async function fetchModData(modId, modSlug) {
+    try {
+        // Fetch the mods.json
+        const modsResponse = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/mods.json');
+        const modsData = await modsResponse.json();
+
+        // Find the mod with matching ID or slug
+        let mod = null;
+
+        if (modId) {
+            mod = modsData.find(m => m.id.toString() === modId.toString());
+        }
+
+        if (!mod && modSlug) {
+            // Try to match by slug (could be the name or a URL slug)
+            mod = modsData.find(m => {
+                // Check if slug matches the mod name (case insensitive)
+                const slugMatches = m.slug && m.slug.toLowerCase().includes(modSlug.toLowerCase());
+                // Check if name matches (case insensitive)
+                const nameMatches = m.name.toLowerCase().replace(/\s+/g, '-') === modSlug.toLowerCase();
+                return slugMatches || nameMatches;
+            });
+        }
+
+        if (!mod) {
+            console.error('Mod not found with ID:', modId, 'or slug:', modSlug);
+            return;
+        }
+
+        // Update page elements with mod data
+        updateModPageElements(mod);
+
+    } catch (error) {
+        console.error('Error fetching mod data:', error);
+    }
+}
+
+function updateModPageElements(mod) {
+    // Update page title and meta tags
+    document.title = `${mod.name} - HEAT Labs`;
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.content = `HEAT Labs - ${mod.name}`;
+    const twitterTitle = document.querySelector('meta[name="twitter:title"]');
+    if (twitterTitle) twitterTitle.content = `HEAT Labs - ${mod.name}`;
+
+    // Update mod header information
+    const modHeader = document.querySelector('.mod-header');
+    if (modHeader) {
+        const modMeta = modHeader.querySelector('.mod-meta');
+
+        if (modMeta) {
+            // Clear the meta container but keep the structure
+            modMeta.innerHTML = '';
+
+            // Category Badge
+            const categorySpan = document.createElement('span');
+            categorySpan.className = 'mod-type-badge';
+            categorySpan.textContent = mod.category || 'Unknown';
+            modMeta.appendChild(categorySpan);
+
+            // Creator
+            const creatorSpan = document.createElement('span');
+            creatorSpan.innerHTML = `<i class="fas fa-users mr-1"></i> ${mod.creator || 'Unknown'}`;
+            modMeta.appendChild(creatorSpan);
+
+            // Game Version
+            if (mod.gameVersion) {
+                const versionSpan = document.createElement('span');
+                versionSpan.innerHTML = `<i class="fas fa-code-branch mr-1"></i> v${mod.gameVersion}`;
+                modMeta.appendChild(versionSpan);
+            }
+        }
+
+        const modTitle = modHeader.querySelector('.mod-title');
+        if (modTitle) {
+            modTitle.textContent = mod.name;
+        }
+
+        const modDescription = modHeader.querySelector('.mod-description');
+        if (modDescription && mod.description) {
+            modDescription.textContent = mod.description;
+        }
+    }
+
+    // Update mod image in the main content
+    const modImage = document.querySelector('.mod-image img');
+    if (modImage && mod.image) {
+        modImage.src = mod.image;
+        modImage.alt = mod.name;
+    }
+
+    // Update sidebar Quick Facts
+    const sidebarCards = document.querySelectorAll('.sidebar-card');
+    sidebarCards.forEach(card => {
+        const heading = card.querySelector('h3');
+        if (heading && heading.textContent === 'Quick Facts') {
+            const quickFactsList = card.querySelector('ul');
+            if (quickFactsList) {
+                const items = quickFactsList.querySelectorAll('li');
+                if (items.length >= 3) {
+                    items[0].innerHTML = `<strong>Category:</strong> ${mod.category || 'Info coming soon'}`;
+                    items[1].innerHTML = `<strong>Mod Version:</strong> ${mod.version || 'Info coming soon'}`;
+                    items[2].innerHTML = `<strong>Game Version:</strong> ${mod.gameVersion || 'Info coming soon'}`;
+                }
+            }
+        }
+    });
+
+    // Update "Related Mods" sidebar
+    updateRelatedMods(mod);
+}
+
+// Function to fetch and display related mods
+async function updateRelatedMods(currentMod) {
+    try {
+        const modsResponse = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/mods.json');
+        const modsData = await modsResponse.json();
+
+        // Find mods from the same creator or same category
+        const relatedMods = modsData.filter(m =>
+            m.id !== currentMod.id &&
+            (m.creator === currentMod.creator || m.category === currentMod.category)
+        ).slice(0, 3);
+
+        const relatedGuidesContainer = document.querySelector('.sidebar-card .related-guide')?.parentElement;
+        if (relatedGuidesContainer) {
+            // Clear existing related guides except the first one which is a placeholder
+            const existingGuides = relatedGuidesContainer.querySelectorAll('.related-guide');
+            existingGuides.forEach(guide => guide.remove());
+
+            if (relatedMods.length > 0) {
+                relatedMods.forEach(mod => {
+                    const guideDiv = document.createElement('div');
+                    guideDiv.className = 'related-guide';
+                    guideDiv.innerHTML = `
+                        <h4>
+                            <a href="../details/${mod.name.toLowerCase().replace(/\s+/g, '-')}">${mod.name}</a>
+                        </h4>
+                        <p>${mod.category} • by ${mod.creator}</p>
+                    `;
+                    relatedGuidesContainer.appendChild(guideDiv);
+                });
+            } else {
+                // Show "no related mods" message
+                const noModsDiv = document.createElement('div');
+                noModsDiv.className = 'related-guide';
+                noModsDiv.innerHTML = `
+                    <h4>No Related Mods Yet</h4>
+                    <p>Mods from the same creator or similar mods will appear here.</p>
+                `;
+                relatedGuidesContainer.appendChild(noModsDiv);
+            }
+
+            // Re-add the "View all mods" button
+            const buttonDiv = document.createElement('div');
+            buttonDiv.className = 'button text-center';
+            buttonDiv.innerHTML = `<a href="../index">View all mods</a>`;
+            relatedGuidesContainer.appendChild(buttonDiv);
+        }
+    } catch (error) {
+        console.error('Error fetching related mods:', error);
+    }
+}
+
+function initializeModPageElements() {
     // Initialize image gallery
     initializeImageGallery();
 
