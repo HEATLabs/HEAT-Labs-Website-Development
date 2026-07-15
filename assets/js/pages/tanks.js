@@ -356,7 +356,7 @@ document.addEventListener('DOMContentLoaded', function() {
         card.setAttribute('data-featured', tank.featured ? 'true' : 'false');
 
         // Get the tank detail page URL
-        const detailUrl = `tanks/${tank.slug}`;
+        const detailUrl = tank.slug === '#' ? '#' : `tanks/${tank.slug}`;
 
         // Only show tank class (bubble) if it exists and isn't empty
         const tankClassHTML = tank.class && tank.class.trim() !== '' ?
@@ -387,8 +387,29 @@ document.addEventListener('DOMContentLoaded', function() {
             `<span><i class="fas fa-user"></i> ${agentName}</span>` :
             `<span><i class="fas fa-user"></i> Unknown</span>`;
 
+        // Determine if the tank is a bot (slug is "#")
+        const isBot = tank.slug === '#';
+
+        // Button HTML - disabled if slug is "#"
+        const buttonHTML = isBot ?
+            `<button class="btn-accent" disabled style="opacity: 0.5; cursor: not-allowed;">
+                <i class="fas fa-chart-bar mr-2"></i>Statistics
+            </button>` :
+            `<a href="${detailUrl}" class="btn-accent">
+                <i class="fas fa-chart-bar mr-2"></i>Statistics
+            </a>`;
+
+        // Compare button HTML - disabled if slug is "#"
+        const compareButtonHTML = isBot ?
+            `<button class="btn-outline compare-btn" data-tank-id="${tank.id}" disabled style="opacity: 0.5; cursor: not-allowed;">
+                <i class="fas fa-exchange-alt mr-2"></i>Compare
+            </button>` :
+            `<button class="btn-outline compare-btn" data-tank-id="${tank.id}">
+                <i class="fas fa-exchange-alt mr-2"></i>Compare
+            </button>`;
+
         card.innerHTML = `
-            <div class="tank-img-container" data-url="${detailUrl}">
+            <div class="tank-img-container" data-url="${detailUrl}" data-is-bot="${isBot}">
                 <div class="tank-views-counter">
                     <i class="fas fa-eye"></i>
                     <span class="views-count">0</span>
@@ -413,12 +434,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 ${statsHTML}
                 <div class="tank-buttons">
-                    <a href="${detailUrl}" class="btn-accent">
-                        <i class="fas fa-chart-bar mr-2"></i>Statistics
-                    </a>
-                    <button class="btn-outline compare-btn" data-tank-id="${tank.id}">
-                        <i class="fas fa-exchange-alt mr-2"></i>Compare
-                    </button>
+                    ${buttonHTML}
+                    ${compareButtonHTML}
                 </div>
             </div>
         `;
@@ -426,15 +443,21 @@ document.addEventListener('DOMContentLoaded', function() {
         // Make the image container clickable to navigate to the tank detail page
         const imgContainer = card.querySelector('.tank-img-container');
         if (imgContainer) {
+            const isBotContainer = imgContainer.getAttribute('data-is-bot') === 'true';
+
             // Add click event listener to the image container
             imgContainer.addEventListener('click', function(e) {
                 // Prevent navigation if clicking on the compare button or its children
                 if (e.target.closest('.compare-btn')) {
                     return;
                 }
+                // Don't navigate if it's a bot tank (slug is "#")
+                if (isBotContainer) {
+                    return;
+                }
                 // Navigate to the tank detail page
                 const url = this.getAttribute('data-url');
-                if (url) {
+                if (url && url !== '#') {
                     window.location.href = url;
                 }
             });
@@ -450,11 +473,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (e.target.closest('.compare-btn')) {
                     return;
                 }
+                // Don't navigate if it's a bot tank (slug is "#")
+                if (isBotContainer) {
+                    return;
+                }
                 // Only navigate if it was a quick tap (not a scroll)
                 const touchDuration = Date.now() - (this._touchStartTime || 0);
                 if (touchDuration < 300) {
                     const url = this.getAttribute('data-url');
-                    if (url) {
+                    if (url && url !== '#') {
                         window.location.href = url;
                     }
                 }
