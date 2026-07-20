@@ -53,6 +53,9 @@ class ModelLoader {
         this.xray = false;
         this.boundingBoxes = [];
 
+        this.staticArmor = false;
+        this.armorViewer = false;
+
         this.init();
     }
 
@@ -131,6 +134,7 @@ class ModelLoader {
 
         // Ambient light
         this.lights.ambient = new THREE.AmbientLight(0x404040, 0.6);
+
         this.scene.add(this.lights.ambient);
 
         // Directional light (main light)
@@ -209,11 +213,19 @@ class ModelLoader {
         fullscreenBtn.title = 'Enter Fullscreen';
         fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
 
+        const staticArmorBtn = document.createElement('button');
+        staticArmorBtn.className = 'model-control-btn';
+        staticArmorBtn.innerHTML = '<i class="fa-brands fa-stack-overflow"></i>';
+        staticArmorBtn.title = 'Static Armor';
+        staticArmorBtn.addEventListener('click', () => this.toggleStaticArmor());
+
         controlsContainer.appendChild(rotateBtn);
         controlsContainer.appendChild(resetBtn);
         controlsContainer.appendChild(shadowBtn);
         controlsContainer.appendChild(xrayBtn);
         controlsContainer.appendChild(fullscreenBtn);
+        controlsContainer.appendChild(staticArmorBtn);
+
 
         this.container.appendChild(controlsContainer);
     }
@@ -251,7 +263,6 @@ class ModelLoader {
 
             this.scene.add(this.model);
             this.hideLoadingState();
-
         } catch (error) {
             console.error('Error loading model:', error);
             this.showErrorState('Failed to load 3D model');
@@ -332,6 +343,20 @@ class ModelLoader {
         mat.renderOrder = 999;
         mat.needsUpdate = true;
 
+        const hex = (() => {
+            switch (mat.name?.toLowerCase()) {
+                case "engine":
+                    return "#FF4E17";
+                case "fuel":
+                    return "#F2C44B";
+                case "crew":
+                    return "#FFEFD0";
+                case "ammo":
+                    return "#6EFFCD";
+                default:
+                    return "#FFFFFF";
+            }
+        })();
 
        // Get size from geometry
         child.geometry.computeBoundingBox();
@@ -346,7 +371,7 @@ class ModelLoader {
         const geom = new THREE.BoxGeometry(size.x, size.y, size.z);
         const edges = new THREE.EdgesGeometry(geom);
         const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({
-            color: child.material.color.getHex()
+            color: hex
         }));
 
         child.getWorldPosition(line.position);
@@ -357,16 +382,6 @@ class ModelLoader {
         line.userData.child = child;
         this.scene.add(line);
         this.boundingBoxes.push(line);
-
-
-
-        // let colorRGB = new THREE.Color(mat.color.r, mat.color.g, mat.color.b).getHexString();
-        // const box = new THREE.Box3().setFromObject(child);
-        // const helper = new THREE.Box3Helper(box, parseInt('0x'+colorRGB));
-        // // let box = new THREE.BoxHelper(child, parseInt('0x'+colorRGB))
-        // this.scene.add(helper)
-        // this.boundingBoxes.push(helper);
-        // colorRGB = null;
     }
 
     removeBoundingBox(){
@@ -381,47 +396,60 @@ class ModelLoader {
     toggleXRay() {
         this.xray = !this.xray;
 
+        const moduleNames = ["engine", "fuel", "crew", "ammo"];
+        let moduleOpacity = this.armorViewer ? 0.6875 : 0.5625
+
         if (this.xray) {
+            // this.staticArmor = true;
+            // this.toggleStaticArmor();
+
             this.model.traverse((child) => {
-                if (child.isMesh && child.material) {
-                    const materials = Array.isArray(child.material) ? child.material : [child.material];
-                    materials.forEach(mat => {
-                        if (child.name.toLowerCase().includes('crew')) {
-                            this.drawBoundingBox(child, mat);
-                        }
-                        if (child.name.toLowerCase().includes('electronics')) {
-                            this.drawBoundingBox(child, mat);
-                        }
-                        if (child.name.toLowerCase().includes('fuel')) {
-                            this.drawBoundingBox(child, mat);
-                        }
-                        if (child.name.toLowerCase().includes('engine')) {
-                            this.drawBoundingBox(child, mat);
-                        }
-                        if (child.name.toLowerCase().includes('ammo')){
-                            this.drawBoundingBox(child, mat);
-                        } else {
-                            mat.transparent = true;
-                            mat.opacity = 0.15;
-                            mat.depthWrite = false;
-                            mat.depthTest = true;
-                            mat.renderOrder = -1;
-                            mat.needsUpdate = true;
-                        }
-                    })
-                }
+                    if (child.isMesh && child.material) {
+                        const materials = Array.isArray(child.material) ? child.material : [child.material];
+                        materials.forEach(mat => {
+
+                            if (moduleNames.includes(mat.name)) {
+                                this.drawBoundingBox(child, mat);
+                                mat.transparent = true;
+                                mat.opacity = moduleOpacity;
+                                mat.depthWrite = true;
+                                mat.depthTest = true;
+                                mat.renderOrder = 999;
+                                mat.needsUpdate = true;
+                                console.log(child)
+                            }
+                            if (!moduleNames.includes(mat.name)) {
+                                    mat.transparent = true;
+                                    mat.opacity = 0.25;
+                                    mat.depthWrite = false;
+                                    mat.depthTest = true;
+                                    mat.renderOrder = -1;
+                                    mat.needsUpdate = true;
+                            }
+                        })
+                    }
             })
+
             this.renderer.sortObjects = true;
         } else {
+            this.removeBoundingBox();
             this.model.traverse((child) => {
                 if (child.isMesh && child.material) {
                     const materials = Array.isArray(child.material) ? child.material : [child.material];
                     materials.forEach(mat => {
-                        mat.transparent = false;
-                        mat.opacity = 1;
+
+                        // DEV NOTE: Temporary fix. Storing/Returning original materials would be better
+                        if (moduleNames.includes(mat.name)) {
+                            mat.transparent = true;
+                            mat.opacity = 0;
+                        }
+                        if (!moduleNames.includes(mat.name)) {
+                            mat.opacity = 1;
+                            mat.transparent = false;
+                        }
                         mat.depthWrite = true;
                         mat.needsUpdate = true;
-                        this.removeBoundingBox();
+
                     })
                 }
             })
@@ -438,6 +466,71 @@ class ModelLoader {
                 shadowBtn.title = 'Toggle X-Ray (Off)';
             }
         }
+    }
+
+    // DEV NOTE: function is not functional and incomplete
+    toggleStaticArmor(){
+        this.staticArmor = !this.staticArmor;
+
+        const nonPen = new THREE.MeshBasicMaterial( { color: 0xff0000 });
+        nonPen.map = this.model.children[50].material.map
+        const partialPen = new THREE.MeshBasicMaterial( { color: 0xFFE200 } );
+        partialPen.map = this.model.children[50].material.map
+        const canPen = new THREE.MeshBasicMaterial( { color: 0x78E7BF } );
+        canPen.map = this.model.children[50].material.map
+
+
+
+        if (this.staticArmor) {
+            this.xray = true;
+            this.toggleXRay();
+            this.originalMaterials = [];
+
+            this.model.traverse((child) => {
+                if (child.isMesh && child.material) {
+                    const materials = Array.isArray(child.material) ? child.material : [child.material];
+                    const originalMats = [...materials];
+                    const hasTexture = child.material.map ? true : false;
+
+
+                    if (!child.name.toLowerCase().includes('chassis')) {
+                        if (child.name.toLowerCase().includes('gun')) {
+
+                            child.material = nonPen;
+                        }
+                        if (child.name.toLowerCase().includes('partial')) {
+                            child.material = partialPen;
+                        }
+                        if (child.name.toLowerCase().includes('pen')) {
+                            child.material = canPen;
+                        }
+                    }
+                    // if (child.name.toLowerCase().includes('chassis')){
+                    //     materials.forEach(mat => {
+                    //         mat.transparent = true;
+                    //         mat.opacity = 0;
+                    //         mat.depthWrite = false;
+                    //         mat.depthTest = true;
+                    //         mat.renderOrder = -1;
+                    //         mat.needsUpdate = true;
+                    //     })
+                    // }
+
+
+                    this.originalMaterials.push({ mesh: child, materials: originalMats });
+                }
+            })
+        }
+        else {
+            if (this.originalMaterials) {
+                this.originalMaterials.forEach(item => {
+                    item.mesh.material = item.materials[0];
+                });
+                this.originalMaterials = [];
+            }
+        }
+
+
 
     }
 
