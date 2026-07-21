@@ -71,19 +71,90 @@ class PlayerRecords {
         };
 
         // Stat counter configurations (all except the 3 basic ones)
-        this.statCounters = [
-            { key: 'damage_caused', label: 'Highest Damage', icon: 'fa-bolt', color: '#ff8300', id: 'statCardDamageCaused' },
-            { key: 'destroyed', label: 'Most Kills', icon: 'fa-skull', color: '#e74c3c', id: 'statCardDestroyed' },
-            { key: 'assists', label: 'Most Assists', icon: 'fa-handshake', color: '#3498db', id: 'statCardAssists' },
-            { key: 'XP', label: 'Highest XP', icon: 'fa-star', color: '#f1c40f', id: 'statCardXP' },
-            { key: 'captures', label: 'Most Captures', icon: 'fa-flag-checkered', color: '#2ecc71', id: 'statCardCaptures' },
-            { key: 'damage_blocked', label: 'Most Blocked', icon: 'fa-shield', color: '#9b59b6', id: 'statCardDamageBlocked' },
-            { key: 'credits', label: 'Most Credits', icon: 'fa-coins', color: '#f39c12', id: 'statCardCredits' },
-            { key: 'intel', label: 'Most Intel', icon: 'fa-microchip', color: '#1abc9c', id: 'statCardIntel' },
-            { key: 'confirms', label: 'Most Confirms', icon: 'fa-check-double', color: '#2ecc71', id: 'statCardConfirms' },
-            { key: 'denies', label: 'Most Denies', icon: 'fa-ban', color: '#9b59b6', id: 'statCardDenies' },
-            { key: 'deaths', label: 'Most Deaths', icon: 'fa-skull-crossbones', color: '#e74c3c', id: 'statCardDeaths' },
-            { key: 'tech', label: 'Most Tech', icon: 'fa-microchip', color: '#00bcd4', id: 'statCardTech' }
+        this.statCounters = [{
+                key: 'damage_caused',
+                label: 'Highest Damage',
+                icon: 'fa-bolt',
+                color: '#ff8300',
+                id: 'statCardDamageCaused'
+            },
+            {
+                key: 'destroyed',
+                label: 'Most Kills',
+                icon: 'fa-skull',
+                color: '#e74c3c',
+                id: 'statCardDestroyed'
+            },
+            {
+                key: 'assists',
+                label: 'Most Assists',
+                icon: 'fa-handshake',
+                color: '#3498db',
+                id: 'statCardAssists'
+            },
+            {
+                key: 'XP',
+                label: 'Highest XP',
+                icon: 'fa-star',
+                color: '#f1c40f',
+                id: 'statCardXP'
+            },
+            {
+                key: 'captures',
+                label: 'Most Captures',
+                icon: 'fa-flag-checkered',
+                color: '#2ecc71',
+                id: 'statCardCaptures'
+            },
+            {
+                key: 'damage_blocked',
+                label: 'Most Blocked',
+                icon: 'fa-shield',
+                color: '#9b59b6',
+                id: 'statCardDamageBlocked'
+            },
+            {
+                key: 'credits',
+                label: 'Most Credits',
+                icon: 'fa-coins',
+                color: '#f39c12',
+                id: 'statCardCredits'
+            },
+            {
+                key: 'intel',
+                label: 'Most Intel',
+                icon: 'fa-microchip',
+                color: '#1abc9c',
+                id: 'statCardIntel'
+            },
+            {
+                key: 'confirms',
+                label: 'Most Confirms',
+                icon: 'fa-check-double',
+                color: '#2ecc71',
+                id: 'statCardConfirms'
+            },
+            {
+                key: 'denies',
+                label: 'Most Denies',
+                icon: 'fa-ban',
+                color: '#9b59b6',
+                id: 'statCardDenies'
+            },
+            {
+                key: 'deaths',
+                label: 'Most Deaths',
+                icon: 'fa-skull-crossbones',
+                color: '#e74c3c',
+                id: 'statCardDeaths'
+            },
+            {
+                key: 'tech',
+                label: 'Most Tech',
+                icon: 'fa-microchip',
+                color: '#00bcd4',
+                id: 'statCardTech'
+            }
         ];
 
         // Store stat counter element references
@@ -191,9 +262,9 @@ class PlayerRecords {
         const allRecords = this.recordsByMode[mode] || [];
         // If useGlobalFilter is true, use the global toggle state
         // Otherwise use the mode-specific toggle state
-        const includePve = useGlobalFilter
-            ? this.isPveIncluded('global')
-            : this.isPveIncluded(mode);
+        const includePve = useGlobalFilter ?
+            this.isPveIncluded('global') :
+            this.isPveIncluded(mode);
         return allRecords.filter(record => {
             if (includePve) return true;
             // Exclude PvE records (matchType === 'pve')
@@ -211,6 +282,13 @@ class PlayerRecords {
             allRecords.push(...filtered);
         }
         return allRecords;
+    }
+
+    // Get ALL records for a player (no PvE filter - for profile view)
+    getAllRecordsForPlayer(playerId) {
+        const player = this.players.get(playerId);
+        if (!player) return [];
+        return player.records || [];
     }
 
     // Refresh a specific tab's content
@@ -708,27 +786,116 @@ class PlayerRecords {
         }));
     }
 
-    // Get all records for a specific player for a specific stat
-    getPlayerRecordsForStat(playerId, statKey) {
-        const player = this.players.get(playerId);
-        if (!player) return null;
+    // Get a player's rank for a specific stat (global, all modes, no PvE filter)
+    // Handles ties by giving priority to more recent entries
+    getPlayerRankForStat(playerId, statKey) {
+        const allRecords = [];
+        const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed'];
 
-        // Get all records for this player that have this stat
-        const allRecords = player.records || [];
-        const filteredRecords = allRecords.filter(record => {
-            // Check if the stat exists and is valid
-            const value = record[statKey];
-            if (value === undefined || value === null || value <= 0) {
-                return false;
+        // Collect all records from all modes (no PvE filter for rank calculation)
+        for (const modeName of modes) {
+            const modeRecords = this.recordsByMode[modeName] || [];
+            for (const record of modeRecords) {
+                const value = record[statKey];
+                if (value !== undefined && value !== null && value > 0) {
+                    allRecords.push(record);
+                }
             }
-            // Check PvE filter for this record's mode
-            const mode = record.mode;
-            const includePve = this.isPveIncluded('global');
-            return includePve || record.matchType !== 'pve';
+        }
+
+        // Group by player, keep best record per player (with tie-breaking by recency)
+        const playerBestMap = new Map();
+        for (const record of allRecords) {
+            const pid = record.playerId;
+            if (!playerBestMap.has(pid)) {
+                playerBestMap.set(pid, record);
+            } else {
+                const existing = playerBestMap.get(pid);
+                const existingValue = existing[statKey] || 0;
+                const newValue = record[statKey] || 0;
+                if (newValue > existingValue) {
+                    playerBestMap.set(pid, record);
+                } else if (newValue === existingValue) {
+                    // If tied, keep the more recent one
+                    const existingDate = this.extractDateFromProof(existing.proof);
+                    const newDate = this.extractDateFromProof(record.proof);
+                    if (newDate && (!existingDate || newDate > existingDate)) {
+                        playerBestMap.set(pid, record);
+                    }
+                }
+            }
+        }
+
+        // Sort by stat value descending, then by date descending (most recent first for ties)
+        const sorted = Array.from(playerBestMap.values()).sort((a, b) => {
+            const aVal = a[statKey] || 0;
+            const bVal = b[statKey] || 0;
+            if (bVal !== aVal) return bVal - aVal;
+            // If values are equal, sort by date (most recent first)
+            const aDate = this.extractDateFromProof(a.proof);
+            const bDate = this.extractDateFromProof(b.proof);
+            if (aDate && bDate) return bDate.getTime() - aDate.getTime();
+            if (aDate && !bDate) return -1;
+            if (!aDate && bDate) return 1;
+            return 0;
         });
 
-        // Sort by stat value (descending) and then by date
-        return this.sortRecordsByStatAndDate(filteredRecords, statKey);
+        // Find the player's rank (1-indexed)
+        let rank = 0;
+        for (let i = 0; i < sorted.length; i++) {
+            if (sorted[i].playerId === playerId) {
+                rank = i + 1;
+                break;
+            }
+        }
+
+        return rank;
+    }
+
+    // Get player's highest value and average for a specific stat
+    getPlayerStatSummary(playerId, statKey) {
+        const records = this.getAllRecordsForPlayer(playerId);
+        const validRecords = records.filter(r => {
+            const val = r[statKey];
+            return val !== undefined && val !== null && val > 0;
+        });
+
+        if (validRecords.length === 0) {
+            return {
+                highest: 0,
+                average: 0,
+                count: 0,
+                bestRecord: null
+            };
+        }
+
+        const values = validRecords.map(r => r[statKey] || 0);
+        const highest = Math.max(...values);
+        const sum = values.reduce((a, b) => a + b, 0);
+        const average = sum / values.length;
+
+        // Find the record with the highest value (tie-breaking by recency)
+        let bestRecord = validRecords[0];
+        for (const r of validRecords) {
+            const rVal = r[statKey] || 0;
+            const bestVal = bestRecord[statKey] || 0;
+            if (rVal > bestVal) {
+                bestRecord = r;
+            } else if (rVal === bestVal) {
+                const rDate = this.extractDateFromProof(r.proof);
+                const bestDate = this.extractDateFromProof(bestRecord.proof);
+                if (rDate && (!bestDate || rDate > bestDate)) {
+                    bestRecord = r;
+                }
+            }
+        }
+
+        return {
+            highest: highest,
+            average: average,
+            count: validRecords.length,
+            bestRecord: bestRecord
+        };
     }
 
     renderLastUpdated() {
@@ -1895,7 +2062,8 @@ class PlayerRecords {
         }
     }
 
-    // Show player profile modal with all their records for a specific stat
+    // Enhanced player profile modal
+    // Enhanced player profile modal - shows stats in a clean, organized grid
     showPlayerProfile(playerId, statKey = 'damage_caused') {
         const player = this.players.get(playerId);
         if (!player) {
@@ -1913,84 +2081,85 @@ class PlayerRecords {
             'credits': 'Credits',
             'intel': 'Intel',
             'confirms': 'Confirms',
-            'denies': 'Denies'
+            'denies': 'Denies',
+            'deaths': 'Deaths',
+            'tech': 'Tech'
         };
 
-        const statLabel = statLabels[statKey] || statKey;
-        const truncatedName = this.truncatePlayerName(playerId, 14);
+        const truncatedName = this.truncatePlayerName(playerId, 20);
+        const allRecords = this.getAllRecordsForPlayer(playerId);
 
-        // Get all records for this player for this specific stat
-        const allRecords = this.getPlayerRecordsForStat(playerId, statKey);
-        if (!allRecords || allRecords.length === 0) {
-            this.showToast(`No ${statLabel} records found for ${playerId}`, 'error');
-            return;
+        // Calculate stats for all tracked metrics
+        const trackedStats = ['damage_caused', 'destroyed', 'assists', 'XP', 'captures', 'damage_blocked', 'credits', 'intel', 'confirms', 'denies', 'deaths', 'tech'];
+
+        // Build stat cards in a clean grid layout
+        let statsHtml = '';
+        let hasAnyStats = false;
+
+        for (const stat of trackedStats) {
+            const summary = this.getPlayerStatSummary(playerId, stat);
+            const rank = this.getPlayerRankForStat(playerId, stat);
+            const label = statLabels[stat] || stat;
+
+            if (summary.count > 0) {
+                hasAnyStats = true;
+                const rankDisplay = rank > 0 ? `#${rank}` : 'N/A';
+                // Get the best record for this stat to show proof
+                const proofUrl = summary.bestRecord?.proof || null;
+                const bestValue = summary.highest;
+
+                statsHtml += `
+                    <div class="profile-stat-card">
+                        <div class="profile-stat-card-header">
+                            <span class="profile-stat-label">${label}</span>
+                            <span class="profile-stat-rank-badge">Rank ${rankDisplay}</span>
+                        </div>
+                        <div class="profile-stat-card-body">
+                            <div class="profile-stat-main">
+                                <span class="profile-stat-high">${this.formatNumber(bestValue)}</span>
+                                ${proofUrl ? `<button class="profile-stat-proof-btn" data-proof="${proofUrl}" title="View Proof"><i class="fas fa-image"></i></button>` : ''}
+                            </div>
+                            <div class="profile-stat-details">
+                                <span class="profile-stat-avg">Avg: ${this.formatNumber(Math.round(summary.average))}</span>
+                                <span class="profile-stat-count">${summary.count} game${summary.count > 1 ? 's' : ''}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
         }
 
-        // Build the profile modal
+        if (!hasAnyStats) {
+            statsHtml = `<div class="profile-no-stats">No statistics available for this player.</div>`;
+        }
+
+        // Build the profile modal - clean design without records table
         let html = `
             <div class="profile-modal-overlay" id="profileModal">
-                <div class="profile-modal-content">
+                <div class="profile-modal-content profile-modal-enhanced">
                     <button class="profile-modal-close" onclick="document.getElementById('profileModal').remove()">
                         <i class="fas fa-times"></i>
                     </button>
+
+                    <!-- Player Header -->
                     <div class="profile-header">
                         <div class="profile-avatar">
                             <i class="fas fa-user-circle"></i>
                         </div>
                         <div class="profile-info">
                             <h2 title="${playerId}">${truncatedName}</h2>
-                            <p><i class="fas fa-trophy" style="color: var(--accent-color, #ff8300);"></i> ${allRecords.length} ${statLabel} record${allRecords.length > 1 ? 's' : ''}</p>
+                            <div class="profile-meta">
+                                <span><i class="fas fa-trophy" style="color: var(--accent-color, #ff8300);"></i> ${allRecords.length} entr${allRecords.length > 1 ? 'ies' : 'y'}</span>
+                                <span class="profile-rank-note"><i class="fas fa-info-circle"></i> Profile shows global ranks only</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="profile-records">
-                        <h3><i class="fas fa-chart-bar" style="color: var(--accent-color, #ff8300);"></i> ${statLabel} Records</h3>
-                        <div class="table-wrapper">
-                            <table class="records-table profile-records-table">
-                                <thead>
-                                    <tr>
-                                        <th>${statLabel}</th>
-                                        <th>Mode</th>
-                                        <th>Type</th>
-                                        <th>Vehicle</th>
-                                        <th>Agent</th>
-                                        <th>Date</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-        `;
 
-        let rank = 1;
-        for (const record of allRecords) {
-            const recordDate = this.getRecordDate(record.proof);
-            const modeDisplayName = this.getModeDisplayName(record.mode);
-            const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
-            const matchTypeLabel = record.matchType === 'pvp' ? 'PvP' : 'PvE';
-            const matchTypeClass = record.matchType === 'pvp' ? 'match-type-pvp' : 'match-type-pve';
-
-            html += `
-                <tr>
-                    <td><span class="rank-badge ${rankClass}">${this.formatNumber(record[statKey] || 0)}</span></td>
-                    <td><span class="mode-badge">${modeDisplayName}</span></td>
-                    <td><span class="match-type-badge ${matchTypeClass}">${matchTypeLabel}</span></td>
-                    <td>${record.vehicle || 'N/A'}</td>
-                    <td>${record.agent || 'N/A'}</td>
-                    <td>${recordDate}</td>
-                    <td>
-                        <div class="action-buttons">
-                            ${record.proof ? `<button class="action-btn action-btn-proof" data-proof="${record.proof}"><i class="fas fa-image"></i></button>` : ''}
-                        </div>
-                    </td>
-                </tr>
-            `;
-            rank++;
-        }
-
-        html += `
-                                </tbody>
-                            </table>
-                        </div>
+                    <!-- Stats Grid -->
+                    <div class="profile-stats-grid">
+                        ${statsHtml}
                     </div>
+
                     <div class="profile-footer">
                         <button onclick="document.getElementById('profileModal').remove()" class="profile-close-btn">Close</button>
                     </div>
@@ -2006,14 +2175,16 @@ class PlayerRecords {
 
         document.body.insertAdjacentHTML('beforeend', html);
 
-        // Add proof click handlers
-        document.querySelectorAll('#profileModal .action-btn-proof').forEach(btn => {
-            btn.addEventListener('click', () => {
+        // Add proof button click handlers
+        document.querySelectorAll('#profileModal .profile-stat-proof-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 const proofUrl = btn.dataset.proof;
-                // Close profile modal first
-                const modal = document.getElementById('profileModal');
-                if (modal) modal.remove();
-                this.showProofModal(proofUrl);
+                if (proofUrl) {
+                    const modal = document.getElementById('profileModal');
+                    if (modal) modal.remove();
+                    this.showProofModal(proofUrl);
+                }
             });
         });
 
@@ -2246,6 +2417,10 @@ class PlayerRecords {
                         <li>
                             <i class="fas fa-check-circle"></i>
                             <span>Records are updated every <strong>24 to 72 hours</strong> as this process takes time to validate all new submissions.</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-exclamation-triangle" style="color: #e74c3c;"></i>
+                            <span><strong>Tampering with records or attempting to resubmit old entries to gain higher spots on the leaderboard will result in complete removal from the leaderboards.</strong> All entries are verified and timestamped.</span>
                         </li>
                     </ul>
                     <div class="guidelines-footer">
