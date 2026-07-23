@@ -414,13 +414,22 @@
         </div>
       </header>
       <!-- Tank Header -->
-      <section class="tank-header">
-        <div class="container mx-auto px-4">
-          <div class="tank-meta">
+      <section class="tank-hero">
+        <div class="navbar-spacer"></div>
+        <!-- Header overlay with tank info -->
+        <div class="tank-hero-header">
+          <div class="container mx-auto px-4">
+            <div class="tank-meta">
               <!-- These will be populated by JavaScript -->
+            </div>
+            <h1 class="tank-hero-title">Tank</h1>
           </div>
-          <h1 class="tank-title">Tank</h1>
-          <p class="tank-description">The Leopard 1A1B is a versatile support tank, offering significant team utility through its varied module choices and powerful area denial capabilities. Its potent buffs makes it a valuable asset on the battlefield.</p>
+        </div>
+        <!-- 3D Model Viewer -->
+        <div class="tank-model-viewer">
+          <div class="model-viewer-container" id="tank-model-viewer">
+            <!-- 3D model will be rendered here by JavaScript -->
+          </div>
         </div>
       </section>
       <!-- Tank Content -->
@@ -429,11 +438,6 @@
           <div class="tank-content-wrapper">
             <!-- Main Content -->
             <div class="tank-main-content">
-              <!-- Tank Image -->
-              <div class="tank-image mb-8">
-                <img src="https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/placeholder/imagecomingsoon.webp" alt="M1E1 Tank" class="rounded-lg shadow-lg">
-                <p class="text-center text-sm text-gray-500 mt-2">AI-upscaled image based on a low-resolution asset found in the World of Tanks: HEAT game files. This is a temporary placeholder created by the HEAT Labs Team and will be replaced once a higher-quality render or official image of the vehicle becomes available.</p>
-              </div>
               <!-- Ability Overview -->
               <div class="mb-12">
                 <h2 id="ability-overview">Ability Overview</h2>
@@ -1486,10 +1490,9 @@
     <script src="../assets/js/libraries/chart.js"></script>
     <script src="../assets/js/libraries/three.js"></script>
     <script src="../assets/js/libraries/OrbitControls.js"></script>
-    <script src="../assets/js/libraries/FBXLoader.js"></script>
-    <script src="../assets/js/libraries/DDSLoader.js"></script>
+    <script src="../assets/js/libraries/GLTFLoader.js"></script>
     <script src="../assets/js/libraries/fflate.js"></script>
-    <script src="../assets/js/modules/model-loader-fbx.js"></script>
+    <script src="../assets/js/modules/model-loader-glb.js"></script>
     <script src="../assets/js/modules/sidebar.js"></script>
     <script src="../assets/js/modules/theme-loader.js"></script>
     <script src="../assets/js/pages/tank.js"></script>

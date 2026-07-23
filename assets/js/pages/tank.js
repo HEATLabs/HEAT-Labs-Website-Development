@@ -101,7 +101,7 @@ async function fetchViewCount() {
 
 // Function to display view counter in the tank header
 function displayViewCounter(views) {
-    const tankMeta = document.querySelector('.tank-meta');
+    const tankMeta = document.querySelector('.tank-hero-header .tank-meta');
     if (tankMeta) {
         // Remove existing view counter if it exists
         const existingCounter = tankMeta.querySelector('.map-views-counter');
@@ -117,7 +117,7 @@ function displayViewCounter(views) {
             <span class="map-views-count">${views.totalViews.toLocaleString()}</span> views
         `;
 
-        // Always append views counter at the end
+        // Append views counter at the end
         tankMeta.appendChild(viewCounter);
     }
 }
@@ -919,7 +919,7 @@ async function fetchAndPopulateAgents(agentsUrl, tankId, tank) {
 
 // New function to update agent display in the tank header
 function updateAgentDisplayInHeader(agents, tank) {
-    const tankMeta = document.querySelector('.tank-meta');
+    const tankMeta = document.querySelector('.tank-hero-header .tank-meta');
     if (!tankMeta) return;
 
     // Find the existing agents span or create a new one
@@ -995,10 +995,10 @@ function updateTankPageElements(tank) {
     const twitterTitle = document.querySelector('meta[name="twitter:title"]');
     if (twitterTitle) twitterTitle.content = `HEAT Labs - ${tank.name}`;
 
-    // Update tank header information
-    const tankHeader = document.querySelector('.tank-header');
-    if (tankHeader) {
-        const tankMeta = tankHeader.querySelector('.tank-meta');
+    // Update tank hero header information
+    const tankHeroHeader = document.querySelector('.tank-hero-header');
+    if (tankHeroHeader) {
+        const tankMeta = tankHeroHeader.querySelector('.tank-meta');
 
         if (tankMeta) {
             // Clear the meta container but keep the structure
@@ -1023,17 +1023,10 @@ function updateTankPageElements(tank) {
             tankMeta.appendChild(nationSpan);
         }
 
-        const tankTitle = tankHeader.querySelector('.tank-title');
+        const tankTitle = tankHeroHeader.querySelector('.tank-hero-title');
         if (tankTitle) {
             tankTitle.textContent = tank.name;
         }
-    }
-
-    // Update tank image
-    const tankImage = document.querySelector('.tank-image img');
-    if (tankImage) {
-        tankImage.src = tank.image;
-        tankImage.alt = tank.name;
     }
 }
 

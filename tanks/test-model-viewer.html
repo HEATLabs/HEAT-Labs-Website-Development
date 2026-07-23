@@ -383,13 +383,22 @@
         </div>
       </header>
       <!-- Tank Header -->
-      <section class="tank-header">
-        <div class="container mx-auto px-4">
-          <div class="tank-meta">
+      <section class="tank-hero">
+        <div class="navbar-spacer"></div>
+        <!-- Header overlay with tank info -->
+        <div class="tank-hero-header">
+          <div class="container mx-auto px-4">
+            <div class="tank-meta">
               <!-- These will be populated by JavaScript -->
+            </div>
+            <h1 class="tank-hero-title">Tank</h1>
           </div>
-          <h1 class="tank-title">Model Viewer Test Page</h1>
-          <p class="tank-description">This is a test page for the Model Viewer feature in tank pages</p>
+        </div>
+        <!-- 3D Model Viewer -->
+        <div class="tank-model-viewer">
+          <div class="model-viewer-container" id="tank-model-viewer">
+            <!-- 3D model will be rendered here by JavaScript -->
+          </div>
         </div>
       </section>
       <!-- Tank Content -->
@@ -398,12 +407,6 @@
           <div class="tank-content-wrapper">
             <!-- Main Content -->
             <div class="tank-main-content">
-              <!-- 3D Tank Model Viewer -->
-              <div class="tank-model-viewer mb-8">
-                <div class="model-viewer-container" id="tank-model-viewer">
-                  <!-- 3D model will be rendered here by JavaScript -->
-                </div>
-              </div>
               <p class="text-center text-sm text-gray-500 mt-2">The 3D model featured above was created using tools developed by <a href="https://github.com/Pyogenics">Pyogenics</a>. We gratefully acknowledge their work in making this model viewer possible.</p>
               <!-- Ability Overview -->
               <div class="mb-12">

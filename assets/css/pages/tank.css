@@ -1,9 +1,226 @@
 /* Tank Detail Page Styles */
-.tank-header {
-	padding: 3rem 0;
+
+.tank-hero {
+	position: relative;
+	width: 100%;
+	height: 100vh;
+	min-height: 600px;
+	max-height: 700px;
 	background-color: var(--bg-secondary);
-	border-bottom: 1px solid var(--border-color);
-	margin-top: 4rem;
+	overflow: hidden;
+	margin-top: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.navbar-spacer {
+	height: 70px;
+	flex-shrink: 0;
+}
+
+.tank-hero-header {
+	position: absolute;
+	top: 70px;
+	left: 0;
+	right: 0;
+	z-index: 20;
+	padding: 1.5rem 2rem;
+	pointer-events: none;
+}
+
+.tank-hero-header .container {
+	max-width: 1400px;
+	margin: 0 auto;
+}
+
+.tank-hero-header .tank-meta {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	margin-bottom: 0.5rem;
+	font-size: 0.85rem;
+	color: rgba(255, 255, 255, 0.8);
+	flex-wrap: wrap;
+}
+
+.tank-hero-header .tank-meta i {
+	margin-right: 0.25rem;
+}
+
+.tank-hero-header .tank-type-badge {
+	background-color: var(--accent-color);
+	color: white;
+	padding: 0.25rem 0.75rem;
+	border-radius: 1rem;
+	font-weight: bold;
+	font-size: 0.75rem;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+}
+
+.tank-hero-header .tank-credit-badge {
+	background-color: var(--accent-color);
+	color: white;
+	padding: 0.25rem 0.75rem;
+	border-radius: 1rem;
+	font-weight: bold;
+	font-size: 0.75rem;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.tank-hero-header .tank-credit-badge i {
+	font-size: 0.7rem;
+	color: rgba(255, 255, 255, 0.9);
+}
+
+.tank-hero-header .tank-credit-badge.free {
+	background-color: var(--accent-color);
+}
+
+.tank-hero-header .tank-credit-badge.starter {
+	background-color: var(--accent-color);
+}
+
+.tank-hero-header .tank-credit-badge.battle-pass {
+	background-color: var(--accent-color);
+}
+
+.tank-hero-header .tank-credit-badge.unknown {
+	background-color: var(--accent-color);
+}
+
+.tank-hero-header .tank-agents-display {
+	color: rgba(255, 255, 255, 0.8);
+	font-size: 0.85rem;
+}
+
+.tank-hero-header .map-views-counter {
+	color: rgba(255, 255, 255, 0.6);
+	font-size: 0.85rem;
+}
+
+.tank-hero-title {
+	font-size: 3rem;
+	font-weight: 800;
+	color: white;
+	line-height: 1.1;
+	margin: 0.5rem 0 0;
+	text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+	letter-spacing: -0.02em;
+}
+
+/* Model viewer container */
+.tank-model-viewer {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 1;
+}
+
+.model-viewer-container {
+	width: 100%;
+	height: 100%;
+	position: relative;
+}
+
+.model-viewer-container .model-viewer-canvas {
+	width: 100% !important;
+	height: 100% !important;
+	display: block;
+}
+
+/* Model controls */
+.model-viewer-controls {
+	position: absolute;
+	bottom: 2rem;
+	left: 50%;
+	transform: translateX(-50%);
+	display: flex;
+	gap: 0.5rem;
+	background-color: rgba(0, 0, 0, 0.7);
+	padding: 0.75rem;
+	border-radius: 2rem;
+	backdrop-filter: blur(10px);
+	z-index: 10;
+}
+
+.model-control-btn {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background-color: var(--bg-dark-secondary);
+	color: white;
+	border: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	font-size: 1rem;
+}
+
+.model-control-btn:hover {
+	background-color: var(--accent-color-hover);
+}
+
+.model-control-btn.active {
+	background-color: var(--accent-color-hover);
+}
+
+@keyframes bounceDown {
+
+	0%,
+	100% {
+		transform: translateX(-50%) translateY(0);
+		opacity: 0.4;
+	}
+
+	50% {
+		transform: translateX(-50%) translateY(8px);
+		opacity: 0.8;
+	}
+}
+
+.tank-content-wrapper {
+	display: flex;
+	flex-direction: column;
+	gap: 3rem;
+	padding-top: 0;
+}
+
+@media (min-width: 1024px) {
+	.tank-content-wrapper {
+		flex-direction: row;
+		gap: 4rem;
+	}
+
+	.tank-main-content {
+		flex: 3;
+	}
+
+	.tank-sidebar {
+		flex: 1;
+		position: sticky;
+		top: 6rem;
+		align-self: flex-start;
+		max-height: calc(100vh - 7rem);
+		overflow-y: auto;
+	}
+}
+
+/* Section spacing */
+.section-first {
+	padding-top: 3rem;
+}
+
+.section {
+	padding: 2rem 0;
 }
 
 .tank-meta {
@@ -31,62 +248,6 @@
 	letter-spacing: 1px;
 }
 
-.tank-title {
-	font-size: 2.5rem;
-	font-weight: 800;
-	margin-bottom: 1rem;
-	color: var(--text-primary);
-	line-height: 1.2;
-	position: relative;
-	padding-bottom: 0.5rem;
-}
-
-.tank-title::after {
-	content: '';
-	position: absolute;
-	bottom: 0;
-	left: 0;
-	width: 80px;
-	height: 4px;
-	background-color: var(--accent-color);
-	border-radius: 2px;
-}
-
-.tank-description {
-	font-size: 1.15rem;
-	color: var(--text-secondary);
-	max-width: 800px;
-	line-height: 1.6;
-	margin-top: 1.5rem;
-}
-
-.tank-content-wrapper {
-	display: flex;
-	flex-direction: column;
-	gap: 3rem;
-}
-
-@media (min-width: 1024px) {
-	.tank-content-wrapper {
-		flex-direction: row;
-		gap: 4rem;
-	}
-
-	.tank-main-content {
-		flex: 3;
-	}
-
-	.tank-sidebar {
-		flex: 1;
-		position: sticky;
-		top: 6rem;
-		align-self: flex-start;
-		max-height: calc(100vh - 7rem);
-		overflow-y: auto;
-	}
-}
-
-/* Credit Badge */
 .tank-credit-badge {
 	background-color: var(--accent-color);
 	color: white;
@@ -420,14 +581,10 @@
 }
 
 /* Main Content Sections */
-.section {
-	padding: 2rem 0;
-}
-
 h2 {
 	font-size: 1.75rem;
 	font-weight: 700;
-	margin: 2rem 0 1.5rem;
+	margin: 1rem 0 1.5rem;
 	color: var(--text-primary);
 	position: relative;
 	padding-bottom: 0.5rem;
@@ -781,17 +938,23 @@ p {
 
 /* Responsive Adjustments */
 @media (max-width: 1023px) {
-	.tank-header {
-		padding: 2.5rem 0;
-		margin-top: 3.5rem;
+	.tank-hero {
+		height: 70vh;
+		min-height: 450px;
+		max-height: 600px;
 	}
 
-	.tank-title {
-		font-size: 2rem;
+	.tank-hero-title {
+		font-size: 2.5rem;
 	}
 
-	.tank-description {
-		font-size: 1.05rem;
+	.tank-hero-header {
+		padding: 1rem 1.5rem;
+		top: 60px;
+	}
+
+	.navbar-spacer {
+		height: 60px;
 	}
 }
 
@@ -817,25 +980,61 @@ p {
 	.agent-card:last-child {
 		margin-bottom: 0;
 	}
-}
 
-@media (max-width: 640px) {
-	.tank-header {
-		padding: 2rem 0;
-		margin-top: 3rem;
+	.tank-hero {
+		height: 60vh;
+		min-height: 400px;
+		max-height: 500px;
 	}
 
-	.tank-title {
-		font-size: 1.75rem;
+	.tank-hero-title {
+		font-size: 2rem;
 	}
 
-	.tank-meta {
+	.tank-hero-header {
+		padding: 0.75rem 1rem;
+		top: 55px;
+	}
+
+	.tank-hero-header .tank-meta {
+		font-size: 0.75rem;
 		gap: 0.5rem;
+	}
+
+	.navbar-spacer {
+		height: 55px;
+	}
+
+	.model-viewer-controls {
+		bottom: 1rem;
+		padding: 0.5rem;
+		gap: 0.4rem;
+	}
+
+	.model-control-btn {
+		width: 35px;
+		height: 35px;
 		font-size: 0.85rem;
 	}
 
-	.tank-description {
-		font-size: 1rem;
+	.section-first {
+		padding-top: 2rem;
+	}
+}
+
+@media (max-width: 640px) {
+	.tank-hero-title {
+		font-size: 1.5rem;
+	}
+
+	.tank-hero-header .tank-meta {
+		font-size: 0.7rem;
+	}
+
+	.tank-hero-header .tank-type-badge,
+	.tank-hero-header .tank-credit-badge {
+		font-size: 0.65rem;
+		padding: 0.15rem 0.5rem;
 	}
 
 	.action-buttons {
@@ -857,12 +1056,9 @@ p {
 		padding: 0.5rem;
 		font-size: 0.8rem;
 	}
-}
 
-/* Fix for iOS scrolling */
-@supports (-webkit-touch-callout: none) {
-	.tank-sidebar {
-		position: -webkit-sticky;
+	.scroll-indicator {
+		display: none;
 	}
 }
 
@@ -1014,50 +1210,6 @@ p {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
-}
-
-/* Mobile Gallery Styles */
-@media (max-width: 768px) {
-	.gallery-modal-content {
-		width: 95%;
-		height: 95vh;
-	}
-
-	.gallery-main-image-container {
-		margin: 0 30px;
-	}
-
-	#galleryMainImage {
-		max-height: calc(95vh - 120px);
-	}
-
-	.gallery-nav-btn {
-		width: 40px;
-		height: 40px;
-		font-size: 1.25rem;
-	}
-
-	.gallery-thumbnail-item {
-		width: 60px;
-		height: 45px;
-	}
-}
-
-@media (max-width: 480px) {
-	.gallery-main-image-container {
-		margin: 0 10px;
-	}
-
-	.gallery-nav-btn {
-		width: 35px;
-		height: 35px;
-		font-size: 1rem;
-	}
-
-	.gallery-thumbnail-item {
-		width: 50px;
-		height: 37px;
-	}
 }
 
 /* Agent Modal Styles */
@@ -1509,7 +1661,7 @@ p {
 }
 
 .quick-action-btn.added:hover {
-	background-color: var(--accent-hover);
+	background-color: var(--accent-color-hover);
 }
 
 /* Charts Section */
@@ -1576,30 +1728,6 @@ p {
 	opacity: 1;
 	visibility: visible;
 	bottom: calc(100% + 8px);
-}
-
-.chart-no-data {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	height: 100%;
-	width: 100%;
-	text-align: center;
-	padding: 2rem;
-	color: var(--text-secondary);
-}
-
-.chart-no-data i {
-	font-size: 2rem;
-	margin-bottom: 1rem;
-	color: var(--accent-color);
-}
-
-.chart-no-data p {
-	margin: 0;
-	font-size: 1rem;
-	line-height: 1.5;
 }
 
 .chart-filters {
@@ -1682,6 +1810,7 @@ p {
 	justify-content: center;
 	align-items: center;
 	color: var(--text-primary);
+	overflow: hidden;
 }
 
 .chart-legend {
@@ -1706,27 +1835,6 @@ p {
 	flex-shrink: 0;
 }
 
-.chart-no-data {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	height: 250px;
-	color: var(--text-secondary);
-	text-align: center;
-}
-
-.chart-no-data i {
-	font-size: 2rem;
-	margin-bottom: 1rem;
-	color: var(--accent-color);
-}
-
-canvas {
-	/* chart text uses theme colors (this is not an option) */
-	filter: none !important;
-}
-
 /* I hate chart.js #1 */
 .chartjs-tooltip {
 	background-color: var(--card-bg) !important;
@@ -1743,37 +1851,30 @@ canvas {
 	z-index: 1000 !important;
 }
 
-/* I hate chart.js #2 */
 .chart-container canvas {
-	/* Force chart text to use theme colors, (im not asking) */
 	color: var(--text-primary) !important;
 }
 
-/* I hate chart.js #3 */
 .chartjs-render-monitor text {
 	fill: var(--text-primary) !important;
 	color: var(--text-primary) !important;
 	font-family: var(--font-body) !important;
 }
 
-/* I hate chart.js #4 */
 .chartjs-render-monitor .chart-axis-label text {
 	fill: var(--text-primary) !important;
 	color: var(--text-primary) !important;
 }
 
-/* I hate chart.js #5 */
 .chartjs-render-monitor .chart-grid-line {
 	stroke: var(--border-color) !important;
 }
 
-/* I hate chart.js #5 */
 .chartjs-render-monitor .chart-legend text {
 	fill: var(--text-primary) !important;
 	color: var(--text-primary) !important;
 }
 
-/* I hate chart.js #6 */
 .chartjs-tooltip {
 	background-color: var(--card-bg) !important;
 	border: 1px solid var(--border-color) !important;
@@ -1783,19 +1884,16 @@ canvas {
 	box-shadow: var(--shadow) !important;
 }
 
-/* I hate chart.js #7 */
 .chartjs-tooltip-header {
 	color: var(--text-primary) !important;
 	font-weight: bold !important;
 	margin-bottom: 4px !important;
 }
 
-/* I hate chart.js #8 */
 .chartjs-tooltip-body {
 	color: var(--text-primary) !important;
 }
 
-/* I hate chart.js #9 */
 .chartjs-tooltip-key {
 	display: inline-block !important;
 	width: 10px !important;
@@ -1804,26 +1902,22 @@ canvas {
 	border-radius: 2px !important;
 }
 
-/* I hate chart.js #10 */
 .chartjs-chart text {
 	fill: var(--text-primary) !important;
 	color: var(--text-primary) !important;
 }
 
-/* I hate chart.js #11 */
 .chartjs-scale,
 .chartjs-scale-x,
 .chartjs-scale-y {
 	color: var(--text-primary) !important;
 }
 
-/* I hate chart.js #12 */
 .chartjs-datalabels {
 	color: var(--text-primary) !important;
 	text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7) !important;
 }
 
-/* I hate chart.js #13 */
 .dark-theme .chartjs-tooltip {
 	background-color: var(--bg-dark-secondary) !important;
 	border-color: var(--border-color) !important;
@@ -1833,19 +1927,55 @@ canvas {
 	border-top-color: var(--bg-dark-secondary) !important;
 }
 
-/* I hate chart.js #14 */
-body.chart-theme-updated {
-	/* This class forces Chart.js to redraw with new colors (forcefully) */
-	/* Because why not, we gotta add 115 lines of CSS to make this work */
+/* ===== CHART PLACEHOLDER ===== */
+.chart-placeholder {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	min-height: 350px;
+	background-color: var(--card-bg);
+	border-radius: 0.5rem;
+	color: var(--text-secondary);
+	text-align: center;
+	padding: 2rem;
+	gap: 1rem;
 }
 
-@media (min-width: 1024px) {
-	.builds-container {
-		grid-template-columns: repeat(3, 1fr);
-	}
+.chart-placeholder i {
+	font-size: 3rem;
+	color: var(--accent-color);
+	opacity: 0.7;
 }
 
-/* Abilities Section */
+.chart-placeholder p {
+	font-size: 1rem;
+	color: var(--text-secondary);
+	margin: 0;
+	line-height: 1.5;
+	max-width: 250px;
+}
+
+.chart-legend-placeholder {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	width: 100%;
+	padding: 0.75rem;
+	color: var(--text-secondary);
+	font-size: 0.85rem;
+	font-style: italic;
+	background-color: var(--bg-secondary);
+	border-radius: 0.5rem;
+}
+
+.chart-legend-placeholder span {
+	color: var(--text-secondary);
+}
+
+/* ===== ABILITIES ===== */
 .abilities-grid {
 	display: grid;
 	grid-template-columns: repeat(5, 1fr);
@@ -1973,7 +2103,7 @@ body.chart-theme-updated {
 }
 
 .ability-modal-close:hover {
-	background-color: var(--accent-hover);
+	background-color: var(--accent-color-hover);
 }
 
 .ability-modal-header {
@@ -2055,321 +2185,6 @@ body.chart-theme-updated {
 	margin-bottom: 0;
 }
 
-/* 3D Model Viewer Styles */
-.tank-model-viewer {
-	position: relative;
-	width: 100%;
-	height: 500px;
-	background-color: var(--bg-secondary);
-	border-radius: 0.75rem;
-	box-shadow: var(--shadow-lg);
-	border: 1px solid var(--border-color);
-	overflow: hidden;
-	margin-bottom: 1rem;
-}
-
-.model-viewer-container {
-	width: 100%;
-	height: 100%;
-	position: relative;
-}
-
-.model-viewer-canvas {
-	width: 100%;
-	height: 100%;
-	display: block;
-}
-
-.model-viewer-controls {
-	position: absolute;
-	bottom: 1rem;
-	left: 50%;
-	transform: translateX(-50%);
-	display: flex;
-	gap: 0.5rem;
-	background-color: rgba(0, 0, 0, 0.7);
-	padding: 0.75rem;
-	border-radius: 2rem;
-	backdrop-filter: blur(10px);
-	z-index: 10;
-}
-
-.model-control-btn {
-	width: 40px;
-	height: 40px;
-	border-radius: 50%;
-	background-color: var(--accent-color);
-	color: white;
-	border: none;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	cursor: pointer;
-	transition: all 0.3s ease;
-	font-size: 1rem;
-}
-
-.model-control-btn:hover {
-	background-color: var(accent-color-hover);
-	transform: scale(1.1);
-}
-
-.model-control-btn.active {
-	background-color: var(accent-color-light);
-	box-shadow: 0 0 0 2px white;
-}
-
-.texture-selector {
-	position: absolute;
-	top: 1rem;
-	right: 1rem;
-	background-color: rgba(0, 0, 0, 0.7);
-	padding: 0.75rem;
-	border-radius: 0.5rem;
-	backdrop-filter: blur(10px);
-	z-index: 10;
-}
-
-.texture-option {
-	width: 40px;
-	height: 40px;
-	border-radius: 4px;
-	overflow: hidden;
-	cursor: pointer;
-	border: 2px solid transparent;
-	transition: all 0.3s ease;
-	margin-bottom: 0.5rem;
-}
-
-.texture-option:last-child {
-	margin-bottom: 0;
-}
-
-.texture-option.active {
-	border-color: var(--accent-color);
-	transform: scale(1.1);
-}
-
-.texture-option img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-}
-
-.model-loading {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	background-color: var(--bg-secondary);
-	z-index: 5;
-}
-
-.model-loading-spinner {
-	width: 50px;
-	height: 50px;
-	border: 4px solid var(--border-color);
-	border-top: 4px solid var(--accent-color);
-	border-radius: 50%;
-	animation: spin 1s linear infinite;
-	margin-bottom: 1rem;
-}
-
-@keyframes spin {
-	0% {
-		transform: rotate(0deg);
-	}
-
-	100% {
-		transform: rotate(360deg);
-	}
-}
-
-.model-error {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	background-color: var(--bg-secondary);
-	color: var(--text-secondary);
-	text-align: center;
-	padding: 2rem;
-	z-index: 5;
-}
-
-.model-error i {
-	font-size: 3rem;
-	margin-bottom: 1rem;
-	color: var(--accent-color);
-}
-
-.fullscreen-model {
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100vw;
-	height: 100vh;
-	z-index: 1000;
-	background-color: rgba(0, 0, 0, 0.9);
-}
-
-.fullscreen-model .tank-model-viewer {
-	width: 100%;
-	height: 100%;
-	border-radius: 0;
-	margin: 0;
-}
-
-.fullscreen-close {
-	position: fixed;
-	top: 1rem;
-	right: 1rem;
-	width: 50px;
-	height: 50px;
-	background-color: var(--accent-color);
-	color: white;
-	border: none;
-	border-radius: 50%;
-	font-size: 1.5rem;
-	cursor: pointer;
-	z-index: 1001;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-
-/* Chart Placeholder Styles */
-.chart-placeholder {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	width: 100%;
-	height: 100%;
-	min-height: 350px;
-	background-color: var(--card-bg);
-	border-radius: 0.5rem;
-	color: var(--text-secondary);
-	text-align: center;
-	padding: 2rem;
-	gap: 1rem;
-}
-
-.chart-placeholder i {
-	font-size: 3rem;
-	color: var(--accent-color);
-	opacity: 0.7;
-}
-
-.chart-placeholder p {
-	font-size: 1rem;
-	color: var(--text-secondary);
-	margin: 0;
-	line-height: 1.5;
-	max-width: 250px;
-}
-
-.chart-legend-placeholder {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	width: 100%;
-	padding: 0.75rem;
-	color: var(--text-secondary);
-	font-size: 0.85rem;
-	font-style: italic;
-	background-color: var(--bg-secondary);
-	border-radius: 0.5rem;
-}
-
-.chart-legend-placeholder span {
-	color: var(--text-secondary);
-}
-
-.chart-container {
-	position: relative;
-	width: 100%;
-	height: 350px;
-	min-height: 350px;
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	color: var(--text-primary);
-	overflow: hidden;
-}
-
-.chart-container canvas[style*="display: none"]+.chart-placeholder,
-.chart-container canvas:not([style*="display: block"])~.chart-placeholder {
-	display: flex;
-}
-
-.chart-placeholder {
-	animation: placeholderFadeIn 0.3s ease;
-}
-
-@keyframes placeholderFadeIn {
-	from {
-		opacity: 0;
-		transform: translateY(10px);
-	}
-
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-}
-
-/* Dark theme specific adjustments */
-.dark-theme .chart-placeholder i {
-	opacity: 0.8;
-}
-
-.dark-theme .chart-legend-placeholder {
-	background-color: rgba(255, 255, 255, 0.05);
-}
-
-/* Light theme specific adjustments */
-.light-theme .chart-placeholder i {
-	color: var(--accent-color);
-}
-
-.light-theme .chart-legend-placeholder {
-	background-color: rgba(0, 0, 0, 0.05);
-}
-
-@media (max-width: 768px) {
-	.tank-model-viewer {
-		height: 400px;
-	}
-
-	.model-control-btn {
-		width: 35px;
-		height: 35px;
-		font-size: 0.9rem;
-	}
-
-	.texture-selector {
-		top: 0.5rem;
-		right: 0.5rem;
-		padding: 0.5rem;
-	}
-
-	.texture-option {
-		width: 35px;
-		height: 35px;
-	}
-}
-
 @media (max-width: 768px) {
 	.builds-container {
 		grid-template-columns: 1fr;
@@ -2378,9 +2193,7 @@ body.chart-theme-updated {
 	.perk-items {
 		grid-template-columns: repeat(2, 1fr);
 	}
-}
 
-@media (max-width: 768px) {
 	.agent-modal-image-container {
 		width: 200px;
 		height: 200px;
@@ -2388,6 +2201,11 @@ body.chart-theme-updated {
 
 	.agent-modal-tanks {
 		grid-template-columns: repeat(2, 1fr);
+	}
+
+	.tank-model-viewer {
+		/* Ensure viewer stays behind header on mobile */
+		position: absolute;
 	}
 }
 
@@ -2403,5 +2221,12 @@ body.chart-theme-updated {
 
 	.agent-modal-tanks {
 		grid-template-columns: 1fr;
+	}
+}
+
+/* Fix for iOS scrolling */
+@supports (-webkit-touch-callout: none) {
+	.tank-sidebar {
+		position: -webkit-sticky;
 	}
 }
