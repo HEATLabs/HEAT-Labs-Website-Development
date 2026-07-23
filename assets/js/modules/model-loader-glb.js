@@ -255,6 +255,9 @@ class ModelLoader {
         this.showLoadingState();
         try {
             const loader = new THREE.GLTFLoader();
+            const dracoLoader = new THREE.DRACOLoader();
+            dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
+            loader.setDRACOLoader(dracoLoader);
             const glb = await new Promise((resolve, reject) => {
                 loader.load(this.modelPath, resolve, undefined, reject);
             });
@@ -419,12 +422,12 @@ class ModelLoader {
                                 console.log(child)
                             }
                             if (!moduleNames.includes(mat.name)) {
-                                    mat.transparent = true;
-                                    mat.opacity = 0.25;
-                                    mat.depthWrite = false;
-                                    mat.depthTest = true;
-                                    mat.renderOrder = -1;
-                                    mat.needsUpdate = true;
+                                mat.transparent = true;
+                                mat.opacity = 0.25;
+                                mat.depthWrite = false;
+                                mat.depthTest = true;
+                                mat.renderOrder = -1;
+                                mat.needsUpdate = true;
                             }
                         })
                     }
