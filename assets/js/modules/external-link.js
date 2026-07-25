@@ -14,7 +14,8 @@ document.addEventListener('DOMContentLoaded', function() {
             'store.heatlabs.net',
             'mods.heatlabs.net',
             'app.heatlabs.net',
-            'bot.heatlabs.net'
+            'bot.heatlabs.net',
+            'cdn.wotheat.com'
         ],
         excludeClasses: [
             'wip',
