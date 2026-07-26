@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         {
             id: 'communityGuides',
-            name: isMobile ? 'Guides' : 'Community Guides',
+            name: isMobile ? 'Guides' : 'Game Guides',
             icon: 'fa-book-open',
             url: 'https://heatlabs.net/guides'
         },
