@@ -14,7 +14,7 @@ class ModelLoader {
         this.model = null;
 
         // Prod Model
-        this.modelPath = "https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Models/refs/heads/main/glb-test-models/trafficCone.glb";
+        this.modelPath = "https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Models/refs/heads/main/glb-models/placeholder.glb";
         // Local model
         // this.modelPath = "../../../abrams.glb";
 
