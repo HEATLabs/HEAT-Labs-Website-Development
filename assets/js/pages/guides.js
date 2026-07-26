@@ -74,6 +74,16 @@ function createGuideCard(guide) {
     // Determine tag display name
     const tagDisplay = guide.type_name || (guide.type ? formatTypeName(guide.type) : 'Guide');
 
+    // Build the href
+    let href;
+    let targetAttr = '';
+    if (guide.slug.startsWith('http')) {
+        href = guide.slug;
+        targetAttr = 'target="_blank" rel="noopener noreferrer"';
+    } else {
+        href = `guides/${guide.slug}`;
+    }
+
     card.innerHTML = `
         <div class="guide-img-container">
             <img alt="${guide.title}" class="guide-img" src="${guide.image}" loading="lazy" />
@@ -86,7 +96,7 @@ function createGuideCard(guide) {
             </div>
             <h4>${guide.title}</h4>
             <p class="guide-excerpt">${guide.description}</p>
-            <a class="btn-accent" href="${guide.slug.startsWith('http') ? guide.slug : `guides/${guide.type}/${guide.slug}`}" ${guide.slug.startsWith('http') ? 'target="_blank" rel="noopener noreferrer"' : ''}>
+            <a class="btn-accent" href="${href}" ${targetAttr}>
                 <i class="fas fa-book-open mr-2"></i>Read Guide
             </a>
         </div>
