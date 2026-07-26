@@ -2,11 +2,26 @@
 let originalCards = [];
 let currentPage = 1;
 let postsPerPage = 12;
+let allPosts = [];
+
+// Function to fetch blog data from JSON
+async function fetchBlogData() {
+    try {
+        const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/blog.json');
+        if (!response.ok) {
+            throw new Error('Failed to load blog data');
+        }
+        const data = await response.json();
+        return data.posts || [];
+    } catch (error) {
+        console.error('Error loading blog data:', error);
+        return [];
+    }
+}
 
 // Function to fetch view count from API
 async function fetchBlogViewCount(blogName) {
     try {
-        // Remove any path prefixes and .html extension
         const baseName = blogName.replace(/^.*[\\\/]/, '').replace('.html', '');
         const response = await fetch(`https://views.heatlabs.net/api/stats?image=pcwstats-tracker-pixel-${baseName}.png`);
         if (!response.ok) {
@@ -17,35 +32,25 @@ async function fetchBlogViewCount(blogName) {
         console.error('Error loading view count:', error);
         return {
             totalViews: 0
-        }; // Return 0 if there's an error
+        };
     }
 }
 
 // Function to update view counters on all blog cards
 async function updateBlogViewCounters() {
     const blogCards = document.querySelectorAll('.blog-card');
-
     for (const card of blogCards) {
         const blogLink = card.querySelector('a.btn-blog');
         if (blogLink) {
-            // Get the href attribute which contains the blog path
             const href = blogLink.getAttribute('href');
-
-            // Fetch the view count using the corrected href
             const viewsData = await fetchBlogViewCount(href);
             const viewsElement = card.querySelector('.views-count');
-
             if (viewsElement) {
                 viewsElement.textContent = viewsData.totalViews.toLocaleString();
             }
         }
     }
 }
-
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    updateBlogViewCounters();
-});
 
 // Function to format date as "Month Day, Year"
 function formatDate(dateString) {
@@ -56,6 +61,79 @@ function formatDate(dateString) {
         day: 'numeric'
     };
     return date.toLocaleDateString('en-US', options);
+}
+
+// Function to create a blog card HTML element
+function createBlogCard(post) {
+    const card = document.createElement('div');
+    card.className = 'blog-card';
+    card.dataset.date = post.date;
+    card.dataset.type = post.type;
+
+    // Map type to display name
+    const typeDisplayMap = {
+        'bug-hunting': 'Bug Hunting',
+        'easter-egg-friday': 'Easter Egg Friday',
+        'developer-insights': 'Developer Insights',
+        'feature-showcase': 'Feature Showcase',
+        'meet-the-team': 'Meet The Team'
+    };
+    const displayType = typeDisplayMap[post.type] || post.type_name || post.type;
+
+    card.innerHTML = `
+        <div class="blog-img-container">
+            <div class="blog-views-counter">
+                <i class="fas fa-eye"></i>
+                <span class="views-count">0</span>
+            </div>
+            <img src="${post.image}" alt="${post.title}" class="blog-img" loading="lazy">
+            <div class="blog-tag">${displayType}</div>
+        </div>
+        <div class="blog-info">
+            <h3>${post.title}</h3>
+            <div class="blog-meta">
+                <span>
+                    <i class="fa-solid fa-calendar"></i> ${formatDate(post.date)}
+                </span>
+                <span>
+                    <i class="fa-solid fa-at"></i> ${post.author}
+                </span>
+            </div>
+            <p class="blog-desc">${post.description}</p>
+            <a href="blog/${post.slug}" class="btn-accent btn-blog">
+                <i class="fas fa-newspaper mr-2"></i>Read More
+            </a>
+        </div>
+    `;
+
+    return card;
+}
+
+// Function to populate filter dropdowns
+function populateFilters(posts) {
+    const typeFilter = document.getElementById('typeFilter');
+    if (!typeFilter) return;
+
+    // Get unique types
+    const types = new Set();
+    posts.forEach(post => {
+        const displayType = post.type_name || post.type;
+        types.add(displayType);
+    });
+
+    // Clear existing options (keep "All Posts")
+    while (typeFilter.options.length > 1) {
+        typeFilter.remove(1);
+    }
+
+    // Add type options
+    const sortedTypes = Array.from(types).sort();
+    sortedTypes.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type.toLowerCase().replace(/ /g, '-');
+        option.textContent = type;
+        typeFilter.appendChild(option);
+    });
 }
 
 // Function to update date displays in cards
@@ -77,7 +155,6 @@ function updatePaginationControls(totalPages) {
 
     paginationContainer.innerHTML = '';
 
-    // Previous button
     const prevButton = document.createElement('button');
     prevButton.innerHTML = '<i class="fas fa-chevron-left"></i>';
     prevButton.className = 'pagination-button';
@@ -90,7 +167,6 @@ function updatePaginationControls(totalPages) {
     });
     paginationContainer.appendChild(prevButton);
 
-    // Page numbers
     const maxVisiblePages = 3;
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
     let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
@@ -146,7 +222,6 @@ function updatePaginationControls(totalPages) {
         paginationContainer.appendChild(lastPageButton);
     }
 
-    // Next button
     const nextButton = document.createElement('button');
     nextButton.innerHTML = '<i class="fas fa-chevron-right"></i>';
     nextButton.className = 'pagination-button';
@@ -167,100 +242,106 @@ function updateBlogDisplay() {
     const postsPerPageFilter = document.getElementById('postsPerPage');
     const blogGrid = document.querySelector('.blog-grid');
 
-    const sortValue = sortFilter.value;
-    const typeValue = typeFilter.value;
-    postsPerPage = postsPerPageFilter.value === 'all' ? originalCards.length : parseInt(postsPerPageFilter.value);
+    if (!blogGrid || allPosts.length === 0) return;
 
-    // If originalCards is empty (first load), store the initial cards
-    if (originalCards.length === 0) {
-        originalCards = Array.from(blogGrid.querySelectorAll('.blog-card'));
-        // Update dates in original cards
-        updateCardDates(originalCards);
-    }
+    const sortValue = sortFilter ? sortFilter.value : 'latest';
+    const typeValue = typeFilter ? typeFilter.value : 'all';
+    postsPerPage = postsPerPageFilter && postsPerPageFilter.value !== 'all' ? parseInt(postsPerPageFilter.value) : allPosts.length;
 
-    // Filter cards by type
-    let filteredCards = originalCards;
+    // Filter posts by type
+    let filteredPosts = allPosts;
     if (typeValue !== 'all') {
-        filteredCards = originalCards.filter(card => card.dataset.type === typeValue);
+        filteredPosts = allPosts.filter(post => {
+            const postType = (post.type_name || post.type).toLowerCase().replace(/ /g, '-');
+            return postType === typeValue;
+        });
     }
 
-    // Sort cards by date
-    filteredCards.sort((a, b) => {
-        const dateA = new Date(a.dataset.date);
-        const dateB = new Date(b.dataset.date);
+    // Sort posts by date
+    filteredPosts.sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
         return sortValue === 'latest' ? dateB - dateA : dateA - dateB;
     });
 
     // Calculate pagination
-    const totalPages = Math.ceil(filteredCards.length / postsPerPage);
+    const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
     const startIndex = (currentPage - 1) * postsPerPage;
-    const endIndex = Math.min(startIndex + postsPerPage, filteredCards.length);
-    const paginatedCards = filteredCards.slice(startIndex, endIndex);
+    const endIndex = Math.min(startIndex + postsPerPage, filteredPosts.length);
+    const paginatedPosts = filteredPosts.slice(startIndex, endIndex);
 
     // Clear the grid
-    while (blogGrid.firstChild) {
-        blogGrid.removeChild(blogGrid.firstChild);
-    }
+    blogGrid.innerHTML = '';
 
-    // Add paginated cards back to the grid
-    paginatedCards.forEach(card => {
-        const clonedCard = card.cloneNode(true);
-        blogGrid.appendChild(clonedCard);
+    // Add paginated posts to the grid
+    paginatedPosts.forEach(post => {
+        const card = createBlogCard(post);
+        blogGrid.appendChild(card);
     });
 
-    // Update dates in the newly added cards
-    const currentCards = blogGrid.querySelectorAll('.blog-card');
-    updateCardDates(currentCards);
+    // Update view counters
+    setTimeout(() => {
+        updateBlogViewCounters();
+    }, 100);
 
     // Update pagination controls
     updatePaginationControls(totalPages);
 
-    // Update view counters for the newly added cards
-    updateBlogViewCounters();
-
+    // Animate cards
     setTimeout(() => {
-        currentCards.forEach(card => {
+        const cards = blogGrid.querySelectorAll('.blog-card');
+        cards.forEach(card => {
             card.classList.add('animated');
         });
     }, 50);
 }
 
 // Initialize blog functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const sortFilter = document.getElementById('sortFilter');
-    const typeFilter = document.getElementById('typeFilter');
-    const postsPerPageFilter = document.getElementById('postsPerPage');
+document.addEventListener('DOMContentLoaded', async function() {
+    // Fetch blog data
+    allPosts = await fetchBlogData();
+
+    if (allPosts.length === 0) {
+        console.error('No blog posts found');
+        return;
+    }
+
+    // Populate filters
+    populateFilters(allPosts);
 
     // Initialize with default sorting
     updateBlogDisplay();
 
     // Add event listeners for filter changes
-    sortFilter.addEventListener('change', () => {
-        currentPage = 1;
-        updateBlogDisplay();
-    });
-    typeFilter.addEventListener('change', () => {
-        currentPage = 1;
-        updateBlogDisplay();
-    });
-    postsPerPageFilter.addEventListener('change', () => {
-        currentPage = 1;
-        updateBlogDisplay();
-    });
+    const sortFilter = document.getElementById('sortFilter');
+    const typeFilter = document.getElementById('typeFilter');
+    const postsPerPageFilter = document.getElementById('postsPerPage');
 
-    // Initialize animations after page load
-    setTimeout(() => {
-        const blogCards = document.querySelectorAll('.blog-card');
-        blogCards.forEach(card => {
-            card.classList.add('animated');
+    if (sortFilter) {
+        sortFilter.addEventListener('change', () => {
+            currentPage = 1;
+            updateBlogDisplay();
         });
-    }, 300);
+    }
+
+    if (typeFilter) {
+        typeFilter.addEventListener('change', () => {
+            currentPage = 1;
+            updateBlogDisplay();
+        });
+    }
+
+    if (postsPerPageFilter) {
+        postsPerPageFilter.addEventListener('change', () => {
+            currentPage = 1;
+            updateBlogDisplay();
+        });
+    }
 });
 
 // Force re-initialization on back button
-window.addEventListener(`pageshow`, function(event) {
+window.addEventListener('pageshow', function(event) {
     if (event.persisted) {
-        originalCards = [];
         currentPage = 1;
         updateBlogDisplay();
     }
