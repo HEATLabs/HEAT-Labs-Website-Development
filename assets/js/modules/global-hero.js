@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Only proceed if we found hero elements
     if (heroes.length > 0) {
-        // Generate a random number between 1 and 72
+        // Generate a random number between 1 and 73
         const randomImageNumber = Math.floor(Math.random() * 73) + 1;
 
         // Construct the new image URL
