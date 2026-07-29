@@ -98,6 +98,51 @@ async function fetchViewCount() {
     }
 }
 
+// Function to fetch GitHub release version from API
+async function fetchGitHubVersion(githubUrl) {
+    try {
+        // Extract owner and repo from GitHub URL
+        // Handle different GitHub URL formats
+        let apiUrl;
+
+        if (githubUrl.includes('api.github.com/repos')) {
+            // Already an API URL
+            apiUrl = githubUrl;
+        } else if (githubUrl.includes('github.com')) {
+            // Convert to API URL
+            const urlParts = githubUrl.replace('https://github.com/', '').split('/');
+            const owner = urlParts[0];
+            const repo = urlParts[1];
+            apiUrl = `https://api.github.com/repos/${owner}/${repo}/releases/latest`;
+        } else {
+            // Not a GitHub URL, return as is
+            return githubUrl;
+        }
+
+        const response = await fetch(apiUrl);
+
+        if (!response.ok) {
+            // If the request fails (e.g., rate limited, no releases), return the original URL
+            console.warn('Failed to fetch GitHub version:', response.status);
+            return githubUrl;
+        }
+
+        const data = await response.json();
+
+        // Extract version from tag_name or name
+        if (data.tag_name) {
+            return data.tag_name;
+        } else if (data.name) {
+            return data.name;
+        } else {
+            return githubUrl;
+        }
+    } catch (error) {
+        console.error('Error fetching GitHub version:', error);
+        return githubUrl;
+    }
+}
+
 // Function to fetch mod data based on ID or slug
 async function fetchModData(modId, modSlug) {
     try {
@@ -128,15 +173,21 @@ async function fetchModData(modId, modSlug) {
             return;
         }
 
+        // Fetch GitHub version if modVersion is a GitHub URL
+        let modVersion = mod.modVersion || 'Info coming soon';
+        if (modVersion && modVersion.includes('github.com')) {
+            modVersion = await fetchGitHubVersion(modVersion);
+        }
+
         // Update page elements with mod data
-        updateModPageElements(mod);
+        updateModPageElements(mod, modVersion);
 
     } catch (error) {
         console.error('Error fetching mod data:', error);
     }
 }
 
-function updateModPageElements(mod) {
+function updateModPageElements(mod, modVersion) {
     // Update page title and meta tags
     document.title = `${mod.name} - HEAT Labs`;
     const ogTitle = document.querySelector('meta[property="og:title"]');
@@ -199,8 +250,10 @@ function updateModPageElements(mod) {
             if (quickFactsList) {
                 const items = quickFactsList.querySelectorAll('li');
                 if (items.length >= 3) {
+                    // Use the fetched modVersion if available, otherwise fallback to the original
+                    const displayVersion = modVersion || 'Info coming soon';
                     items[0].innerHTML = `<strong>Category:</strong> ${mod.category || 'Info coming soon'}`;
-                    items[1].innerHTML = `<strong>Mod Version:</strong> ${mod.modVersion || 'Info coming soon'}`;
+                    items[1].innerHTML = `<strong>Mod Version:</strong> ${displayVersion}`;
                     items[2].innerHTML = `<strong>Game Version:</strong> ${mod.gameVersion || 'Info coming soon'}`;
                 }
             }
@@ -230,7 +283,13 @@ async function updateRelatedMods(currentMod) {
             existingGuides.forEach(guide => guide.remove());
 
             if (relatedMods.length > 0) {
-                relatedMods.forEach(mod => {
+                // Fetch versions for related mods
+                for (const mod of relatedMods) {
+                    let modVersion = mod.modVersion || '';
+                    if (modVersion && modVersion.includes('github.com')) {
+                        modVersion = await fetchGitHubVersion(modVersion);
+                    }
+
                     const guideDiv = document.createElement('div');
                     guideDiv.className = 'related-guide';
                     guideDiv.innerHTML = `
@@ -238,9 +297,10 @@ async function updateRelatedMods(currentMod) {
                             <a href="../details/${mod.name.toLowerCase().replace(/\s+/g, '-')}">${mod.name}</a>
                         </h4>
                         <p>${mod.category} • by ${mod.creator}</p>
+                        ${modVersion && modVersion !== mod.modVersion ? `<small>v${modVersion}</small>` : ''}
                     `;
                     relatedGuidesContainer.appendChild(guideDiv);
-                });
+                }
             } else {
                 // Show "no related mods" message
                 const noModsDiv = document.createElement('div');
