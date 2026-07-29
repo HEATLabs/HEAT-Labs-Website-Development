@@ -245,7 +245,7 @@ function updateModPageElements(mod, modVersion) {
     const sidebarCards = document.querySelectorAll('.sidebar-card');
     sidebarCards.forEach(card => {
         const heading = card.querySelector('h3');
-        if (heading && heading.textContent === 'Quick Facts') {
+        if (heading && heading.textContent === 'Mod Facts') {
             const quickFactsList = card.querySelector('ul');
             if (quickFactsList) {
                 const items = quickFactsList.querySelectorAll('li');
@@ -297,7 +297,7 @@ async function updateRelatedMods(currentMod) {
                             <a href="../details/${mod.name.toLowerCase().replace(/\s+/g, '-')}">${mod.name}</a>
                         </h4>
                         <p>${mod.category} • by ${mod.creator}</p>
-                        ${modVersion && modVersion !== mod.modVersion ? `<small>v${modVersion}</small>` : ''}
+                        ${modVersion && modVersion !== mod.modVersion ? `<small>${modVersion}</small>` : ''}
                     `;
                     relatedGuidesContainer.appendChild(guideDiv);
                 }
