@@ -8,6 +8,7 @@ let hasMoreBuilds = true;
 let initialBuildLoadComplete = false;
 const MAX_CONCURRENT_REQUESTS = 10;
 const REQUEST_DELAY = 500; // 0.5s between batches
+const PLACEHOLDER_IMAGE = 'https://cdn7.heatlabs.net/upgrades/upgrade-placeholder.webp';
 const loaderMessages = [
     "Crafting lore out of patch notes... ",
     "Tracking Chopper's 12th rework... ",
@@ -34,6 +35,11 @@ const loaderMessages = [
     "Building Legocity2000... ",
     "Finding Pyogenic's checkbox... "
 ];
+
+// Function to get safe image URL with fallback
+function getSafeImageUrl(url) {
+    return url && url.trim() !== '' ? url : PLACEHOLDER_IMAGE;
+}
 
 // Function to fetch tank data with error handling and retries
 async function fetchTankData() {
@@ -188,9 +194,33 @@ async function processTankBuilds(tank) {
                         tankName: tank.name,
                         tankNation: tank.nation,
                         tankType: tank.type,
-                        tankImage: tank.image,
+                        tankImage: getSafeImageUrl(tank.image),
                         tankSlug: tank.slug
                     };
+
+                    // Ensure module icons have fallbacks
+                    if (fullBuild.modules) {
+                        fullBuild.modules = fullBuild.modules.map(module => ({
+                            ...module,
+                            moduleIcon: getSafeImageUrl(module.moduleIcon)
+                        }));
+                    }
+
+                    // Ensure perk icons have fallbacks
+                    if (fullBuild.perks) {
+                        fullBuild.perks = fullBuild.perks.map(perk => ({
+                            ...perk,
+                            perkIcon: getSafeImageUrl(perk.perkIcon)
+                        }));
+                    }
+
+                    // Ensure equipment icons have fallbacks
+                    if (fullBuild.equipments) {
+                        fullBuild.equipments = fullBuild.equipments.map(equipment => ({
+                            ...equipment,
+                            equipmentIcon: getSafeImageUrl(equipment.equipmentIcon)
+                        }));
+                    }
 
                     // Check if this build already exists
                     const exists = originalBuilds.some(existingBuild =>
@@ -252,7 +282,7 @@ function showBuildDetailModal(build) {
                 <div class="build-detail-meta">
                     <div class="build-detail-tank">
                         <div class="tank-image-container">
-                            <img src="${build.tankImage}" alt="${build.tankName}" class="build-tank-image-modal">
+                            <img src="${getSafeImageUrl(build.tankImage)}" alt="${build.tankName}" class="build-tank-image-modal">
                         </div>
                         <div>
                             <h4>${build.tankName}</h4>
@@ -278,14 +308,14 @@ function showBuildDetailModal(build) {
                     <div class="build-detail-section">
                         <h4>Modules Section</h4>
                         <div class="build-components-grid">
-                            ${build.modules.map(module => `
-                                <div class="build-component-item" data-tooltip="${module.moduleDescription}">
+                            ${build.modules ? build.modules.map(module => `
+                                <div class="build-component-item" data-tooltip="${module.moduleDescription || ''}">
                                     <div class="component-icon">
-                                        <img src="${module.moduleIcon}" alt="${module.moduleName}">
+                                        <img src="${getSafeImageUrl(module.moduleIcon)}" alt="${module.moduleName}">
                                     </div>
                                     <span class="component-name">${module.moduleName}</span>
                                 </div>
-                            `).join('')}
+                            `).join('') : ''}
                         </div>
                     </div>
 
@@ -293,14 +323,14 @@ function showBuildDetailModal(build) {
                     <div class="build-detail-section">
                         <h4>Perks Section</h4>
                         <div class="build-components-grid perks">
-                            ${build.perks.map(perk => `
-                                <div class="build-component-item" data-tooltip="${perk.perkDescription}">
+                            ${build.perks ? build.perks.map(perk => `
+                                <div class="build-component-item" data-tooltip="${perk.perkDescription || ''}">
                                     <div class="component-icon">
-                                        <img src="${perk.perkIcon}" alt="${perk.perkName}">
+                                        <img src="${getSafeImageUrl(perk.perkIcon)}" alt="${perk.perkName}">
                                     </div>
                                     <span class="component-name">${perk.perkName}</span>
                                 </div>
-                            `).join('')}
+                            `).join('') : ''}
                         </div>
                     </div>
 
@@ -308,14 +338,14 @@ function showBuildDetailModal(build) {
                     <div class="build-detail-section">
                         <h4>Equipments Section</h4>
                         <div class="build-components-grid equipments">
-                            ${build.equipments.map(equipment => `
-                                <div class="build-component-item" data-tooltip="${equipment.equipmentDescription}">
+                            ${build.equipments ? build.equipments.map(equipment => `
+                                <div class="build-component-item" data-tooltip="${equipment.equipmentDescription || ''}">
                                     <div class="component-icon">
-                                        <img src="${equipment.equipmentIcon}" alt="${equipment.equipmentName}">
+                                        <img src="${getSafeImageUrl(equipment.equipmentIcon)}" alt="${equipment.equipmentName}">
                                     </div>
                                     <span class="component-name">${equipment.equipmentName}</span>
                                 </div>
-                            `).join('')}
+                            `).join('') : ''}
                         </div>
                     </div>
                 </div>
@@ -715,7 +745,7 @@ function updateBuildsDisplay() {
     // Add builds to grid
     paginatedBuilds.forEach(build => {
         // Get featured modules (up to 4)
-        const featuredModules = build.modules.filter(module => module.moduleFeatured).slice(0, 4);
+        const featuredModules = build.modules ? build.modules.filter(module => module.moduleFeatured).slice(0, 4) : [];
 
         const buildCard = document.createElement('div');
         buildCard.className = 'build-card';
@@ -726,7 +756,7 @@ function updateBuildsDisplay() {
 
         buildCard.innerHTML = `
             <div class="build-header">
-                <img src="${build.tankImage}" alt="${build.tankName}" class="build-tank-image">
+                <img src="${getSafeImageUrl(build.tankImage)}" alt="${build.tankName}" class="build-tank-image">
                 <div class="build-tank-name">${build.tankName}</div>
                 <div class="build-tank-type">${build.tankType || 'Unknown'}</div>
                 <div class="build-tank-nation">${build.tankNation}</div>
