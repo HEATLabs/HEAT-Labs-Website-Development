@@ -761,7 +761,7 @@ function populateBuilds(builds) {
                     <div class="build-items">
                         ${build.modules.map(module => `
                             <div class="build-item">
-                                <img src="${module.moduleIcon}" alt="${module.moduleName}">
+                                <img src="${module.moduleIcon && module.moduleIcon.trim() !== '' ? module.moduleIcon : 'https://cdn7.heatlabs.net/upgrades/upgrade-placeholder.webp'}" alt="${module.moduleName}">
                                 <div class="build-item-tooltip">
                                     <div class="build-item-name">${module.moduleName}</div>
                                     <div class="build-item-description">${module.moduleDescription}</div>
@@ -779,7 +779,7 @@ function populateBuilds(builds) {
                     <div class="build-items perk-items">
                         ${build.perks.map(perk => `
                             <div class="build-item">
-                                <img src="${perk.perkIcon}" alt="${perk.perkName}">
+                                <img src="${perk.perkIcon && perk.perkIcon.trim() !== '' ? perk.perkIcon : 'https://cdn7.heatlabs.net/upgrades/upgrade-placeholder.webp'}" alt="${perk.perkName}">
                                 <div class="build-item-tooltip">
                                     <div class="build-item-name">${perk.perkName}</div>
                                     <div class="build-item-description">${perk.perkDescription}</div>
@@ -797,7 +797,7 @@ function populateBuilds(builds) {
                     <div class="build-items equipment-items">
                         ${build.equipments.map(equipment => `
                             <div class="build-item">
-                                <img src="${equipment.equipmentIcon}" alt="${equipment.equipmentName}">
+                                <img src="${equipment.equipmentIcon && equipment.equipmentIcon.trim() !== '' ? equipment.equipmentIcon : 'https://cdn7.heatlabs.net/upgrades/upgrade-placeholder.webp'}" alt="${equipment.equipmentName}">
                                 <div class="build-item-tooltip">
                                     <div class="build-item-name">${equipment.equipmentName}</div>
                                     <div class="build-item-description">${equipment.equipmentDescription}</div>
