@@ -228,9 +228,212 @@ async function fetchTankData(tankId) {
             await fetchAndPopulateBuilds(tank.builds, tank.id);
         }
 
+        // Fetch missions data if available
+        if (tank.missions) {
+            await fetchAndPopulateMissions(tank.missions, tank.name, tank.slug);
+            // Initialize missions filter after missions are loaded
+            initializeMissionsFilter();
+        }
+
     } catch (error) {
         console.error('Error fetching tank data:', error);
     }
+}
+
+// Missions
+async function fetchAndPopulateMissions(missionsUrl, tankName, tankSlug) {
+    const missionsContainer = document.querySelector('.missions-container');
+    if (!missionsContainer) {
+        console.warn('Missions container not found');
+        return;
+    }
+
+    try {
+        const response = await fetch(missionsUrl);
+        const missionsData = await response.json();
+
+        // Find the mission pool for this tank
+        let tankMissions = null;
+        let poolKey = null;
+
+        // Try exact match with tank name first
+        if (missionsData.pools && missionsData.pools[tankName]) {
+            tankMissions = missionsData.pools[tankName];
+            poolKey = tankName;
+        }
+        // Try slug-based match
+        else if (missionsData.pools) {
+            // Try to match by slug (common pattern)
+            const slugVariants = [
+                tankSlug,
+                tankSlug.replace(/-/g, ' '),
+                tankSlug.toUpperCase(),
+                tankSlug.replace(/-/g, '_').toUpperCase(),
+            ];
+
+            for (const variant of slugVariants) {
+                if (missionsData.pools[variant]) {
+                    tankMissions = missionsData.pools[variant];
+                    poolKey = variant;
+                    break;
+                }
+            }
+        }
+
+        // If still not found, try partial match
+        if (!tankMissions && missionsData.pools) {
+            const keys = Object.keys(missionsData.pools);
+            for (const key of keys) {
+                if (key.toLowerCase().includes(tankName.toLowerCase()) ||
+                    tankName.toLowerCase().includes(key.toLowerCase())) {
+                    tankMissions = missionsData.pools[key];
+                    poolKey = key;
+                    break;
+                }
+            }
+        }
+
+        if (!tankMissions || !tankMissions.missions || tankMissions.missions.length === 0) {
+            showMissionsPlaceholder('No missions available for this tank yet.');
+            return;
+        }
+
+        // Populate missions
+        populateMissions(tankMissions.missions);
+
+    } catch (error) {
+        console.error('Error fetching missions data:', error);
+        showMissionsPlaceholder('Unable to load missions. Please try again later.');
+    }
+}
+
+function populateMissions(missions) {
+    const container = document.querySelector('.missions-container');
+    if (!container) return;
+
+    // Clear existing content
+    container.innerHTML = '';
+
+    // Sort missions
+    const sortedMissions = [...missions].sort((a, b) => {
+        // Enabled first
+        if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
+
+        // Normalize weight strings to handle case insensitivity
+        const normalizeWeight = (weight) => {
+            if (!weight) return 'unknown';
+            const lower = weight.toLowerCase();
+            if (lower === 'high') return 'high';
+            if (lower === 'medium') return 'medium';
+            if (lower === 'low') return 'low';
+            return 'unknown';
+        };
+
+        const weightOrder = { 'high': 0, 'medium': 1, 'low': 2, 'unknown': 3 };
+        const aWeight = weightOrder[normalizeWeight(a.initialWeight)] ?? 3;
+        const bWeight = weightOrder[normalizeWeight(b.initialWeight)] ?? 3;
+
+        return aWeight - bWeight;
+    });
+
+    sortedMissions.forEach((mission, index) => {
+        const card = createMissionCard(mission, index);
+        container.appendChild(card);
+    });
+}
+
+function createMissionCard(mission, index) {
+    const card = document.createElement('div');
+    card.className = `mission-card ${mission.enabled ? 'enabled' : 'disabled'}`;
+    card.dataset.missionIndex = index;
+    card.dataset.enabled = mission.enabled;
+
+    // Get reward display
+    const rewardDisplay = mission.rewards && mission.rewards.length > 0
+        ? mission.rewards.map(r => createRewardHTML(r)).join('')
+        : '<span style="color: var(--text-secondary); font-size: 0.9rem;">No rewards</span>';
+
+    // Get weight badge class and display text
+    const weightClass = (mission.initialWeight || '').toLowerCase();
+    const weightDisplayMap = {
+        'high': 'High Chance',
+        'medium': 'Medium Chance',
+        'low': 'Low Chance'
+    };
+    const weightDisplay = weightDisplayMap[weightClass] || mission.initialWeight || 'Unknown';
+
+    card.innerHTML = `
+        <div class="mission-card-header">
+            <div class="mission-card-header-left">
+                <span class="mission-status-badge ${mission.enabled ? 'active' : 'inactive'}">
+                    <i class="fas ${mission.enabled ? 'fa-check-circle' : 'fa-circle'}"></i>
+                    ${mission.enabled ? 'Active' : 'Inactive'}
+                </span>
+                <span class="mission-weight-badge ${weightClass}">
+                    <i class="fas fa-weight-scale"></i>
+                    ${weightDisplay}
+                </span>
+                <span class="mission-title">${mission.title?.message || mission.title || 'Untitled Mission'}</span>
+            </div>
+            <div class="mission-card-header-right">
+                <span class="missions-reward-preview" style="font-size: 0.8rem; color: var(--text-secondary);">
+                    ${mission.rewards && mission.rewards.length > 0 ? mission.rewards.map(r => `${r.amount} ${r.code}`).join(', ') : 'No rewards'}
+                </span>
+            </div>
+        </div>
+    `;
+
+    return card;
+}
+
+function createRewardHTML(reward) {
+    return `
+        <div class="mission-reward-item">
+            <span class="reward-amount">${reward.amount || 0}</span>
+            <span class="reward-code">${reward.code || 'Unknown'}</span>
+            ${reward.type ? `<span class="reward-type">${reward.type}</span>` : ''}
+        </div>
+    `;
+}
+
+function showMissionsPlaceholder(message) {
+    const container = document.querySelector('.missions-container');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="missions-placeholder">
+            <i class="fas fa-tasks"></i>
+            <h4>No Missions Available</h4>
+            <p>${message || 'This tank does not have any missions listed yet.'}</p>
+        </div>
+    `;
+}
+
+function initializeMissionsFilter() {
+    const filterButtons = document.querySelectorAll('.missions-filter-btn');
+    if (!filterButtons.length) return;
+
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Remove active class from all buttons
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            // Add active class to clicked button
+            this.classList.add('active');
+
+            const filter = this.dataset.filter;
+            const missionCards = document.querySelectorAll('.mission-card');
+
+            missionCards.forEach(card => {
+                if (filter === 'all') {
+                    card.style.display = '';
+                } else if (filter === 'active') {
+                    card.style.display = card.dataset.enabled === 'true' ? '' : 'none';
+                } else if (filter === 'inactive') {
+                    card.style.display = card.dataset.enabled === 'false' ? '' : 'none';
+                }
+            });
+        });
+    });
 }
 
 async function fetchAndPopulateAbilities(abilitiesUrl, tankId) {
