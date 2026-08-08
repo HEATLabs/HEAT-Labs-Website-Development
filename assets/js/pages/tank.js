@@ -316,6 +316,13 @@ function populateMissions(missions) {
 
     // Sort missions
     const sortedMissions = [...missions].sort((a, b) => {
+        // "Always" missions always come first
+        const aIsAlways = (a.initialWeight || '').toLowerCase() === 'always';
+        const bIsAlways = (b.initialWeight || '').toLowerCase() === 'always';
+
+        if (aIsAlways && !bIsAlways) return -1;
+        if (!aIsAlways && bIsAlways) return 1;
+
         // Enabled first
         if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
 
@@ -323,15 +330,16 @@ function populateMissions(missions) {
         const normalizeWeight = (weight) => {
             if (!weight) return 'unknown';
             const lower = weight.toLowerCase();
+            if (lower === 'always') return 'always';
             if (lower === 'high') return 'high';
             if (lower === 'medium') return 'medium';
             if (lower === 'low') return 'low';
             return 'unknown';
         };
 
-        const weightOrder = { 'high': 0, 'medium': 1, 'low': 2, 'unknown': 3 };
-        const aWeight = weightOrder[normalizeWeight(a.initialWeight)] ?? 3;
-        const bWeight = weightOrder[normalizeWeight(b.initialWeight)] ?? 3;
+        const weightOrder = { 'always': 0, 'high': 1, 'medium': 2, 'low': 3, 'unknown': 4 };
+        const aWeight = weightOrder[normalizeWeight(a.initialWeight)] ?? 4;
+        const bWeight = weightOrder[normalizeWeight(b.initialWeight)] ?? 4;
 
         return aWeight - bWeight;
     });
@@ -356,6 +364,7 @@ function createMissionCard(mission, index) {
     // Get weight badge class and display text
     const weightClass = (mission.initialWeight || '').toLowerCase();
     const weightDisplayMap = {
+        'always': 'Beginner Mission',
         'high': 'High Chance',
         'medium': 'Medium Chance',
         'low': 'Low Chance'
@@ -370,7 +379,7 @@ function createMissionCard(mission, index) {
                     ${mission.enabled ? 'Active' : 'Inactive'}
                 </span>
                 <span class="mission-weight-badge ${weightClass}">
-                    <i class="fas fa-weight-scale"></i>
+                    <i class="fas ${weightClass === 'always' ? 'fa-star' : 'fa-weight-scale'}"></i>
                     ${weightDisplay}
                 </span>
                 <span class="mission-title">${mission.title?.message || mission.title || 'Untitled Mission'}</span>
