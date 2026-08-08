@@ -2400,7 +2400,7 @@ class PlayerRecords {
                         </li>
                         <li>
                             <i class="fas fa-check-circle"></i>
-                            <span>Do <strong>not</strong> hover over any badge, statistic, or metric while taking your screenshot of the <span class="highlight">YOUR PERFORMANCE</span> tab, as this may interfere with verification and result in your submission being rejected.</span>
+                            <span>Do <strong>not</strong> hover over any badge, statistic, or metric while taking your screenshot of the <span class="highlight">SUMMARY</span> tab, as this may interfere with verification and result in your submission being rejected.</span>
                         </li>
                         <li>
                             <i class="fas fa-check-circle"></i>
