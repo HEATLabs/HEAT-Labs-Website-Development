@@ -245,10 +245,13 @@ async function fetchTankData(tankId) {
     }
 }
 
+// Function to fetch and populate details
 async function fetchAndPopulateDetails(detailsUrl) {
     try {
+        console.log('Fetching details from:', detailsUrl);
         const detailsResponse = await fetch(detailsUrl);
         const detailsData = await detailsResponse.json();
+        console.log('Details data loaded:', detailsData);
 
         // Populate strengths and weaknesses
         if (detailsData.strengths_and_weaknesses) {
@@ -267,35 +270,76 @@ async function fetchAndPopulateDetails(detailsUrl) {
 
     } catch (error) {
         console.error('Error fetching details data:', error);
-        // Show placeholder if data can't be loaded
         showDetailsPlaceholders();
     }
 }
 
 // Function to populate strengths and weaknesses
 function populateStrengthsWeaknesses(data) {
+    console.log('Populating strengths and weaknesses:', data);
+
     // Populate Strengths
     const strengthsContainer = document.querySelector('.strengths-container .strengths-accordion');
-    if (strengthsContainer && data.strengths && data.strengths.length > 0) {
+    if (strengthsContainer) {
+        console.log('Found strengths container, clearing it');
         strengthsContainer.innerHTML = '';
-        data.strengths.forEach((item, index) => {
-            const accordionItem = createAccordionItem(item.title, item.description, index);
-            strengthsContainer.appendChild(accordionItem);
-        });
-        // Re-initialize accordion events for strengths
-        initializeAccordionEvents(strengthsContainer);
+
+        if (data.strengths && data.strengths.length > 0) {
+            console.log('Adding strengths:', data.strengths.length);
+            data.strengths.forEach((item, index) => {
+                const accordionItem = createAccordionItem(item.title, item.description, index);
+                strengthsContainer.appendChild(accordionItem);
+            });
+            // Re-initialize accordion events for strengths
+            initializeAccordionEvents(strengthsContainer);
+        } else {
+            console.warn('No strengths data found');
+            strengthsContainer.innerHTML = `
+                <div class="accordion-item">
+                    <div class="accordion-header">
+                        <span>No strengths listed</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="accordion-content">
+                        <p>No strength data is currently available for this tank.</p>
+                    </div>
+                </div>
+            `;
+        }
+    } else {
+        console.warn('Strengths container not found with selector: .strengths-container .strengths-accordion');
     }
 
     // Populate Weaknesses
     const weaknessesContainer = document.querySelector('.weaknesses-container .weaknesses-accordion');
-    if (weaknessesContainer && data.weaknesses && data.weaknesses.length > 0) {
+    if (weaknessesContainer) {
+        console.log('Found weaknesses container, clearing it');
         weaknessesContainer.innerHTML = '';
-        data.weaknesses.forEach((item, index) => {
-            const accordionItem = createAccordionItem(item.title, item.description, index);
-            weaknessesContainer.appendChild(accordionItem);
-        });
-        // Re-initialize accordion events for weaknesses
-        initializeAccordionEvents(weaknessesContainer);
+
+        if (data.weaknesses && data.weaknesses.length > 0) {
+            console.log('Adding weaknesses:', data.weaknesses.length);
+            data.weaknesses.forEach((item, index) => {
+                const accordionItem = createAccordionItem(item.title, item.description, index);
+                weaknessesContainer.appendChild(accordionItem);
+            });
+            // Re-initialize accordion events for weaknesses
+            initializeAccordionEvents(weaknessesContainer);
+        } else {
+            console.warn('No weaknesses data found');
+            weaknessesContainer.innerHTML = `
+                <div class="accordion-item">
+                    <div class="accordion-header">
+                        <span>No weaknesses listed</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="accordion-content">
+                        <p>No weakness data is currently available for this tank.</p>
+                    </div>
+                </div>
+            `;
+        }
+    } else {
+        console.warn('Weaknesses container not found with selector: .weaknesses-container .weaknesses-accordion');
     }
 }
 
@@ -326,21 +370,31 @@ function initializeAccordionEvents(container) {
     items.forEach(item => {
         const header = item.querySelector('.accordion-header');
         if (header) {
-            header.addEventListener('click', function() {
-                const isActive = item.classList.contains('active');
+            // Remove existing event listeners by cloning and replacing
+            const newHeader = header.cloneNode(true);
+            header.parentNode.replaceChild(newHeader, header);
+
+            newHeader.addEventListener('click', function(e) {
+                const parentItem = this.closest('.accordion-item');
+                if (!parentItem) return;
+
+                const isActive = parentItem.classList.contains('active');
 
                 // Close all other items in this accordion
-                items.forEach(otherItem => {
-                    if (otherItem !== item) {
-                        otherItem.classList.remove('active');
-                    }
-                });
+                const accordion = parentItem.closest('.strengths-accordion') || parentItem.closest('.weaknesses-accordion');
+                if (accordion) {
+                    accordion.querySelectorAll('.accordion-item').forEach(otherItem => {
+                        if (otherItem !== parentItem) {
+                            otherItem.classList.remove('active');
+                        }
+                    });
+                }
 
                 // Toggle current item
                 if (!isActive) {
-                    item.classList.add('active');
+                    parentItem.classList.add('active');
                 } else {
-                    item.classList.remove('active');
+                    parentItem.classList.remove('active');
                 }
             });
         }
@@ -349,12 +403,20 @@ function initializeAccordionEvents(container) {
 
 // Function to populate tank summary
 function populateTankSummary(summaryData) {
-    const summarySection = document.querySelector('#summary');
-    if (!summarySection) return;
+    console.log('Populating tank summary:', summaryData);
+
+    const summarySection = document.getElementById('summary');
+    if (!summarySection) {
+        console.warn('Summary section not found with ID: summary');
+        return;
+    }
 
     // Get the container for summary paragraphs
     const summaryContainer = summarySection.parentElement;
-    if (!summaryContainer) return;
+    if (!summaryContainer) {
+        console.warn('Summary container not found');
+        return;
+    }
 
     // Remove existing summary paragraphs (keep the h2 and action buttons)
     const existingParagraphs = summaryContainer.querySelectorAll('p.text-center');
@@ -364,10 +426,12 @@ function populateTankSummary(summaryData) {
         }
     });
 
-    // Insert new summary paragraphs before the action buttons
+    // Find the action buttons
     const actionButtons = summaryContainer.querySelector('.action-buttons');
 
+    // Insert new summary paragraphs before the action buttons
     if (Array.isArray(summaryData)) {
+        console.log('Adding summary paragraphs:', summaryData.length);
         summaryData.forEach((paragraph, index) => {
             const p = document.createElement('p');
             p.className = 'mb-4 text-center';
@@ -389,6 +453,8 @@ function populateTankSummary(summaryData) {
         } else {
             summaryContainer.appendChild(p);
         }
+    } else {
+        console.warn('Summary data is not an array or string:', summaryData);
     }
 }
 
@@ -415,17 +481,19 @@ function updateTankDescription(description) {
 
 // Function to show placeholder content if details can't be loaded
 function showDetailsPlaceholders() {
+    console.log('Showing details placeholders');
+
     // Show placeholder for strengths
     const strengthsContainer = document.querySelector('.strengths-container .strengths-accordion');
-    if (strengthsContainer && strengthsContainer.children.length === 0) {
+    if (strengthsContainer) {
         strengthsContainer.innerHTML = `
-            <div class="accordion-item">
+            <div class="accordion-item active">
                 <div class="accordion-header">
-                    <span>Loading Strengths...</span>
+                    <span>Strengths Unavailable</span>
                     <i class="fas fa-chevron-down"></i>
                 </div>
                 <div class="accordion-content">
-                    <p>Strengths data is currently unavailable. Please check back later.</p>
+                    <p>Unable to load strengths data. Please check back later.</p>
                 </div>
             </div>
         `;
@@ -433,22 +501,22 @@ function showDetailsPlaceholders() {
 
     // Show placeholder for weaknesses
     const weaknessesContainer = document.querySelector('.weaknesses-container .weaknesses-accordion');
-    if (weaknessesContainer && weaknessesContainer.children.length === 0) {
+    if (weaknessesContainer) {
         weaknessesContainer.innerHTML = `
-            <div class="accordion-item">
+            <div class="accordion-item active">
                 <div class="accordion-header">
-                    <span>Loading Weaknesses...</span>
+                    <span>Weaknesses Unavailable</span>
                     <i class="fas fa-chevron-down"></i>
                 </div>
                 <div class="accordion-content">
-                    <p>Weaknesses data is currently unavailable. Please check back later.</p>
+                    <p>Unable to load weaknesses data. Please check back later.</p>
                 </div>
             </div>
         `;
     }
 
     // Show placeholder for summary
-    const summarySection = document.querySelector('#summary');
+    const summarySection = document.getElementById('summary');
     if (summarySection) {
         const summaryContainer = summarySection.parentElement;
         const existingParagraphs = summaryContainer.querySelectorAll('p.text-center');
@@ -461,7 +529,7 @@ function showDetailsPlaceholders() {
         const actionButtons = summaryContainer.querySelector('.action-buttons');
         const placeholder = document.createElement('p');
         placeholder.className = 'mb-4 text-center';
-        placeholder.textContent = 'Tank summary is currently unavailable. Please check back later.';
+        placeholder.textContent = 'Unable to load tank summary. Please check back later.';
 
         if (actionButtons) {
             summaryContainer.insertBefore(placeholder, actionButtons);
@@ -470,6 +538,8 @@ function showDetailsPlaceholders() {
         }
     }
 }
+
+// ============= END DETAILS FUNCTIONS =============
 
 // Missions
 async function fetchAndPopulateMissions(missionsUrl, tankName, tankSlug) {
@@ -1745,57 +1815,13 @@ function initializeAccordions() {
     // Initialize strengths accordion
     const strengthsAccordion = document.querySelector('.strengths-accordion');
     if (strengthsAccordion) {
-        const strengthItems = strengthsAccordion.querySelectorAll('.accordion-item');
-
-        strengthItems.forEach(item => {
-            const header = item.querySelector('.accordion-header');
-
-            header.addEventListener('click', () => {
-                const isActive = item.classList.contains('active');
-
-                // Close all other items in this accordion
-                strengthItems.forEach(otherItem => {
-                    if (otherItem !== item) {
-                        otherItem.classList.remove('active');
-                    }
-                });
-
-                // Toggle current item
-                if (!isActive) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
-            });
-        });
+        initializeAccordionEvents(strengthsAccordion);
     }
 
     // Initialize weaknesses accordion
     const weaknessesAccordion = document.querySelector('.weaknesses-accordion');
     if (weaknessesAccordion) {
-        const weaknessItems = weaknessesAccordion.querySelectorAll('.accordion-item');
-
-        weaknessItems.forEach(item => {
-            const header = item.querySelector('.accordion-header');
-
-            header.addEventListener('click', () => {
-                const isActive = item.classList.contains('active');
-
-                // Close all other items in this accordion
-                weaknessItems.forEach(otherItem => {
-                    if (otherItem !== item) {
-                        otherItem.classList.remove('active');
-                    }
-                });
-
-                // Toggle current item
-                if (!isActive) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
-            });
-        });
+        initializeAccordionEvents(weaknessesAccordion);
     }
 }
 
