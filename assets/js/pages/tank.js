@@ -235,8 +235,239 @@ async function fetchTankData(tankId) {
             initializeMissionsFilter();
         }
 
+        // Fetch details data if available
+        if (tank.details) {
+            await fetchAndPopulateDetails(tank.details);
+        }
+
     } catch (error) {
         console.error('Error fetching tank data:', error);
+    }
+}
+
+async function fetchAndPopulateDetails(detailsUrl) {
+    try {
+        const detailsResponse = await fetch(detailsUrl);
+        const detailsData = await detailsResponse.json();
+
+        // Populate strengths and weaknesses
+        if (detailsData.strengths_and_weaknesses) {
+            populateStrengthsWeaknesses(detailsData.strengths_and_weaknesses);
+        }
+
+        // Populate tank summary
+        if (detailsData.tank_summary) {
+            populateTankSummary(detailsData.tank_summary);
+        }
+
+        // Update tank description meta if available
+        if (detailsData.tank_description) {
+            updateTankDescription(detailsData.tank_description);
+        }
+
+    } catch (error) {
+        console.error('Error fetching details data:', error);
+        // Show placeholder if data can't be loaded
+        showDetailsPlaceholders();
+    }
+}
+
+// Function to populate strengths and weaknesses
+function populateStrengthsWeaknesses(data) {
+    // Populate Strengths
+    const strengthsContainer = document.querySelector('.strengths-container .strengths-accordion');
+    if (strengthsContainer && data.strengths && data.strengths.length > 0) {
+        strengthsContainer.innerHTML = '';
+        data.strengths.forEach((item, index) => {
+            const accordionItem = createAccordionItem(item.title, item.description, index);
+            strengthsContainer.appendChild(accordionItem);
+        });
+        // Re-initialize accordion events for strengths
+        initializeAccordionEvents(strengthsContainer);
+    }
+
+    // Populate Weaknesses
+    const weaknessesContainer = document.querySelector('.weaknesses-container .weaknesses-accordion');
+    if (weaknessesContainer && data.weaknesses && data.weaknesses.length > 0) {
+        weaknessesContainer.innerHTML = '';
+        data.weaknesses.forEach((item, index) => {
+            const accordionItem = createAccordionItem(item.title, item.description, index);
+            weaknessesContainer.appendChild(accordionItem);
+        });
+        // Re-initialize accordion events for weaknesses
+        initializeAccordionEvents(weaknessesContainer);
+    }
+}
+
+// Helper function to create an accordion item
+function createAccordionItem(title, description, index) {
+    const item = document.createElement('div');
+    item.className = 'accordion-item';
+    item.dataset.index = index;
+
+    item.innerHTML = `
+        <div class="accordion-header">
+            <span>${title}</span>
+            <i class="fas fa-chevron-down"></i>
+        </div>
+        <div class="accordion-content">
+            <p>${description}</p>
+        </div>
+    `;
+
+    return item;
+}
+
+// Function to initialize accordion events for a container
+function initializeAccordionEvents(container) {
+    if (!container) return;
+
+    const items = container.querySelectorAll('.accordion-item');
+    items.forEach(item => {
+        const header = item.querySelector('.accordion-header');
+        if (header) {
+            header.addEventListener('click', function() {
+                const isActive = item.classList.contains('active');
+
+                // Close all other items in this accordion
+                items.forEach(otherItem => {
+                    if (otherItem !== item) {
+                        otherItem.classList.remove('active');
+                    }
+                });
+
+                // Toggle current item
+                if (!isActive) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+    });
+}
+
+// Function to populate tank summary
+function populateTankSummary(summaryData) {
+    const summarySection = document.querySelector('#summary');
+    if (!summarySection) return;
+
+    // Get the container for summary paragraphs
+    const summaryContainer = summarySection.parentElement;
+    if (!summaryContainer) return;
+
+    // Remove existing summary paragraphs (keep the h2 and action buttons)
+    const existingParagraphs = summaryContainer.querySelectorAll('p.text-center');
+    existingParagraphs.forEach(p => {
+        if (p.closest('.action-buttons') === null) {
+            p.remove();
+        }
+    });
+
+    // Insert new summary paragraphs before the action buttons
+    const actionButtons = summaryContainer.querySelector('.action-buttons');
+
+    if (Array.isArray(summaryData)) {
+        summaryData.forEach((paragraph, index) => {
+            const p = document.createElement('p');
+            p.className = 'mb-4 text-center';
+            p.textContent = paragraph;
+
+            if (actionButtons) {
+                summaryContainer.insertBefore(p, actionButtons);
+            } else {
+                summaryContainer.appendChild(p);
+            }
+        });
+    } else if (typeof summaryData === 'string') {
+        const p = document.createElement('p');
+        p.className = 'mb-4 text-center';
+        p.textContent = summaryData;
+
+        if (actionButtons) {
+            summaryContainer.insertBefore(p, actionButtons);
+        } else {
+            summaryContainer.appendChild(p);
+        }
+    }
+}
+
+// Function to update tank description meta
+function updateTankDescription(description) {
+    // Update meta description if needed
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+        metaDesc.content = description;
+    }
+
+    // Update OG description
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) {
+        ogDesc.content = description;
+    }
+
+    // Update Twitter description
+    const twitterDesc = document.querySelector('meta[name="twitter:description"]');
+    if (twitterDesc) {
+        twitterDesc.content = description;
+    }
+}
+
+// Function to show placeholder content if details can't be loaded
+function showDetailsPlaceholders() {
+    // Show placeholder for strengths
+    const strengthsContainer = document.querySelector('.strengths-container .strengths-accordion');
+    if (strengthsContainer && strengthsContainer.children.length === 0) {
+        strengthsContainer.innerHTML = `
+            <div class="accordion-item">
+                <div class="accordion-header">
+                    <span>Loading Strengths...</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="accordion-content">
+                    <p>Strengths data is currently unavailable. Please check back later.</p>
+                </div>
+            </div>
+        `;
+    }
+
+    // Show placeholder for weaknesses
+    const weaknessesContainer = document.querySelector('.weaknesses-container .weaknesses-accordion');
+    if (weaknessesContainer && weaknessesContainer.children.length === 0) {
+        weaknessesContainer.innerHTML = `
+            <div class="accordion-item">
+                <div class="accordion-header">
+                    <span>Loading Weaknesses...</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="accordion-content">
+                    <p>Weaknesses data is currently unavailable. Please check back later.</p>
+                </div>
+            </div>
+        `;
+    }
+
+    // Show placeholder for summary
+    const summarySection = document.querySelector('#summary');
+    if (summarySection) {
+        const summaryContainer = summarySection.parentElement;
+        const existingParagraphs = summaryContainer.querySelectorAll('p.text-center');
+        existingParagraphs.forEach(p => {
+            if (p.closest('.action-buttons') === null) {
+                p.remove();
+            }
+        });
+
+        const actionButtons = summaryContainer.querySelector('.action-buttons');
+        const placeholder = document.createElement('p');
+        placeholder.className = 'mb-4 text-center';
+        placeholder.textContent = 'Tank summary is currently unavailable. Please check back later.';
+
+        if (actionButtons) {
+            summaryContainer.insertBefore(placeholder, actionButtons);
+        } else {
+            summaryContainer.appendChild(placeholder);
+        }
     }
 }
 
