@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize filters
     const filters = {
-        status: []
+        status: ['Available Now']
     };
 
     // DOM elements
@@ -210,6 +210,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Apply default filter (if any)
         filterAgents();
+
+        // Highlight the "Available Now" filter button
+        const availableNowButton = document.querySelector('.status-filter[data-status="Available Now"]');
+        if (availableNowButton) {
+            availableNowButton.classList.add('active');
+        }
+
+        // Update active filters display
+        updateActiveFilters();
     }
 
     // Initialize filter buttons
