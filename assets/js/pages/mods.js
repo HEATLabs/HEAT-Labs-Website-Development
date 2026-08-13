@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize filters
     const filters = {
-        creator: [],
         category: [],
         status: []
     };
@@ -75,31 +74,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Populate creator filters dynamically from JSON data
-    function populateCreatorFilters(mods) {
-        const creatorFilterGroup = document.querySelector('.mods-filter-group:first-child .mods-filter-buttons-grid');
-        if (!creatorFilterGroup) return;
-
-        // Get unique creators from mod data
-        const uniqueCreators = [...new Set(mods.map(mod => mod.creator))];
-
-        // Clear existing buttons
-        creatorFilterGroup.innerHTML = '';
-
-        // Create buttons for each unique creator
-        uniqueCreators.forEach(creator => {
-            const button = document.createElement('button');
-            button.className = 'mods-filter-btn creator-filter';
-            button.setAttribute('data-creator', creator);
-
-            // Add icon
-            let icon = 'fa-user';
-
-            button.innerHTML = `<i class="fas ${icon}"></i> ${creator}`;
-            creatorFilterGroup.appendChild(button);
-        });
-    }
-
     // Render all mod cards
     async function renderModCards() {
         const mods = await fetchModData();
@@ -109,9 +83,6 @@ document.addEventListener('DOMContentLoaded', function() {
             modsGrid.innerHTML = '<p class="text-center py-10">Failed to load mod data. Please try again later.</p>';
             return;
         }
-
-        // Populate creator filters before rendering cards
-        populateCreatorFilters(mods);
 
         // Create and append cards for each mod
         mods.forEach(mod => {
@@ -131,15 +102,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize filter buttons
     function initFilterButtons() {
-        // Creator filter buttons
-        document.querySelectorAll('.creator-filter').forEach(button => {
-            button.addEventListener('click', function() {
-                const creator = this.getAttribute('data-creator');
-                toggleFilter('creator', creator, this);
-                filterMods();
-            });
-        });
-
         // Status filter buttons
         document.querySelectorAll('.status-filter').forEach(button => {
             button.addEventListener('click', function() {
@@ -182,18 +144,12 @@ document.addEventListener('DOMContentLoaded', function() {
         activeFiltersContainer.innerHTML = '';
 
         // Check if any filters are active
-        const hasFilters = filters.creator.length > 0 || filters.category.length > 0 || filters.status.length > 0;
+        const hasFilters = filters.category.length > 0 || filters.status.length > 0;
 
         if (!hasFilters) {
             activeFiltersContainer.innerHTML = '<div class="mods-no-filters-message">No filters selected</div>';
             return;
         }
-
-        // Add creator filters
-        filters.creator.forEach(creator => {
-            const pill = createFilterPill(creator, 'creator');
-            activeFiltersContainer.appendChild(pill);
-        });
 
         // Add category filters
         filters.category.forEach(category => {
@@ -245,16 +201,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (modCards.length === 0) return;
 
         modCards.forEach(card => {
-            const cardCreator = card.getAttribute('data-creator');
             const cardCategory = card.getAttribute('data-category');
             const cardStatus = card.querySelector('.mod-status') ?
                 card.querySelector('.mod-status').textContent : 'Unknown';
 
-            const creatorMatch = filters.creator.length === 0 || filters.creator.includes(cardCreator);
             const categoryMatch = filters.category.length === 0 || filters.category.includes(cardCategory);
             const statusMatch = filters.status.length === 0 || filters.status.includes(cardStatus);
 
-            if (creatorMatch && categoryMatch && statusMatch) {
+            if (categoryMatch && statusMatch) {
                 card.style.display = 'block';
             } else {
                 card.style.display = 'none';

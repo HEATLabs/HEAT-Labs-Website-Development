@@ -223,7 +223,7 @@
 
 .mods-filter-buttons-grid {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: repeat(4, 1fr);
 	gap: 0.75rem;
 }
 
@@ -261,36 +261,8 @@
 
 .mods-status-filter-buttons-grid {
 	display: grid;
-	grid-template-columns: repeat(2, 1fr);
+	grid-template-columns: repeat(3, 1fr);
 	gap: 0.75rem;
-}
-
-/* Creator filter buttons */
-.creator-filter-buttons-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-	gap: 0.75rem;
-}
-
-/* Status Filter group */
-@media (max-width: 768px) {
-	.mods-filter-group:nth-child(3) .mods-filter-buttons-grid {
-		grid-template-columns: repeat(2, 1fr);
-	}
-
-	.mods-filter-group:nth-child(3) .mods-filter-btn[style*="visibility: hidden"] {
-		display: none;
-	}
-}
-
-@media (min-width: 769px) {
-	.mods-filter-group:nth-child(3) .mods-filter-buttons-grid {
-		grid-template-columns: repeat(2, 1fr);
-	}
-
-	.mods-filter-group:nth-child(3) .mods-filter-btn[style*="visibility: hidden"] {
-		display: none;
-	}
 }
 
 /* Active Filters */
@@ -355,6 +327,10 @@
 		grid-template-columns: repeat(2, 1fr);
 	}
 
+	.mods-status-filter-buttons-grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+
 	.mods-filter-btn {
 		font-size: 0.85rem;
 		padding: 0.5rem 0.25rem;
@@ -364,5 +340,15 @@
 	.mods-filter-group-title {
 		text-align: center;
 		padding-left: 0;
+	}
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+	.mods-filter-buttons-grid {
+		grid-template-columns: repeat(3, 1fr);
+	}
+
+	.mods-status-filter-buttons-grid {
+		grid-template-columns: repeat(3, 1fr);
 	}
 }
