@@ -203,14 +203,19 @@ async function fetchModData(modId, modSlug) {
 function parseModDetails(mdContent) {
     const details = {};
 
-    // Extract category (first category only)
-    const categoryMatch = mdContent.match(/category:\s*([^,\n]+)/i);
+    // Extract category
+    const categoryMatch = mdContent.match(/category:\s*([^#\n]+)/i);
     if (categoryMatch && categoryMatch[1]) {
-        details.category = categoryMatch[1].trim();
+        // Get all categories, split by comma, trim each
+        const categories = categoryMatch[1].split(',').map(cat => cat.trim());
+        // Store full category string for the mod facts section
+        details.categoryFull = categories.join(', ');
+        // Store just the first category for the badge
+        details.category = categories[0];
     }
 
     // Extract type
-    const typeMatch = mdContent.match(/type:\s*([^\n]+)/i);
+    const typeMatch = mdContent.match(/type:\s*([^#\n]+)/i);
     if (typeMatch && typeMatch[1]) {
         details.type = typeMatch[1].trim();
     }
@@ -222,7 +227,6 @@ function parseModDetails(mdContent) {
     }
 
     // Extract description from the top-level description field
-    // Match the description line that's NOT inside the overview section
     const descriptionMatch = mdContent.match(/^description:\s*(.+)$/m);
     if (descriptionMatch && descriptionMatch[1]) {
         details.description = descriptionMatch[1].trim();
@@ -309,7 +313,9 @@ function updateModPageElements(mod, modVersion, modDetails) {
 
                 // Category
                 let category = mod.category || 'Info coming soon';
-                if (modDetails && modDetails.category) {
+                if (modDetails && modDetails.categoryFull) {
+                    category = modDetails.categoryFull;
+                } else if (modDetails && modDetails.category) {
                     category = modDetails.category;
                 }
                 const categoryItem = document.createElement('li');
