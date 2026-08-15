@@ -232,6 +232,33 @@ function parseModDetails(mdContent) {
         details.description = descriptionMatch[1].trim();
     }
 
+    // Extract overview description from the overview section
+    const overviewDescMatch = mdContent.match(/overview:[\s\S]*?description:\s*(.+?)(?=\n\s*\w+:|$)/i);
+    if (overviewDescMatch && overviewDescMatch[1]) {
+        details.overviewDescription = overviewDescMatch[1].trim();
+    }
+
+    // Extract overview layout
+    const layoutMatch = mdContent.match(/overview:[\s\S]*?layout:\s*([^\n]+)/i);
+    if (layoutMatch && layoutMatch[1]) {
+        details.overviewLayout = layoutMatch[1].trim();
+    }
+
+    // Extract overview images from items array only
+    details.overviewImages = [];
+    const itemsMatch = mdContent.match(/overview:[\s\S]*?items:([\s\S]*?)(?=\n\s*\w+:|$)/i);
+    if (itemsMatch && itemsMatch[1]) {
+        // Find all image paths in the items section
+        const imageRegex = /-\s*([^\n]+)/gi;
+        let imageMatch;
+        while ((imageMatch = imageRegex.exec(itemsMatch[1])) !== null) {
+            const imagePath = imageMatch[1].trim();
+            if (imagePath) {
+                details.overviewImages.push(imagePath);
+            }
+        }
+    }
+
     // Extract installation steps
     details.installationSteps = [];
     const installationMatch = mdContent.match(/installation:[\s\S]*?steps:([\s\S]*?)(?=\n\w+:|$)/i);
@@ -316,6 +343,156 @@ function updateModPageElements(mod, modVersion, modDetails) {
     if (modImage && mod.image) {
         modImage.src = mod.image;
         modImage.alt = mod.name;
+    }
+
+    // Update overview section with description and images from MD file
+    const overviewSection = document.getElementById('standard');
+    if (overviewSection && modDetails) {
+        // Update overview description
+        const overviewParagraph = overviewSection.querySelector('.text-center');
+        if (overviewParagraph) {
+            if (modDetails.overviewDescription) {
+                overviewParagraph.textContent = modDetails.overviewDescription;
+            }
+        }
+
+        // Update overview images based on layout
+        const layout = modDetails.overviewLayout || 'none';
+        const images = modDetails.overviewImages || [];
+
+        // Remove existing image grids
+        const existingGrids = overviewSection.querySelectorAll('.grid');
+        existingGrids.forEach(grid => grid.remove());
+
+        // If layout is 'none' or no images, don't add any images
+        if (layout === 'none' || images.length === 0) {
+            return;
+        }
+
+        // Build the layout
+        let layoutHTML = '';
+
+        switch (layout) {
+            case 'single':
+                if (images.length >= 1) {
+                    layoutHTML = `
+                        <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
+                            <div>
+                                <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
+                            </div>
+                        </div>
+                    `;
+                }
+                break;
+
+            case 'two':
+                if (images.length >= 2) {
+                    layoutHTML = `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+                            <div>
+                                <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
+                            </div>
+                            <div>
+                                <img src="${images[1]}" alt="Mod Overview" class="rounded-lg">
+                            </div>
+                        </div>
+                    `;
+                } else if (images.length === 1) {
+                    layoutHTML = `
+                        <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
+                            <div>
+                                <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
+                            </div>
+                        </div>
+                    `;
+                }
+                break;
+
+            case 'heroPlusTwo':
+                if (images.length >= 3) {
+                    layoutHTML = `
+                        <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
+                            <div>
+                                <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+                            <div>
+                                <img src="${images[1]}" alt="Mod Overview" class="rounded-lg">
+                            </div>
+                            <div>
+                                <img src="${images[2]}" alt="Mod Overview" class="rounded-lg">
+                            </div>
+                        </div>
+                    `;
+                } else if (images.length === 2) {
+                    layoutHTML = `
+                        <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
+                            <div>
+                                <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
+                            <div>
+                                <img src="${images[1]}" alt="Mod Overview" class="rounded-lg">
+                            </div>
+                        </div>
+                    `;
+                } else if (images.length === 1) {
+                    layoutHTML = `
+                        <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
+                            <div>
+                                <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
+                            </div>
+                        </div>
+                    `;
+                }
+                break;
+
+            case 'grid':
+                const gridImages = images.slice(0, 4);
+                const gridItems = gridImages.map(img => `
+                        <div>
+                            <img src="${img}" alt="Mod Overview" class="rounded-lg">
+                        </div>
+                    `).join('');
+                layoutHTML = `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+                            ${gridItems}
+                        </div>
+                    `;
+                break;
+
+            default:
+                // Default to single image if layout is unknown but images exist
+                if (images.length >= 1) {
+                    layoutHTML = `
+                        <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
+                            <div>
+                                <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
+                            </div>
+                        </div>
+                    `;
+                }
+                break;
+        }
+
+        // Insert the layout HTML after the description paragraph
+        if (layoutHTML) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = layoutHTML;
+            const gridElements = tempDiv.children;
+
+            // Insert each grid after the description paragraph
+            if (overviewParagraph) {
+                for (let i = 0; i < gridElements.length; i++) {
+                    overviewParagraph.after(gridElements[i]);
+                }
+            } else {
+                // If no description paragraph, append to the section
+                overviewSection.append(tempDiv);
+            }
+        }
     }
 
     // Update sidebar Quick Facts
