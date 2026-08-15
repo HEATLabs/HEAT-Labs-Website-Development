@@ -173,6 +173,18 @@ async function fetchModData(modId, modSlug) {
             return;
         }
 
+        // Fetch detailed mod data from MD file if available
+        let modDetails = null;
+        if (mod.details) {
+            try {
+                const detailsResponse = await fetch(mod.details);
+                const detailsText = await detailsResponse.text();
+                modDetails = parseModDetails(detailsText);
+            } catch (error) {
+                console.warn('Could not fetch mod details:', error);
+            }
+        }
+
         // Fetch GitHub version if modVersion is a GitHub URL
         let modVersion = mod.modVersion || 'Info coming soon';
         if (modVersion && modVersion.includes('github.com')) {
@@ -180,14 +192,46 @@ async function fetchModData(modId, modSlug) {
         }
 
         // Update page elements with mod data
-        updateModPageElements(mod, modVersion);
+        updateModPageElements(mod, modVersion, modDetails);
 
     } catch (error) {
         console.error('Error fetching mod data:', error);
     }
 }
 
-function updateModPageElements(mod, modVersion) {
+// Function to parse mod details from MD file
+function parseModDetails(mdContent) {
+    const details = {};
+
+    // Extract category (first category only)
+    const categoryMatch = mdContent.match(/category:\s*([^,\n]+)/i);
+    if (categoryMatch && categoryMatch[1]) {
+        details.category = categoryMatch[1].trim();
+    }
+
+    // Extract type
+    const typeMatch = mdContent.match(/type:\s*([^\n]+)/i);
+    if (typeMatch && typeMatch[1]) {
+        details.type = typeMatch[1].trim();
+    }
+
+    // Extract compatible version (game version)
+    const versionMatch = mdContent.match(/compatible-version:\s*([^\n]+)/i);
+    if (versionMatch && versionMatch[1]) {
+        details.gameVersion = versionMatch[1].trim();
+    }
+
+    // Extract description from the top-level description field
+    // Match the description line that's NOT inside the overview section
+    const descriptionMatch = mdContent.match(/^description:\s*(.+)$/m);
+    if (descriptionMatch && descriptionMatch[1]) {
+        details.description = descriptionMatch[1].trim();
+    }
+
+    return details;
+}
+
+function updateModPageElements(mod, modVersion, modDetails) {
     // Update page title and meta tags
     document.title = `${mod.name} - HEAT Labs`;
     const ogTitle = document.querySelector('meta[property="og:title"]');
@@ -205,22 +249,19 @@ function updateModPageElements(mod, modVersion) {
             modMeta.innerHTML = '';
 
             // Category Badge
+            let category = mod.category || 'Unknown';
+            if (modDetails && modDetails.category) {
+                category = modDetails.category;
+            }
             const categorySpan = document.createElement('span');
             categorySpan.className = 'mod-type-badge';
-            categorySpan.textContent = mod.category || 'Unknown';
+            categorySpan.textContent = category;
             modMeta.appendChild(categorySpan);
 
             // Creator
             const creatorSpan = document.createElement('span');
             creatorSpan.innerHTML = `<i class="fas fa-users mr-1"></i> ${mod.creator || 'Unknown'}`;
             modMeta.appendChild(creatorSpan);
-
-            // Game Version
-            if (mod.gameVersion) {
-                const versionSpan = document.createElement('span');
-                versionSpan.innerHTML = `<i class="fas fa-code-branch mr-1"></i> v${mod.gameVersion}`;
-                modMeta.appendChild(versionSpan);
-            }
         }
 
         const modTitle = modHeader.querySelector('.mod-title');
@@ -229,8 +270,23 @@ function updateModPageElements(mod, modVersion) {
         }
 
         const modDescription = modHeader.querySelector('.mod-description');
-        if (modDescription && mod.description) {
-            modDescription.textContent = mod.description;
+        if (modDescription) {
+            // Use short description from mods.json
+            if (mod.description) {
+                modDescription.textContent = mod.description;
+            }
+        }
+    }
+
+    // Update "Mod Introduction" text in the main content
+    const modIntroParagraph = document.querySelector('#mod-introduction');
+    if (modIntroParagraph) {
+        const introText = modIntroParagraph.closest('.mb-12')?.querySelector('.text-center');
+        if (introText) {
+            // Use description from MD file if available
+            if (modDetails && modDetails.description) {
+                introText.textContent = modDetails.description;
+            }
         }
     }
 
@@ -248,14 +304,41 @@ function updateModPageElements(mod, modVersion) {
         if (heading && heading.textContent === 'Mod Facts') {
             const quickFactsList = card.querySelector('ul');
             if (quickFactsList) {
-                const items = quickFactsList.querySelectorAll('li');
-                if (items.length >= 3) {
-                    // Use the fetched modVersion if available, otherwise fallback to the original
-                    const displayVersion = modVersion || 'Info coming soon';
-                    items[0].innerHTML = `<strong>Category:</strong> ${mod.category || 'Info coming soon'}`;
-                    items[1].innerHTML = `<strong>Mod Version:</strong> ${displayVersion}`;
-                    items[2].innerHTML = `<strong>Game Version:</strong> ${mod.gameVersion || 'Info coming soon'}`;
+                // Clear existing items
+                quickFactsList.innerHTML = '';
+
+                // Category
+                let category = mod.category || 'Info coming soon';
+                if (modDetails && modDetails.category) {
+                    category = modDetails.category;
                 }
+                const categoryItem = document.createElement('li');
+                categoryItem.innerHTML = `<strong>Category:</strong> ${category}`;
+                quickFactsList.appendChild(categoryItem);
+
+                // Type
+                let type = 'Info coming soon';
+                if (modDetails && modDetails.type) {
+                    type = modDetails.type;
+                }
+                const typeItem = document.createElement('li');
+                typeItem.innerHTML = `<strong>Type:</strong> ${type}`;
+                quickFactsList.appendChild(typeItem);
+
+                // Game Version
+                let gameVersion = 'Info coming soon';
+                if (modDetails && modDetails.gameVersion) {
+                    gameVersion = modDetails.gameVersion;
+                }
+                const gameVersionItem = document.createElement('li');
+                gameVersionItem.innerHTML = `<strong>Game Version:</strong> ${gameVersion}`;
+                quickFactsList.appendChild(gameVersionItem);
+
+                // Mod Version
+                const displayVersion = modVersion || 'Info coming soon';
+                const modVersionItem = document.createElement('li');
+                modVersionItem.innerHTML = `<strong>Mod Version:</strong> ${displayVersion}`;
+                quickFactsList.appendChild(modVersionItem);
             }
         }
     });
