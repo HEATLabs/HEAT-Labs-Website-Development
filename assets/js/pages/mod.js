@@ -190,7 +190,6 @@ function parseMarkdownDetails(markdown) {
         let inArray = false;
         let arrayKey = '';
         let arrayItems = [];
-        let currentStep = null;
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
@@ -366,36 +365,25 @@ function parseMarkdownDetails(markdown) {
 
             // Handle installation steps
             if (currentSection === 'installation' && details.installation) {
-                // Detect step entries
-                if (line.startsWith('- name:') || line.startsWith('name:')) {
-                    // Start a new step
-                    const stepNameMatch = line.match(/name:\s*(.+)/);
-                    if (stepNameMatch) {
-                        currentStep = {
-                            name: stepNameMatch[1].trim(),
-                            description: ''
-                        };
-                        if (!details.installation.steps) details.installation.steps = [];
-                        details.installation.steps.push(currentStep);
-                    }
-                } else if (line.startsWith('description:') && currentStep) {
-                    // This is a multi-line description
-                    let fullDescription = line.replace('description:', '').trim();
-
-                    // Check if there's more to the description on subsequent lines
-                    let j = i + 1;
-                    while (j < lines.length) {
-                        const nextLine = lines[j].trim();
-                        // If next line starts with a new key or is empty, stop
-                        if (nextLine.match(/^[a-zA-Z-]+:/) || nextLine === '' || nextLine.startsWith('-')) {
-                            break;
+                if (line.includes('steps:') || line.includes('- name:')) {
+                    if (!details.installation.steps) details.installation.steps = [];
+                    const stepMatch = line.match(/name:\s*(.+)/);
+                    if (stepMatch) {
+                        const stepName = stepMatch[1].trim();
+                        // Find the next line that has description
+                        let description = '';
+                        for (let j = i + 1; j < lines.length; j++) {
+                            const nextLine = lines[j].trim();
+                            if (nextLine.startsWith('description:')) {
+                                description = nextLine.replace('description:', '').trim();
+                                break;
+                            }
+                            if (nextLine.startsWith('- name:') || nextLine === '') {
+                                break;
+                            }
                         }
-                        // Append to description with a space
-                        fullDescription += ' ' + nextLine;
-                        j++;
+                        details.installation.steps.push({ name: stepName, description: description });
                     }
-
-                    currentStep.description = fullDescription;
                 }
             }
         }
@@ -536,7 +524,6 @@ function updateModPageElements(mod, modVersion, modDetails) {
                 if (title) title.textContent = feature.name || 'Feature';
                 if (desc) desc.textContent = feature.description || '';
                 // Keep the icon as is (or could set based on feature type)
-                card.style.display = '';
             } else {
                 card.style.display = 'none';
             }
@@ -665,19 +652,11 @@ function updateInstallationSection(modDetails) {
     const faqContainer = document.querySelector('.faq-container');
     if (!faqContainer) return;
 
-    // Get the parent section heading (h2) and the container
-    const faqSection = faqContainer.closest('.mt-16');
-
-    // Check if we have installation steps
-    const hasSteps = modDetails && modDetails.installation &&
-                     modDetails.installation.steps &&
-                     modDetails.installation.steps.length > 0;
-
-    if (hasSteps) {
+    if (modDetails && modDetails.installation && modDetails.installation.steps && modDetails.installation.steps.length > 0) {
         // Clear existing FAQ items
         faqContainer.innerHTML = '';
 
-        // Create new FAQ items from ALL installation steps
+        // Create new FAQ items from installation steps
         modDetails.installation.steps.forEach((step, index) => {
             const faqItem = document.createElement('div');
             faqItem.className = `faq-item${index === 0 ? ' active' : ''}`;
@@ -703,25 +682,14 @@ function updateInstallationSection(modDetails) {
                 allItems.forEach(item => {
                     if (item !== faqItem) {
                         item.classList.remove('active');
-                        const ans = item.querySelector('.faq-answer');
-                        if (ans) ans.classList.remove('active');
+                        item.querySelector('.faq-answer').classList.remove('active');
                     }
                 });
                 faqItem.classList.toggle('active');
                 const answerEl = faqItem.querySelector('.faq-answer');
-                if (answerEl) answerEl.classList.toggle('active');
+                answerEl.classList.toggle('active');
             });
         });
-
-        // Make sure the section is visible
-        if (faqSection) {
-            faqSection.style.display = '';
-        }
-    } else {
-        // If no installation steps, hide the entire section
-        if (faqSection) {
-            faqSection.style.display = 'none';
-        }
     }
 }
 
@@ -837,9 +805,6 @@ function updateVideoShowcase(modDetails) {
         `;
         videoShowcaseContainer.appendChild(helpGrid);
 
-        // Make sure section is visible
-        videoShowcaseContainer.style.display = '';
-
     } else {
         // If video showcase is disabled or not present, hide the section
         videoShowcaseContainer.style.display = 'none';
@@ -865,8 +830,6 @@ function updateDownloadButton(mod, modDetails) {
         downloadBtn.href = downloadUrl;
         downloadBtn.target = '_blank';
         downloadBtn.rel = 'noopener noreferrer';
-        downloadBtn.innerHTML = '<i class="fas fa-download"></i><span>Download This Mod</span>';
-        downloadBtn.classList.remove('wip');
     } else {
         downloadBtn.href = '#';
         downloadBtn.classList.add('wip');
@@ -942,22 +905,19 @@ function initializeModPageElements() {
     faqItems.forEach(item => {
         const question = item.querySelector('.faq-question');
         if (question) {
-            // Remove any existing click listeners to avoid duplicates
-            const newQuestion = question.cloneNode(true);
-            question.parentNode.replaceChild(newQuestion, question);
-
-            newQuestion.addEventListener('click', function() {
-                const parentItem = this.closest('.faq-item');
-                const allItems = parentItem.parentElement.querySelectorAll('.faq-item');
-                allItems.forEach(otherItem => {
-                    if (otherItem !== parentItem) {
+            question.addEventListener('click', () => {
+                // Close all other FAQ items
+                faqItems.forEach(otherItem => {
+                    if (otherItem !== item) {
                         otherItem.classList.remove('active');
                         const answer = otherItem.querySelector('.faq-answer');
                         if (answer) answer.classList.remove('active');
                     }
                 });
-                parentItem.classList.toggle('active');
-                const answer = parentItem.querySelector('.faq-answer');
+
+                // Toggle current item
+                item.classList.toggle('active');
+                const answer = item.querySelector('.faq-answer');
                 if (answer) answer.classList.toggle('active');
             });
         }
