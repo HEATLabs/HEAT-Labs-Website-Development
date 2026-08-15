@@ -232,6 +232,23 @@ function parseModDetails(mdContent) {
         details.description = descriptionMatch[1].trim();
     }
 
+    // Extract installation steps
+    details.installationSteps = [];
+    const installationMatch = mdContent.match(/installation:[\s\S]*?steps:([\s\S]*?)(?=\n\w+:|$)/i);
+    if (installationMatch && installationMatch[1]) {
+        // Parse individual steps
+        const stepRegex = /-\s*name:\s*Step\s*#(\d+)\s*description:\s*(.+?)(?=\n\s*-|\n\s*\w+:|$)/gi;
+        let stepMatch;
+        while ((stepMatch = stepRegex.exec(installationMatch[1])) !== null) {
+            const stepNumber = stepMatch[1];
+            const description = stepMatch[2].trim();
+            details.installationSteps.push({
+                name: `Step #${stepNumber}`,
+                description: description
+            });
+        }
+    }
+
     return details;
 }
 
@@ -348,6 +365,55 @@ function updateModPageElements(mod, modVersion, modDetails) {
             }
         }
     });
+
+    // Update installation steps
+    const faqContainer = document.querySelector('.faq-container');
+    if (faqContainer && modDetails && modDetails.installationSteps && modDetails.installationSteps.length > 0) {
+        // Clear existing FAQ items
+        faqContainer.innerHTML = '';
+
+        // Create new FAQ items from installation steps
+        modDetails.installationSteps.forEach((step, index) => {
+            const faqItem = document.createElement('div');
+            faqItem.className = `faq-item ${index === 0 ? 'active' : ''}`;
+
+            const faqQuestion = document.createElement('div');
+            faqQuestion.className = 'faq-question';
+            faqQuestion.innerHTML = `
+                <h4>${step.name}</h4>
+                <i class="fas fa-chevron-down"></i>
+            `;
+
+            const faqAnswer = document.createElement('div');
+            faqAnswer.className = `faq-answer ${index === 0 ? 'active' : ''}`;
+            faqAnswer.innerHTML = `<p>${step.description}</p>`;
+
+            faqItem.appendChild(faqQuestion);
+            faqItem.appendChild(faqAnswer);
+            faqContainer.appendChild(faqItem);
+        });
+
+        // Re-attach click event listeners to FAQ items
+        const newFaqItems = faqContainer.querySelectorAll('.faq-item');
+        newFaqItems.forEach(item => {
+            const question = item.querySelector('.faq-question');
+            question.addEventListener('click', () => {
+                // Close all other FAQ items
+                newFaqItems.forEach(otherItem => {
+                    if (otherItem !== item) {
+                        otherItem.classList.remove('active');
+                        const answer = otherItem.querySelector('.faq-answer');
+                        if (answer) answer.classList.remove('active');
+                    }
+                });
+
+                // Toggle current item
+                item.classList.toggle('active');
+                const answer = item.querySelector('.faq-answer');
+                if (answer) answer.classList.toggle('active');
+            });
+        });
+    }
 
     // Update "Related Mods" sidebar
     updateRelatedMods(mod);
