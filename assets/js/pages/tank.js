@@ -190,6 +190,135 @@ function getCreditBadge(credits) {
     };
 }
 
+async function fetchAndPopulateVideos(tankSlug) {
+    const videoShowcaseSection = document.querySelector('.mb-12:has(#video-showcase)');
+    if (!videoShowcaseSection) {
+        console.warn('Video showcase section not found');
+        return;
+    }
+
+    try {
+        // Fetch videos
+        const videosResponse = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/videos.json');
+        const videosData = await videosResponse.json();
+
+        if (!videosData.videos || videosData.videos.length === 0) {
+            console.warn('No videos found in videos.json');
+            return;
+        }
+
+        // Filter videos by tank slug/topic
+        const tankVideos = videosData.videos.filter(video =>
+            video.topic && video.topic.toLowerCase() === tankSlug.toLowerCase()
+        );
+
+        if (tankVideos.length === 0) {
+            console.log(`No videos found for tank: ${tankSlug}`);
+            return;
+        }
+
+        // Sort by date (newest first) and get latest 4
+        const sortedVideos = tankVideos.sort((a, b) => {
+            // Parse dates in DD/MM/YYYY format
+            const parseDate = (dateStr) => {
+                const parts = dateStr.split('/');
+                // DD/MM/YYYY
+                return new Date(parts[2], parts[1] - 1, parts[0]);
+            };
+            const dateA = parseDate(a.date);
+            const dateB = parseDate(b.date);
+            return dateB - dateA;
+        });
+
+        const latestVideos = sortedVideos.slice(0, 4);
+
+        // Populate the video showcase
+        populateVideos(videoShowcaseSection, latestVideos);
+
+    } catch (error) {
+        console.error('Error fetching videos data:', error);
+    }
+}
+
+function populateVideos(section, videos) {
+    // Find the video grid container
+    const videoGrid = section.querySelector('.grid:has(.video-card)');
+    if (!videoGrid) {
+        console.warn('Video grid container not found');
+        return;
+    }
+
+    // Find the CTA container
+    const ctaGrid = section.querySelector('.grid:has(.video-card .video-info.text-center)');
+
+    // Determine grid layout based on number of videos
+    let gridClasses = 'grid grid-cols-1 gap-8 my-8';
+    if (videos.length >= 2) {
+        gridClasses = 'grid grid-cols-1 md:grid-cols-2 gap-8 my-8';
+    }
+
+    // Replace the existing grid with new one
+    const newGrid = document.createElement('div');
+    newGrid.className = gridClasses;
+
+    // Create video cards
+    videos.forEach(video => {
+        const videoCard = document.createElement('div');
+        videoCard.className = 'video-card';
+
+        // Extract video ID from YouTube URL
+        let videoId = '';
+        const url = video.url || '';
+        if (url.includes('v=')) {
+            videoId = url.split('v=')[1].split('&')[0];
+        } else if (url.includes('youtu.be/')) {
+            videoId = url.split('youtu.be/')[1].split('?')[0];
+        } else if (url.includes('/embed/')) {
+            videoId = url.split('/embed/')[1].split('?')[0];
+        }
+
+        const embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}`;
+
+        videoCard.innerHTML = `
+            <div class="video-thumbnail">
+                <iframe width="100%" height="315"
+                    src="${embedUrl}"
+                    title="${video.title || 'Video'}"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                    class="rounded-t-lg">
+                </iframe>
+            </div>
+            <div class="video-info">
+                <h4>${video.title || 'Untitled Video'}</h4>
+                <p class="video-author">by ${video.author || 'Unknown Creator'}</p>
+                <p class="video-date" style="font-size: 0.8rem; color: var(--text-secondary);">${video.date || ''}</p>
+            </div>
+        `;
+        newGrid.appendChild(videoCard);
+    });
+
+    // Replace the old grid with the new one
+    videoGrid.parentNode.replaceChild(newGrid, videoGrid);
+
+    // Ensure the CTA is still present
+    const ctaGridElement = section.querySelector('.grid:has(.video-card .video-info.text-center)');
+    if (!ctaGridElement) {
+        // If CTA doesn't exist, create it
+        const newCtaGrid = document.createElement('div');
+        newCtaGrid.className = 'grid grid-cols-1 md:grid-cols-1 gap-8 my-8';
+        newCtaGrid.innerHTML = `
+            <div class="video-card">
+                <div class="video-info text-center">
+                    <h4>Want to help improve this page?</h4>
+                    <p class="video-description">Share videos from your favorite creators that showcase this tank, or send in your own! If you're a content creator and have featured this tank in your content, reach out to us, we'd love to highlight your work here!</p>
+                </div>
+            </div>
+        `;
+        section.appendChild(newCtaGrid);
+    }
+}
+
 // Function to fetch tank data based on ID
 async function fetchTankData(tankId) {
     try {
@@ -238,6 +367,11 @@ async function fetchTankData(tankId) {
         // Fetch details data if available
         if (tank.details) {
             await fetchAndPopulateDetails(tank.details);
+        }
+
+        // Fetch videos data if tank has a slug
+        if (tank.slug) {
+            await fetchAndPopulateVideos(tank.slug);
         }
 
     } catch (error) {
