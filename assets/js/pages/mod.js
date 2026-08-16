@@ -918,7 +918,7 @@ function generateVideoCard(video) {
             <div class="video-info">
                 <h4>${video.title}</h4>
                 <p class="video-author">by ${video.creator}</p>
-                ${video.type ? `<p class="video-type"><span class="video-type-badge">${video.type}</span></p>` : ''}
+                ${video.type ? `` : ''}
             </div>
         </div>
     `;
