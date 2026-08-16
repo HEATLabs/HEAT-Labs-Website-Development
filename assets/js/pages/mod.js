@@ -800,7 +800,8 @@ function generateVideoCard(video) {
     return `
         <div class="video-card">
             <div class="video-thumbnail">
-                <iframe width="100%" height="315" src="${video.url}" title="${video.title}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen class="rounded-t-lg"></iframe>
+                <iframe width="100%" height="100%" src="${video.url}" title="${video.title}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+                ></iframe>
             </div>
             <div class="video-info">
                 <h4>${video.title}</h4>
