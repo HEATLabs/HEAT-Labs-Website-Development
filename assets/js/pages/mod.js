@@ -202,54 +202,6 @@ async function fetchModData(modId, modSlug) {
 }
 
 // Function to parse mod details from MD file
-async function fetchModData(modId, modSlug) {
-    try {
-        const modsResponse = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/mods.json');
-        const modsData = await modsResponse.json();
-
-        let mod = null;
-
-        if (modId) {
-            mod = modsData.find(m => m.id.toString() === modId.toString());
-        }
-
-        if (!mod && modSlug) {
-            mod = modsData.find(m => {
-                const slugMatches = m.slug && m.slug.toLowerCase().includes(modSlug.toLowerCase());
-                const nameMatches = m.name.toLowerCase().replace(/\s+/g, '-') === modSlug.toLowerCase();
-                return slugMatches || nameMatches;
-            });
-        }
-
-        if (!mod) {
-            console.error('Mod not found with ID:', modId, 'or slug:', modSlug);
-            return;
-        }
-
-        let modDetails = null;
-        if (mod.details) {
-            try {
-                const detailsResponse = await fetch(mod.details);
-                const detailsText = await detailsResponse.text();
-                modDetails = parseModDetails(detailsText);
-            } catch (error) {
-                console.warn('Could not fetch mod details:', error);
-            }
-        }
-
-        let modVersion = mod.modVersion || 'Info coming soon';
-        if (modVersion && modVersion.includes('github.com')) {
-            modVersion = await fetchGitHubVersion(modVersion);
-        }
-
-        updateModPageElements(mod, modVersion, modDetails);
-
-    } catch (error) {
-        console.error('Error fetching mod data:', error);
-    }
-}
-
-// Function to parse mod details from MD file
 function parseModDetails(mdContent) {
     const details = {};
 
@@ -374,6 +326,70 @@ function parseModDetails(mdContent) {
 
                 if (currentStep) {
                     details.installationSteps.push(currentStep);
+                }
+            }
+        }
+    }
+
+    // Extract video showcase data
+    details.videoShowcase = {
+        enabled: false,
+        layout: 'none',
+        videos: []
+    };
+
+    // Check if videoShowcase is enabled
+    const videoEnabledMatch = mdContent.match(/videoShowcase:[\s\S]*?enabled:\s*(true|false)/i);
+    if (videoEnabledMatch) {
+        details.videoShowcase.enabled = videoEnabledMatch[1].toLowerCase() === 'true';
+    }
+
+    // Extract video layout
+    const videoLayoutMatch = mdContent.match(/videoShowcase:[\s\S]*?layout:\s*([^\n]+)/i);
+    if (videoLayoutMatch) {
+        details.videoShowcase.layout = videoLayoutMatch[1].trim();
+    }
+
+    // Extract videos
+    const videosMatch = mdContent.match(/videoShowcase:[\s\S]*?videos:([\s\S]*?)(?=\n\w+:|$)/i);
+    if (videosMatch && videosMatch[1]) {
+        const videosContent = videosMatch[1];
+
+        // Parse each video item
+        const videoRegex = /-\s*title:\s*([^\n]+)\s*thumbnail:\s*([^\n]+)\s*url:\s*([^\n]+)\s*creator:\s*([^\n]+)\s*type:\s*([^\n]+)/gi;
+        let videoMatch;
+
+        while ((videoMatch = videoRegex.exec(videosContent)) !== null) {
+            const video = {
+                title: videoMatch[1].trim(),
+                thumbnail: videoMatch[2].trim(),
+                url: videoMatch[3].trim(),
+                creator: videoMatch[4].trim(),
+                type: videoMatch[5].trim()
+            };
+            details.videoShowcase.videos.push(video);
+        }
+
+        // If regex fails, try a more flexible approach
+        if (details.videoShowcase.videos.length === 0) {
+            const videoItems = videosContent.split('- title:');
+            for (let i = 1; i < videoItems.length; i++) {
+                const videoText = videoItems[i];
+                const titleMatch = videoText.match(/^([^\n]+)/);
+                const thumbnailMatch = videoText.match(/thumbnail:\s*([^\n]+)/);
+                const urlMatch = videoText.match(/url:\s*([^\n]+)/);
+                const creatorMatch = videoText.match(/creator:\s*([^\n]+)/);
+                const typeMatch = videoText.match(/type:\s*([^\n]+)/);
+
+                if (titleMatch && thumbnailMatch && urlMatch) {
+                    const video = {
+                        title: titleMatch[1].trim(),
+                        thumbnail: thumbnailMatch[1].trim(),
+                        url: urlMatch[1].trim(),
+                        creator: creatorMatch ? creatorMatch[1].trim() : 'Unknown',
+                        type: typeMatch ? typeMatch[1].trim() : 'Unknown'
+                    };
+                    details.videoShowcase.videos.push(video);
                 }
             }
         }
@@ -563,6 +579,9 @@ function updateModPageElements(mod, modVersion, modDetails) {
         }
     }
 
+    // Update video showcase section
+    updateVideoShowcase(modDetails);
+
     // Update DOWNLOAD BUTTON
     const downloadButton = document.querySelector('.quick-action-btn.download-btn');
     if (downloadButton) {
@@ -681,6 +700,175 @@ function updateModPageElements(mod, modVersion, modDetails) {
 
     // Update "Related Mods" sidebar
     updateRelatedMods(mod);
+}
+
+// Function to update the video showcase section
+function updateVideoShowcase(modDetails) {
+    const videoShowcaseContainer = document.querySelector('#video-showcase');
+    if (!videoShowcaseContainer) return;
+
+    // Get the parent container
+    const parentContainer = videoShowcaseContainer.closest('.mb-12');
+    if (!parentContainer) return;
+
+    // Remove all existing video grids except the container itself
+    const existingGrids = parentContainer.querySelectorAll('.grid');
+    existingGrids.forEach(grid => grid.remove());
+
+    // Check if video showcase is enabled and has videos
+    if (!modDetails || !modDetails.videoShowcase || !modDetails.videoShowcase.enabled) {
+        // If disabled, only show the "help improve" message
+        const helpMessage = document.createElement('div');
+        helpMessage.className = 'grid grid-cols-1 md:grid-cols-1 gap-8 my-8';
+        helpMessage.innerHTML = `
+            <div class="video-card">
+                <div class="video-info text-center">
+                    <h4>Want to help improve this mod page?</h4>
+                    <p class="video-description">Share videos from your favorite creators that showcase this mod, or send in your own! If you're a content creator and have featured this mod in your content, reach out to us or the mod's creator, we'd love to highlight your work here!</p>
+                </div>
+            </div>
+        `;
+        parentContainer.appendChild(helpMessage);
+        return;
+    }
+
+    const layout = modDetails.videoShowcase.layout || 'none';
+    const videos = modDetails.videoShowcase.videos || [];
+    const videoCount = videos.length;
+
+    // If no videos or layout is none, just show the help message
+    if (videoCount === 0 || layout === 'none') {
+        const helpMessage = document.createElement('div');
+        helpMessage.className = 'grid grid-cols-1 md:grid-cols-1 gap-8 my-8';
+        helpMessage.innerHTML = `
+            <div class="video-card">
+                <div class="video-info text-center">
+                    <h4>Want to help improve this mod page?</h4>
+                    <p class="video-description">Share videos from your favorite creators that showcase this mod, or send in your own! If you're a content creator and have featured this mod in your content, reach out to us or the mod's creator, we'd love to highlight your work here!</p>
+                </div>
+            </div>
+        `;
+        parentContainer.appendChild(helpMessage);
+        return;
+    }
+
+    // Generate video HTML based on layout
+    let videoHTML = '';
+
+    switch (layout) {
+        case 'single':
+            videoHTML = generateSingleLayout(videos.slice(0, 1));
+            break;
+        case 'two':
+            videoHTML = generateTwoLayout(videos.slice(0, 2));
+            break;
+        case 'heroPlusTwo':
+            videoHTML = generateHeroPlusTwoLayout(videos.slice(0, 3));
+            break;
+        case 'grid':
+            videoHTML = generateGridLayout(videos.slice(0, 4));
+            break;
+        default:
+            videoHTML = generateGridLayout(videos.slice(0, 4));
+    }
+
+    // Append the video HTML to the container
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = videoHTML;
+
+    // Append each grid element
+    while (tempDiv.firstChild) {
+        parentContainer.appendChild(tempDiv.firstChild);
+    }
+
+    // Add the help message at the bottom
+    const helpMessage = document.createElement('div');
+    helpMessage.className = 'grid grid-cols-1 md:grid-cols-1 gap-8 my-8';
+    helpMessage.innerHTML = `
+        <div class="video-card">
+            <div class="video-info text-center">
+                <h4>Want to help improve this mod page?</h4>
+                <p class="video-description">Share videos from your favorite creators that showcase this mod, or send in your own! If you're a content creator and have featured this mod in your content, reach out to us or the mod's creator, we'd love to highlight your work here!</p>
+            </div>
+        </div>
+    `;
+    parentContainer.appendChild(helpMessage);
+}
+
+// Helper function to generate a video card HTML
+function generateVideoCard(video) {
+    return `
+        <div class="video-card">
+            <div class="video-thumbnail">
+                <iframe width="100%" height="315" src="${video.url}" title="${video.title}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen class="rounded-t-lg"></iframe>
+            </div>
+            <div class="video-info">
+                <h4>${video.title}</h4>
+                <p class="video-author">by ${video.creator}</p>
+                ${video.type ? `<p class="video-type"><span class="video-type-badge">${video.type}</span></p>` : ''}
+            </div>
+        </div>
+    `;
+}
+
+// Layout generators
+function generateSingleLayout(videos) {
+    if (videos.length === 0) return '';
+
+    return `
+        <div class="grid grid-cols-1 md:grid-cols-1 gap-8 my-8">
+            ${videos.map(video => generateVideoCard(video)).join('')}
+        </div>
+    `;
+}
+
+function generateTwoLayout(videos) {
+    if (videos.length === 0) return '';
+
+    return `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-8">
+            ${videos.map(video => generateVideoCard(video)).join('')}
+        </div>
+    `;
+}
+
+function generateHeroPlusTwoLayout(videos) {
+    if (videos.length === 0) return '';
+
+    let html = '';
+
+    // Hero video (first video)
+    if (videos.length >= 1) {
+        html += `
+            <div class="grid grid-cols-1 md:grid-cols-1 gap-8 my-8">
+                ${generateVideoCard(videos[0])}
+            </div>
+        `;
+    }
+
+    // Two additional videos
+    if (videos.length >= 2) {
+        const remainingVideos = videos.slice(1, 3);
+        html += `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-8">
+                ${remainingVideos.map(video => generateVideoCard(video)).join('')}
+            </div>
+        `;
+    }
+
+    return html;
+}
+
+function generateGridLayout(videos) {
+    if (videos.length === 0) return '';
+
+    const colClass = videos.length <= 2 ? 'md:grid-cols-1' : 'md:grid-cols-2';
+
+    return `
+        <div class="grid grid-cols-1 ${colClass} gap-8 my-8">
+            ${videos.map(video => generateVideoCard(video)).join('')}
+        </div>
+    `;
 }
 
 // Function to fetch and display related mods
