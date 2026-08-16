@@ -237,6 +237,50 @@ function parseModDetails(mdContent) {
         details.description = descriptionMatch[1].trim();
     }
 
+    // Extract support section
+    details.support = {
+        enabled: false,
+        description: '',
+        feedback: {
+            enabled: false,
+            name: '',
+            url: ''
+        },
+        support: {
+            enabled: false,
+            name: '',
+            url: ''
+        }
+    };
+
+    // Check if support is enabled
+    const supportEnabledMatch = mdContent.match(/support:[\s\S]*?enabled:\s*(true|false)/i);
+    if (supportEnabledMatch) {
+        details.support.enabled = supportEnabledMatch[1].toLowerCase() === 'true';
+    }
+
+    // Extract support description
+    const supportDescMatch = mdContent.match(/support:[\s\S]*?description:\s*(.+?)(?=\n\s*\w+:|$)/i);
+    if (supportDescMatch && supportDescMatch[1]) {
+        details.support.description = supportDescMatch[1].trim();
+    }
+
+    // Extract feedback info
+    const feedbackMatch = mdContent.match(/feedback:[\s\S]*?enabled:\s*(true|false)[\s\S]*?name:\s*([^\n]+)[\s\S]*?url:\s*([^\n]+)/i);
+    if (feedbackMatch) {
+        details.support.feedback.enabled = feedbackMatch[1].toLowerCase() === 'true';
+        details.support.feedback.name = feedbackMatch[2].trim();
+        details.support.feedback.url = feedbackMatch[3].trim();
+    }
+
+    // Extract support info (Discord, etc.)
+    const supportInfoMatch = mdContent.match(/support:[\s\S]*?support:[\s\S]*?enabled:\s*(true|false)[\s\S]*?name:\s*([^\n]+)[\s\S]*?url:\s*([^\n]+)/i);
+    if (supportInfoMatch) {
+        details.support.support.enabled = supportInfoMatch[1].toLowerCase() === 'true';
+        details.support.support.name = supportInfoMatch[2].trim();
+        details.support.support.url = supportInfoMatch[3].trim();
+    }
+
     // Extract overview description from the overview section
     const overviewDescMatch = mdContent.match(/overview:[\s\S]*?description:\s*(.+?)(?=\n\s*\w+:|$)/i);
     if (overviewDescMatch && overviewDescMatch[1]) {
@@ -654,6 +698,9 @@ function updateModPageElements(mod, modVersion, modDetails) {
         }
     });
 
+    // Update Support & Feedback section
+    updateSupportSection(modDetails);
+
     // Update installation steps
     const faqContainer = document.querySelector('.faq-container');
     if (faqContainer && modDetails && modDetails.installationSteps && modDetails.installationSteps.length > 0) {
@@ -700,6 +747,73 @@ function updateModPageElements(mod, modVersion, modDetails) {
 
     // Update "Related Mods" sidebar
     updateRelatedMods(mod);
+}
+
+// Function to update the Support & Feedback section
+function updateSupportSection(modDetails) {
+    // Find the Support & Feedback card
+    const sidebarCards = document.querySelectorAll('.sidebar-card');
+    let supportCard = null;
+
+    sidebarCards.forEach(card => {
+        const heading = card.querySelector('h3');
+        if (heading && heading.textContent === 'Support & Feedback') {
+            supportCard = card;
+        }
+    });
+
+    if (!supportCard) return;
+
+    // If support is disabled in MD, hide the entire card
+    if (!modDetails || !modDetails.support || !modDetails.support.enabled) {
+        supportCard.style.display = 'none';
+        return;
+    }
+
+    // Show the card if it was hidden
+    supportCard.style.display = '';
+
+    // Update the description text
+    const supportContent = supportCard.querySelector('.support-content p');
+    if (supportContent && modDetails.support.description) {
+        supportContent.textContent = modDetails.support.description;
+    } else if (supportContent) {
+        supportContent.textContent = 'Found a bug or have a suggestion for this mod? We\'d love to hear from you!';
+    }
+
+    // Update the support buttons
+    const supportButtonsContainer = supportCard.querySelector('.support-buttons');
+    if (supportButtonsContainer) {
+        // Clear existing buttons
+        supportButtonsContainer.innerHTML = '';
+
+        // Add feedback button if enabled
+        if (modDetails.support.feedback && modDetails.support.feedback.enabled) {
+            const feedbackBtn = document.createElement('a');
+            feedbackBtn.href = modDetails.support.feedback.url || '#';
+            feedbackBtn.className = 'support-btn';
+            feedbackBtn.target = '_blank';
+            feedbackBtn.rel = 'noopener noreferrer';
+            feedbackBtn.innerHTML = `<span>${modDetails.support.feedback.name || 'Feedback'}</span>`;
+            supportButtonsContainer.appendChild(feedbackBtn);
+        }
+
+        // Add support button if enabled
+        if (modDetails.support.support && modDetails.support.support.enabled) {
+            const supportBtn = document.createElement('a');
+            supportBtn.href = modDetails.support.support.url || '#';
+            supportBtn.className = 'support-btn';
+            supportBtn.target = '_blank';
+            supportBtn.rel = 'noopener noreferrer';
+            supportBtn.innerHTML = `<span>${modDetails.support.support.name || 'Support'}</span>`;
+            supportButtonsContainer.appendChild(supportBtn);
+        }
+
+        // If no buttons were added, show a message or hide the buttons container
+        if (supportButtonsContainer.children.length === 0) {
+            supportButtonsContainer.innerHTML = '<p style="font-size: 0.85rem; color: #6b7280; text-align: center;">No support channels available</p>';
+        }
+    }
 }
 
 // Function to update the video showcase section
