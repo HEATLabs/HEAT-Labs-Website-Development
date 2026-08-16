@@ -253,6 +253,12 @@ async function fetchModData(modId, modSlug) {
 function parseModDetails(mdContent) {
     const details = {};
 
+    // Extract download link
+    const downloadMatch = mdContent.match(/^download:\s*(.+)$/m);
+    if (downloadMatch && downloadMatch[1]) {
+        details.download = downloadMatch[1].trim();
+    }
+
     // Extract category
     const categoryMatch = mdContent.match(/category:\s*([^#\n]+)/i);
     if (categoryMatch && categoryMatch[1]) {
@@ -554,6 +560,35 @@ function updateModPageElements(mod, modVersion, modDetails) {
                     overviewSection.append(tempDiv);
                 }
             }
+        }
+    }
+
+    // Update DOWNLOAD BUTTON
+    const downloadButton = document.querySelector('.quick-action-btn.download-btn');
+    if (downloadButton) {
+        // Check if modDetails has a download link
+        if (modDetails && modDetails.download) {
+            // Set the href to the download link from the MD file
+            downloadButton.href = modDetails.download;
+            // Make sure it opens in a new tab
+            downloadButton.target = '_blank';
+            downloadButton.rel = 'noopener noreferrer';
+        } else if (mod.modVersion) {
+            // Fallback: use modVersion as download link if available
+            downloadButton.href = mod.modVersion;
+            downloadButton.target = '_blank';
+            downloadButton.rel = 'noopener noreferrer';
+        } else {
+            // If no download link available, disable the button or show a message
+            downloadButton.href = '#';
+            downloadButton.style.opacity = '0.6';
+            downloadButton.style.cursor = 'not-allowed';
+            downloadButton.title = 'Download link not available';
+            // Add a click handler to prevent navigation
+            downloadButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                alert('Download link not available for this mod yet.');
+            });
         }
     }
 
