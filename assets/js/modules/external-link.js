@@ -26,7 +26,8 @@ document.addEventListener('DOMContentLoaded', function() {
             'no-external-warning',
             'brand-logo',
             'system-status',
-            'gallery-thumbnail'
+            'gallery-thumbnail',
+            'download-btn'
         ],
         rememberChoiceKey: 'heatlabs_external_links',
         maxRememberedChoices: 50,
