@@ -214,6 +214,7 @@ function parseModDetails(mdContent) {
                 if (enabled) {
                     let icon = cardMatch[2].trim();
                     icon = icon.replace(/<!--[\s\S]*?-->/g, '').trim();
+                    icon = icon.replace(/\s+/g, ' ').trim();
                     details.features.cards.push({
                         icon: icon,
                         name: cardMatch[3].trim(),
@@ -231,6 +232,7 @@ function parseModDetails(mdContent) {
                         const iconMatch = cardText.match(/icon:\s*([^\n]*)/i);
                         if (iconMatch) {
                             icon = iconMatch[1].trim().replace(/<!--[\s\S]*?-->/g, '').trim();
+                            icon = icon.replace(/\s+/g, ' ').trim();
                         }
                         const nameMatch = cardText.match(/name:\s*([^\n]+)/i);
                         const descMatch = cardText.match(/description:\s*([^\n]+)/i);
@@ -683,13 +685,15 @@ function updateFeatureCards(modDetails) {
         const hasIcon = iconText.trim() !== '' &&
                        iconText.trim() !== '#' &&
                        !iconText.includes('fontawesome-icon-placeholder') &&
-                       !iconText.includes('<!--') &&
-                       !iconText.includes('-->') &&
                        !iconText.includes('Use fontawesome icons only');
+
+        console.log('Card icon:', iconText, 'Has icon:', hasIcon);
 
         let iconWrapperHTML = '';
         if (hasIcon) {
             iconWrapperHTML = `<div class="icon-wrapper" style="display: flex !important;">${iconText}</div>`;
+        } else {
+            iconWrapperHTML = `<div class="icon-wrapper" style="display: flex !important;"><i class="fa-solid fa-cube"></i></div>`;
         }
 
         cardsHTML += `
