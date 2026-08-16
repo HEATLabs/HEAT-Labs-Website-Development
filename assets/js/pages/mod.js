@@ -179,9 +179,7 @@ async function fetchModData(modId, modSlug) {
             try {
                 const detailsResponse = await fetch(mod.details);
                 const detailsText = await detailsResponse.text();
-                console.log('MD file content:', detailsText);
                 modDetails = parseModDetails(detailsText);
-                console.log('Parsed modDetails:', modDetails);
             } catch (error) {
                 console.warn('Could not fetch mod details:', error);
             }
