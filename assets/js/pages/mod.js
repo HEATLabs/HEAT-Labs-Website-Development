@@ -74,9 +74,7 @@ async function fetchViewCount() {
         // Get the tracking pixel URL from the meta tag
         const trackingPixel = document.querySelector('.heatlabs-tracking-pixel');
         if (!trackingPixel || !trackingPixel.src) {
-            return {
-                totalViews: 0
-            };
+            return { totalViews: 0 };
         }
 
         // Extract the image filename from the tracking pixel URL
@@ -92,51 +90,31 @@ async function fetchViewCount() {
         return await response.json();
     } catch (error) {
         console.error('Error loading view count:', error);
-        return {
-            totalViews: 0
-        }; // Return 0 if there's an error
+        return { totalViews: 0 };
     }
 }
 
 // Function to fetch GitHub release version from API
 async function fetchGitHubVersion(githubUrl) {
     try {
-        // Extract owner and repo from GitHub URL
-        // Handle different GitHub URL formats
         let apiUrl;
-
         if (githubUrl.includes('api.github.com/repos')) {
-            // Already an API URL
             apiUrl = githubUrl;
         } else if (githubUrl.includes('github.com')) {
-            // Convert to API URL
             const urlParts = githubUrl.replace('https://github.com/', '').split('/');
             const owner = urlParts[0];
             const repo = urlParts[1];
             apiUrl = `https://api.github.com/repos/${owner}/${repo}/releases/latest`;
         } else {
-            // Not a GitHub URL, return as is
             return githubUrl;
         }
-
         const response = await fetch(apiUrl);
-
         if (!response.ok) {
-            // If the request fails (e.g., rate limited, no releases), return the original URL
             console.warn('Failed to fetch GitHub version:', response.status);
             return githubUrl;
         }
-
         const data = await response.json();
-
-        // Extract version from tag_name or name
-        if (data.tag_name) {
-            return data.tag_name;
-        } else if (data.name) {
-            return data.name;
-        } else {
-            return githubUrl;
-        }
+        return data.tag_name || data.name || githubUrl;
     } catch (error) {
         console.error('Error fetching GitHub version:', error);
         return githubUrl;
@@ -146,34 +124,23 @@ async function fetchGitHubVersion(githubUrl) {
 // Function to fetch mod data based on ID or slug
 async function fetchModData(modId, modSlug) {
     try {
-        // Fetch the mods.json
         const modsResponse = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/mods.json');
         const modsData = await modsResponse.json();
-
-        // Find the mod with matching ID or slug
         let mod = null;
-
         if (modId) {
             mod = modsData.find(m => m.id.toString() === modId.toString());
         }
-
         if (!mod && modSlug) {
-            // Try to match by slug (could be the name or a URL slug)
             mod = modsData.find(m => {
-                // Check if slug matches the mod name (case insensitive)
                 const slugMatches = m.slug && m.slug.toLowerCase().includes(modSlug.toLowerCase());
-                // Check if name matches (case insensitive)
                 const nameMatches = m.name.toLowerCase().replace(/\s+/g, '-') === modSlug.toLowerCase();
                 return slugMatches || nameMatches;
             });
         }
-
         if (!mod) {
             console.error('Mod not found with ID:', modId, 'or slug:', modSlug);
             return;
         }
-
-        // Fetch detailed mod data from MD file if available
         let modDetails = null;
         if (mod.details) {
             try {
@@ -184,16 +151,11 @@ async function fetchModData(modId, modSlug) {
                 console.warn('Could not fetch mod details:', error);
             }
         }
-
-        // Fetch GitHub version if modVersion is a GitHub URL
         let modVersion = mod.modVersion || 'Info coming soon';
         if (modVersion && modVersion.includes('github.com')) {
             modVersion = await fetchGitHubVersion(modVersion);
         }
-
-        // Update page elements with mod data
         updateModPageElements(mod, modVersion, modDetails);
-
     } catch (error) {
         console.error('Error fetching mod data:', error);
     }
@@ -203,13 +165,11 @@ async function fetchModData(modId, modSlug) {
 function parseModDetails(mdContent) {
     const details = {};
 
-    // Extract download link
     const downloadMatch = mdContent.match(/^download:\s*(.+)$/m);
     if (downloadMatch && downloadMatch[1]) {
         details.download = downloadMatch[1].trim();
     }
 
-    // Extract category
     const categoryMatch = mdContent.match(/category:\s*([^#\n]+)/i);
     if (categoryMatch && categoryMatch[1]) {
         const categories = categoryMatch[1].split(',').map(cat => cat.trim());
@@ -217,53 +177,97 @@ function parseModDetails(mdContent) {
         details.category = categories[0];
     }
 
-    // Extract type
     const typeMatch = mdContent.match(/type:\s*([^#\n]+)/i);
     if (typeMatch && typeMatch[1]) {
         details.type = typeMatch[1].trim();
     }
 
-    // Extract compatible version (game version)
     const versionMatch = mdContent.match(/compatible-version:\s*([^\n]+)/i);
     if (versionMatch && versionMatch[1]) {
         details.gameVersion = versionMatch[1].trim();
     }
 
-    // Extract description from the top-level description field
     const descriptionMatch = mdContent.match(/^description:\s*(.+)$/m);
     if (descriptionMatch && descriptionMatch[1]) {
         details.description = descriptionMatch[1].trim();
+    }
+
+    // Extract features
+    details.features = {
+        enabled: false,
+        cards: []
+    };
+
+    const featuresEnabledMatch = mdContent.match(/features:[\s\S]*?enabled:\s*(true|false)/i);
+    if (featuresEnabledMatch) {
+        details.features.enabled = featuresEnabledMatch[1].toLowerCase() === 'true';
+    }
+
+    if (details.features.enabled) {
+        const cardsMatch = mdContent.match(/features:[\s\S]*?cards:([\s\S]*?)(?=\n\w+:|$)/i);
+        if (cardsMatch && cardsMatch[1]) {
+            const cardsContent = cardsMatch[1];
+            const cardRegex = /-\s*enabled:\s*(true|false)\s*icon:\s*([^\n]*)\s*name:\s*([^\n]+)\s*description:\s*([^\n]+)/gi;
+            let cardMatch;
+            while ((cardMatch = cardRegex.exec(cardsContent)) !== null) {
+                const enabled = cardMatch[1].toLowerCase() === 'true';
+                if (enabled) {
+                    let icon = cardMatch[2].trim();
+                    icon = icon.replace(/<!--[\s\S]*?-->/g, '').trim();
+                    details.features.cards.push({
+                        icon: icon,
+                        name: cardMatch[3].trim(),
+                        description: cardMatch[4].trim()
+                    });
+                }
+            }
+            if (details.features.cards.length === 0) {
+                const cardEntries = cardsContent.split('- enabled:');
+                for (let i = 1; i < cardEntries.length; i++) {
+                    const cardText = cardEntries[i];
+                    const enabledMatch = cardText.match(/^\s*(true|false)/i);
+                    if (enabledMatch && enabledMatch[1].toLowerCase() === 'true') {
+                        let icon = '';
+                        const iconMatch = cardText.match(/icon:\s*([^\n]*)/i);
+                        if (iconMatch) {
+                            icon = iconMatch[1].trim().replace(/<!--[\s\S]*?-->/g, '').trim();
+                        }
+                        const nameMatch = cardText.match(/name:\s*([^\n]+)/i);
+                        const descMatch = cardText.match(/description:\s*([^\n]+)/i);
+                        if (nameMatch && descMatch) {
+                            details.features.cards.push({
+                                icon: icon,
+                                name: nameMatch[1].trim(),
+                                description: descMatch[1].trim()
+                            });
+                        }
+                    }
+                }
+            }
+            if (details.features.cards.length > 4) {
+                details.features.cards = details.features.cards.slice(0, 4);
+            }
+        }
     }
 
     // Extract support section
     details.support = {
         enabled: false,
         description: '',
-        feedback: {
-            enabled: false,
-            name: '',
-            url: ''
-        },
-        support: {
-            enabled: false,
-            name: '',
-            url: ''
-        }
+        feedback: { enabled: false, name: '', url: '' },
+        support: { enabled: false, name: '', url: '' }
     };
 
-    // Check if support is enabled
     const supportEnabledMatch = mdContent.match(/support:[\s\S]*?enabled:\s*(true|false)/i);
     if (supportEnabledMatch) {
         details.support.enabled = supportEnabledMatch[1].toLowerCase() === 'true';
     }
 
-    // Extract support description
     const supportDescMatch = mdContent.match(/support:[\s\S]*?description:\s*(.+?)(?=\n\s*\w+:|$)/i);
     if (supportDescMatch && supportDescMatch[1]) {
         details.support.description = supportDescMatch[1].trim();
     }
 
-    // Extract feedback info
     const feedbackMatch = mdContent.match(/feedback:[\s\S]*?enabled:\s*(true|false)[\s\S]*?name:\s*([^\n]+)[\s\S]*?url:\s*([^\n]+)/i);
     if (feedbackMatch) {
         details.support.feedback.enabled = feedbackMatch[1].toLowerCase() === 'true';
@@ -271,7 +275,6 @@ function parseModDetails(mdContent) {
         details.support.feedback.url = feedbackMatch[3].trim();
     }
 
-    // Extract support info (Discord, etc.)
     const supportInfoMatch = mdContent.match(/support:[\s\S]*?support:[\s\S]*?enabled:\s*(true|false)[\s\S]*?name:\s*([^\n]+)[\s\S]*?url:\s*([^\n]+)/i);
     if (supportInfoMatch) {
         details.support.support.enabled = supportInfoMatch[1].toLowerCase() === 'true';
@@ -279,19 +282,17 @@ function parseModDetails(mdContent) {
         details.support.support.url = supportInfoMatch[3].trim();
     }
 
-    // Extract overview description from the overview section
+    // Extract overview
     const overviewDescMatch = mdContent.match(/overview:[\s\S]*?description:\s*(.+?)(?=\n\s*\w+:|$)/i);
     if (overviewDescMatch && overviewDescMatch[1]) {
         details.overviewDescription = overviewDescMatch[1].trim();
     }
 
-    // Extract overview layout
     const layoutMatch = mdContent.match(/overview:[\s\S]*?layout:\s*([^\n]+)/i);
     if (layoutMatch && layoutMatch[1]) {
         details.overviewLayout = layoutMatch[1].trim();
     }
 
-    // Extract overview images from items array only
     details.overviewImages = [];
     const itemsMatch = mdContent.match(/overview:[\s\S]*?items:([\s\S]*?)(?=\n\s*\w+:|$)/i);
     if (itemsMatch && itemsMatch[1]) {
@@ -313,51 +314,33 @@ function parseModDetails(mdContent) {
         const stepsMatch = installationSection.match(/steps:([\s\S]*?)(?=\n\w+:|$)/i);
         if (stepsMatch) {
             const stepsContent = stepsMatch[1];
-
-            // Try regex approach first
             const stepRegex = /-\s*name:\s*Step\s*#(\d+)\s*description:\s*([^\n]+)(?:\n|$)/gi;
             let stepMatch;
             let foundSteps = false;
-
             while ((stepMatch = stepRegex.exec(stepsContent)) !== null) {
-                const stepNumber = stepMatch[1];
-                const description = stepMatch[2].trim();
                 details.installationSteps.push({
-                    name: `Step #${stepNumber}`,
-                    description: description
+                    name: `Step #${stepMatch[1]}`,
+                    description: stepMatch[2].trim()
                 });
                 foundSteps = true;
             }
-
-            // If regex failed, try manual parsing
             if (!foundSteps) {
                 const lines = stepsContent.split('\n');
                 let currentStep = null;
-
                 for (let i = 0; i < lines.length; i++) {
                     const line = lines[i].trim();
                     if (!line) continue;
-
                     if (line.includes('- name: Step #') || line.includes('- name: Step')) {
-                        if (currentStep) {
-                            details.installationSteps.push(currentStep);
-                        }
-
+                        if (currentStep) details.installationSteps.push(currentStep);
                         const stepNumMatch = line.match(/Step\s*#(\d+)/i) || line.match(/Step\s*(\d+)/i);
                         const stepNumber = stepNumMatch ? stepNumMatch[1] : String(details.installationSteps.length + 1);
-
-                        currentStep = {
-                            name: `Step #${stepNumber}`,
-                            description: ''
-                        };
-                    }
-                    else if (line.includes('description:') && currentStep) {
+                        currentStep = { name: `Step #${stepNumber}`, description: '' };
+                    } else if (line.includes('description:') && currentStep) {
                         const descMatch = line.match(/description:\s*(.+)/i);
                         if (descMatch && descMatch[1]) {
                             currentStep.description = descMatch[1].trim();
                         }
-                    }
-                    else if (currentStep && !line.startsWith('-') && !line.includes(':')) {
+                    } else if (currentStep && !line.startsWith('-') && !line.includes(':')) {
                         if (currentStep.description) {
                             currentStep.description += ' ' + line;
                         } else {
@@ -365,54 +348,42 @@ function parseModDetails(mdContent) {
                         }
                     }
                 }
-
-                if (currentStep) {
-                    details.installationSteps.push(currentStep);
-                }
+                if (currentStep) details.installationSteps.push(currentStep);
             }
         }
     }
 
-    // Extract video showcase data
+    // Extract video showcase
     details.videoShowcase = {
         enabled: false,
         layout: 'none',
         videos: []
     };
 
-    // Check if videoShowcase is enabled
     const videoEnabledMatch = mdContent.match(/videoShowcase:[\s\S]*?enabled:\s*(true|false)/i);
     if (videoEnabledMatch) {
         details.videoShowcase.enabled = videoEnabledMatch[1].toLowerCase() === 'true';
     }
 
-    // Extract video layout
     const videoLayoutMatch = mdContent.match(/videoShowcase:[\s\S]*?layout:\s*([^\n]+)/i);
     if (videoLayoutMatch) {
         details.videoShowcase.layout = videoLayoutMatch[1].trim();
     }
 
-    // Extract videos
     const videosMatch = mdContent.match(/videoShowcase:[\s\S]*?videos:([\s\S]*?)(?=\n\w+:|$)/i);
     if (videosMatch && videosMatch[1]) {
         const videosContent = videosMatch[1];
-
-        // Parse each video item
         const videoRegex = /-\s*title:\s*([^\n]+)\s*thumbnail:\s*([^\n]+)\s*url:\s*([^\n]+)\s*creator:\s*([^\n]+)\s*type:\s*([^\n]+)/gi;
         let videoMatch;
-
         while ((videoMatch = videoRegex.exec(videosContent)) !== null) {
-            const video = {
+            details.videoShowcase.videos.push({
                 title: videoMatch[1].trim(),
                 thumbnail: videoMatch[2].trim(),
                 url: videoMatch[3].trim(),
                 creator: videoMatch[4].trim(),
                 type: videoMatch[5].trim()
-            };
-            details.videoShowcase.videos.push(video);
+            });
         }
-
-        // If regex fails, try a more flexible approach
         if (details.videoShowcase.videos.length === 0) {
             const videoItems = videosContent.split('- title:');
             for (let i = 1; i < videoItems.length; i++) {
@@ -422,16 +393,14 @@ function parseModDetails(mdContent) {
                 const urlMatch = videoText.match(/url:\s*([^\n]+)/);
                 const creatorMatch = videoText.match(/creator:\s*([^\n]+)/);
                 const typeMatch = videoText.match(/type:\s*([^\n]+)/);
-
                 if (titleMatch && thumbnailMatch && urlMatch) {
-                    const video = {
+                    details.videoShowcase.videos.push({
                         title: titleMatch[1].trim(),
                         thumbnail: thumbnailMatch[1].trim(),
                         url: urlMatch[1].trim(),
                         creator: creatorMatch ? creatorMatch[1].trim() : 'Unknown',
                         type: typeMatch ? typeMatch[1].trim() : 'Unknown'
-                    };
-                    details.videoShowcase.videos.push(video);
+                    });
                 }
             }
         }
@@ -441,47 +410,36 @@ function parseModDetails(mdContent) {
 }
 
 function updateModPageElements(mod, modVersion, modDetails) {
-    // Update page title and meta tags
+    // Update page title
     document.title = `${mod.name} - HEAT Labs`;
     const ogTitle = document.querySelector('meta[property="og:title"]');
     if (ogTitle) ogTitle.content = `HEAT Labs - ${mod.name}`;
     const twitterTitle = document.querySelector('meta[name="twitter:title"]');
     if (twitterTitle) twitterTitle.content = `HEAT Labs - ${mod.name}`;
 
-    // Update mod header information
+    // Update mod header
     const modHeader = document.querySelector('.mod-header');
     if (modHeader) {
         const modMeta = modHeader.querySelector('.mod-meta');
-
         if (modMeta) {
             modMeta.innerHTML = '';
-
             let category = mod.category || 'Unknown';
-            if (modDetails && modDetails.category) {
-                category = modDetails.category;
-            }
+            if (modDetails && modDetails.category) category = modDetails.category;
             const categorySpan = document.createElement('span');
             categorySpan.className = 'mod-type-badge';
             categorySpan.textContent = category;
             modMeta.appendChild(categorySpan);
-
             const creatorSpan = document.createElement('span');
             creatorSpan.innerHTML = `<i class="fas fa-users mr-1"></i> ${mod.creator || 'Unknown'}`;
             modMeta.appendChild(creatorSpan);
         }
-
         const modTitle = modHeader.querySelector('.mod-title');
-        if (modTitle) {
-            modTitle.textContent = mod.name;
-        }
-
+        if (modTitle) modTitle.textContent = mod.name;
         const modDescription = modHeader.querySelector('.mod-description');
-        if (modDescription && mod.description) {
-            modDescription.textContent = mod.description;
-        }
+        if (modDescription && mod.description) modDescription.textContent = mod.description;
     }
 
-    // Update "Mod Introduction" text
+    // Update mod introduction text
     const modIntroParagraph = document.querySelector('#mod-introduction');
     if (modIntroParagraph) {
         const introText = modIntroParagraph.closest('.mb-12')?.querySelector('.text-center');
@@ -497,6 +455,9 @@ function updateModPageElements(mod, modVersion, modDetails) {
         modImage.alt = mod.name;
     }
 
+    // Update feature cards
+    updateFeatureCards(modDetails);
+
     // Update overview section
     const overviewSection = document.getElementById('standard');
     if (overviewSection && modDetails) {
@@ -504,108 +465,40 @@ function updateModPageElements(mod, modVersion, modDetails) {
         if (overviewParagraph && modDetails.overviewDescription) {
             overviewParagraph.textContent = modDetails.overviewDescription;
         }
-
         const layout = modDetails.overviewLayout || 'none';
         const images = modDetails.overviewImages || [];
-
         const existingGrids = overviewSection.querySelectorAll('.grid');
         existingGrids.forEach(grid => grid.remove());
-
         if (layout !== 'none' && images.length > 0) {
             let layoutHTML = '';
-
             switch (layout) {
                 case 'single':
                     if (images.length >= 1) {
-                        layoutHTML = `
-                            <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
-                                <div>
-                                    <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
-                                </div>
-                            </div>
-                        `;
+                        layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6"><div><img src="${images[0]}" alt="Mod Overview" class="rounded-lg"></div></div>`;
                     }
                     break;
-
                 case 'two':
                     if (images.length >= 2) {
-                        layoutHTML = `
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
-                                <div>
-                                    <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
-                                </div>
-                                <div>
-                                    <img src="${images[1]}" alt="Mod Overview" class="rounded-lg">
-                                </div>
-                            </div>
-                        `;
+                        layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6"><div><img src="${images[0]}" alt="Mod Overview" class="rounded-lg"></div><div><img src="${images[1]}" alt="Mod Overview" class="rounded-lg"></div></div>`;
                     } else if (images.length === 1) {
-                        layoutHTML = `
-                            <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
-                                <div>
-                                    <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
-                                </div>
-                            </div>
-                        `;
+                        layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6"><div><img src="${images[0]}" alt="Mod Overview" class="rounded-lg"></div></div>`;
                     }
                     break;
-
                 case 'heroPlusTwo':
                     if (images.length >= 3) {
-                        layoutHTML = `
-                            <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
-                                <div>
-                                    <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
-                                <div>
-                                    <img src="${images[1]}" alt="Mod Overview" class="rounded-lg">
-                                </div>
-                                <div>
-                                    <img src="${images[2]}" alt="Mod Overview" class="rounded-lg">
-                                </div>
-                            </div>
-                        `;
+                        layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6"><div><img src="${images[0]}" alt="Mod Overview" class="rounded-lg"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6"><div><img src="${images[1]}" alt="Mod Overview" class="rounded-lg"></div><div><img src="${images[2]}" alt="Mod Overview" class="rounded-lg"></div></div>`;
                     } else if (images.length === 2) {
-                        layoutHTML = `
-                            <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
-                                <div>
-                                    <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
-                                <div>
-                                    <img src="${images[1]}" alt="Mod Overview" class="rounded-lg">
-                                </div>
-                            </div>
-                        `;
+                        layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6"><div><img src="${images[0]}" alt="Mod Overview" class="rounded-lg"></div></div><div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6"><div><img src="${images[1]}" alt="Mod Overview" class="rounded-lg"></div></div>`;
                     } else if (images.length === 1) {
-                        layoutHTML = `
-                            <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
-                                <div>
-                                    <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
-                                </div>
-                            </div>
-                        `;
+                        layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6"><div><img src="${images[0]}" alt="Mod Overview" class="rounded-lg"></div></div>`;
                     }
                     break;
-
                 case 'grid':
                     const gridImages = images.slice(0, 4);
-                    const gridItems = gridImages.map(img => `
-                            <div>
-                                <img src="${img}" alt="Mod Overview" class="rounded-lg">
-                            </div>
-                        `).join('');
-                    layoutHTML = `
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
-                                ${gridItems}
-                            </div>
-                        `;
+                    const gridItems = gridImages.map(img => `<div><img src="${img}" alt="Mod Overview" class="rounded-lg"></div>`).join('');
+                    layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">${gridItems}</div>`;
                     break;
             }
-
             if (layoutHTML) {
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = layoutHTML;
@@ -621,31 +514,25 @@ function updateModPageElements(mod, modVersion, modDetails) {
         }
     }
 
-    // Update video showcase section
+    // Update video showcase
     updateVideoShowcase(modDetails);
 
-    // Update DOWNLOAD BUTTON
+    // Update download button
     const downloadButton = document.querySelector('.quick-action-btn.download-btn');
     if (downloadButton) {
-        // Check if modDetails has a download link
         if (modDetails && modDetails.download) {
-            // Set the href to the download link from the MD file
             downloadButton.href = modDetails.download;
-            // Make sure it opens in a new tab
             downloadButton.target = '_blank';
             downloadButton.rel = 'noopener noreferrer';
         } else if (mod.modVersion) {
-            // Fallback: use modVersion as download link if available
             downloadButton.href = mod.modVersion;
             downloadButton.target = '_blank';
             downloadButton.rel = 'noopener noreferrer';
         } else {
-            // If no download link available, disable the button or show a message
             downloadButton.href = '#';
             downloadButton.style.opacity = '0.6';
             downloadButton.style.cursor = 'not-allowed';
             downloadButton.title = 'Download link not available';
-            // Add a click handler to prevent navigation
             downloadButton.addEventListener('click', function(e) {
                 e.preventDefault();
                 alert('Download link not available for this mod yet.');
@@ -661,33 +548,22 @@ function updateModPageElements(mod, modVersion, modDetails) {
             const quickFactsList = card.querySelector('ul');
             if (quickFactsList) {
                 quickFactsList.innerHTML = '';
-
                 let category = mod.category || 'Info coming soon';
-                if (modDetails && modDetails.categoryFull) {
-                    category = modDetails.categoryFull;
-                } else if (modDetails && modDetails.category) {
-                    category = modDetails.category;
-                }
+                if (modDetails && modDetails.categoryFull) category = modDetails.categoryFull;
+                else if (modDetails && modDetails.category) category = modDetails.category;
                 const categoryItem = document.createElement('li');
                 categoryItem.innerHTML = `<strong>Category:</strong> ${category}`;
                 quickFactsList.appendChild(categoryItem);
-
                 let type = 'Info coming soon';
-                if (modDetails && modDetails.type) {
-                    type = modDetails.type;
-                }
+                if (modDetails && modDetails.type) type = modDetails.type;
                 const typeItem = document.createElement('li');
                 typeItem.innerHTML = `<strong>Type:</strong> ${type}`;
                 quickFactsList.appendChild(typeItem);
-
                 let gameVersion = 'Info coming soon';
-                if (modDetails && modDetails.gameVersion) {
-                    gameVersion = modDetails.gameVersion;
-                }
+                if (modDetails && modDetails.gameVersion) gameVersion = modDetails.gameVersion;
                 const gameVersionItem = document.createElement('li');
                 gameVersionItem.innerHTML = `<strong>Game Version:</strong> ${gameVersion}`;
                 quickFactsList.appendChild(gameVersionItem);
-
                 const displayVersion = modVersion || 'Info coming soon';
                 const modVersionItem = document.createElement('li');
                 modVersionItem.innerHTML = `<strong>Mod Version:</strong> ${displayVersion}`;
@@ -696,34 +572,26 @@ function updateModPageElements(mod, modVersion, modDetails) {
         }
     });
 
-    // Update Support & Feedback section
+    // Update Support & Feedback
     updateSupportSection(modDetails);
 
     // Update installation steps
     const faqContainer = document.querySelector('.faq-container');
     if (faqContainer && modDetails && modDetails.installationSteps && modDetails.installationSteps.length > 0) {
         faqContainer.innerHTML = '';
-
         modDetails.installationSteps.forEach((step, index) => {
             const faqItem = document.createElement('div');
             faqItem.className = `faq-item ${index === 0 ? 'active' : ''}`;
-
             const faqQuestion = document.createElement('div');
             faqQuestion.className = 'faq-question';
-            faqQuestion.innerHTML = `
-                <h4>${step.name}</h4>
-                <i class="fas fa-chevron-down"></i>
-            `;
-
+            faqQuestion.innerHTML = `<h4>${step.name}</h4><i class="fas fa-chevron-down"></i>`;
             const faqAnswer = document.createElement('div');
             faqAnswer.className = `faq-answer ${index === 0 ? 'active' : ''}`;
             faqAnswer.innerHTML = `<p>${step.description}</p>`;
-
             faqItem.appendChild(faqQuestion);
             faqItem.appendChild(faqAnswer);
             faqContainer.appendChild(faqItem);
         });
-
         const newFaqItems = faqContainer.querySelectorAll('.faq-item');
         newFaqItems.forEach(item => {
             const question = item.querySelector('.faq-question');
@@ -735,7 +603,6 @@ function updateModPageElements(mod, modVersion, modDetails) {
                         if (answer) answer.classList.remove('active');
                     }
                 });
-
                 item.classList.toggle('active');
                 const answer = item.querySelector('.faq-answer');
                 if (answer) answer.classList.toggle('active');
@@ -743,49 +610,129 @@ function updateModPageElements(mod, modVersion, modDetails) {
         });
     }
 
-    // Update "Related Mods" sidebar
     updateRelatedMods(mod);
+}
+
+// Function to update feature cards with force visibility
+function updateFeatureCards(modDetails) {
+    console.log('updateFeatureCards called', modDetails);
+
+    // Find the mod introduction section
+    const modIntroSection = document.querySelector('#mod-introduction');
+    if (!modIntroSection) {
+        console.warn('Could not find #mod-introduction');
+        return;
+    }
+
+    const parentContainer = modIntroSection.closest('.mb-12');
+    if (!parentContainer) {
+        console.warn('Could not find parent .mb-12 container');
+        return;
+    }
+
+    // Force the parent container to be visible
+    parentContainer.style.display = 'block';
+    parentContainer.style.visibility = 'visible';
+    parentContainer.style.opacity = '1';
+
+    // Find or create the grid
+    let existingGrid = parentContainer.querySelector('.grid.gap-6.my-8.text-center');
+
+    if (!existingGrid) {
+        console.log('Creating new grid element');
+        existingGrid = document.createElement('div');
+        existingGrid.className = 'grid gap-6 my-8 text-center';
+        const modImage = parentContainer.querySelector('.mod-image');
+        if (modImage) {
+            modImage.after(existingGrid);
+        } else {
+            parentContainer.appendChild(existingGrid);
+        }
+    }
+
+    // If no features, hide and return
+    if (!modDetails || !modDetails.features || !modDetails.features.enabled || modDetails.features.cards.length === 0) {
+        console.log('Features disabled or no cards, hiding grid');
+        existingGrid.style.display = 'none';
+        return;
+    }
+
+    // Force the grid to be visible with !important styles
+    existingGrid.style.display = 'grid';
+    existingGrid.style.visibility = 'visible';
+    existingGrid.style.opacity = '1';
+    existingGrid.style.height = 'auto';
+    existingGrid.style.overflow = 'visible';
+    existingGrid.style.width = '100%';
+
+    const cards = modDetails.features.cards;
+    const cardCount = cards.length;
+
+    console.log(`Rendering ${cardCount} feature cards`);
+
+    // Set grid columns
+    let gridCols = 'grid-cols-1 md:grid-cols-1';
+    if (cardCount === 2) gridCols = 'grid-cols-1 md:grid-cols-2';
+    else if (cardCount === 3) gridCols = 'grid-cols-1 md:grid-cols-3';
+    else if (cardCount >= 4) gridCols = 'grid-cols-1 md:grid-cols-2';
+
+    // Build cards
+    let cardsHTML = '';
+    cards.forEach(card => {
+        const iconText = card.icon || '';
+        const hasIcon = iconText.trim() !== '' &&
+                       iconText.trim() !== '#' &&
+                       !iconText.includes('fontawesome-icon-placeholder') &&
+                       !iconText.includes('<!--') &&
+                       !iconText.includes('-->') &&
+                       !iconText.includes('Use fontawesome icons only');
+
+        let iconWrapperHTML = '';
+        if (hasIcon) {
+            iconWrapperHTML = `<div class="icon-wrapper" style="display: flex !important;">${iconText}</div>`;
+        }
+
+        cardsHTML += `
+            <div class="feature-card" style="display: block !important; visibility: visible !important; opacity: 1 !important; width: 100% !important;">
+                ${iconWrapperHTML}
+                <h3 style="display: block !important; visibility: visible !important; opacity: 1 !important;">${card.name}</h3>
+                <p style="display: block !important; visibility: visible !important; opacity: 1 !important;">${card.description}</p>
+            </div>
+        `;
+    });
+
+    existingGrid.className = `grid ${gridCols} gap-6 my-8 text-center`;
+    existingGrid.style.display = 'grid';
+    existingGrid.innerHTML = cardsHTML;
+
+    console.log('Feature cards rendered successfully');
 }
 
 // Function to update the Support & Feedback section
 function updateSupportSection(modDetails) {
-    // Find the Support & Feedback card
     const sidebarCards = document.querySelectorAll('.sidebar-card');
     let supportCard = null;
-
     sidebarCards.forEach(card => {
         const heading = card.querySelector('h3');
         if (heading && heading.textContent === 'Support & Feedback') {
             supportCard = card;
         }
     });
-
     if (!supportCard) return;
-
-    // If support is disabled in MD, hide the entire card
     if (!modDetails || !modDetails.support || !modDetails.support.enabled) {
         supportCard.style.display = 'none';
         return;
     }
-
-    // Show the card if it was hidden
     supportCard.style.display = '';
-
-    // Update the description text
     const supportContent = supportCard.querySelector('.support-content p');
     if (supportContent && modDetails.support.description) {
         supportContent.textContent = modDetails.support.description;
     } else if (supportContent) {
         supportContent.textContent = 'Found a bug or have a suggestion for this mod? We\'d love to hear from you!';
     }
-
-    // Update the support buttons
     const supportButtonsContainer = supportCard.querySelector('.support-buttons');
     if (supportButtonsContainer) {
-        // Clear existing buttons
         supportButtonsContainer.innerHTML = '';
-
-        // Add feedback button if enabled
         if (modDetails.support.feedback && modDetails.support.feedback.enabled) {
             const feedbackBtn = document.createElement('a');
             feedbackBtn.href = modDetails.support.feedback.url || '#';
@@ -795,8 +742,6 @@ function updateSupportSection(modDetails) {
             feedbackBtn.innerHTML = `<span>${modDetails.support.feedback.name || 'Feedback'}</span>`;
             supportButtonsContainer.appendChild(feedbackBtn);
         }
-
-        // Add support button if enabled
         if (modDetails.support.support && modDetails.support.support.enabled) {
             const supportBtn = document.createElement('a');
             supportBtn.href = modDetails.support.support.url || '#';
@@ -806,8 +751,6 @@ function updateSupportSection(modDetails) {
             supportBtn.innerHTML = `<span>${modDetails.support.support.name || 'Support'}</span>`;
             supportButtonsContainer.appendChild(supportBtn);
         }
-
-        // If no buttons were added, show a message or hide the buttons container
         if (supportButtonsContainer.children.length === 0) {
             supportButtonsContainer.innerHTML = '<p style="font-size: 0.85rem; color: #6b7280; text-align: center;">No support channels available</p>';
         }
@@ -818,170 +761,76 @@ function updateSupportSection(modDetails) {
 function updateVideoShowcase(modDetails) {
     const videoShowcaseContainer = document.querySelector('#video-showcase');
     if (!videoShowcaseContainer) return;
-
-    // Get the parent container
     const parentContainer = videoShowcaseContainer.closest('.mb-12');
     if (!parentContainer) return;
-
-    // Remove all existing video grids except the container itself
     const existingGrids = parentContainer.querySelectorAll('.grid');
     existingGrids.forEach(grid => grid.remove());
-
-    // Check if video showcase is enabled and has videos
     if (!modDetails || !modDetails.videoShowcase || !modDetails.videoShowcase.enabled) {
-        // If disabled, only show the "help improve" message
         const helpMessage = document.createElement('div');
         helpMessage.className = 'grid grid-cols-1 md:grid-cols-1 gap-8 my-8';
-        helpMessage.innerHTML = `
-            <div class="video-card">
-                <div class="video-info text-center">
-                    <h4>Want to help improve this mod page?</h4>
-                    <p class="video-description">Share videos from your favorite creators that showcase this mod, or send in your own! If you're a content creator and have featured this mod in your content, reach out to us or the mod's creator, we'd love to highlight your work here!</p>
-                </div>
-            </div>
-        `;
+        helpMessage.innerHTML = `<div class="video-card"><div class="video-info text-center"><h4>Want to help improve this mod page?</h4><p class="video-description">Share videos from your favorite creators that showcase this mod, or send in your own! If you're a content creator and have featured this mod in your content, reach out to us or the mod's creator, we'd love to highlight your work here!</p></div></div>`;
         parentContainer.appendChild(helpMessage);
         return;
     }
-
     const layout = modDetails.videoShowcase.layout || 'none';
     const videos = modDetails.videoShowcase.videos || [];
-    const videoCount = videos.length;
-
-    // If no videos or layout is none, just show the help message
-    if (videoCount === 0 || layout === 'none') {
+    if (videos.length === 0 || layout === 'none') {
         const helpMessage = document.createElement('div');
         helpMessage.className = 'grid grid-cols-1 md:grid-cols-1 gap-8 my-8';
-        helpMessage.innerHTML = `
-            <div class="video-card">
-                <div class="video-info text-center">
-                    <h4>Want to help improve this mod page?</h4>
-                    <p class="video-description">Share videos from your favorite creators that showcase this mod, or send in your own! If you're a content creator and have featured this mod in your content, reach out to us or the mod's creator, we'd love to highlight your work here!</p>
-                </div>
-            </div>
-        `;
+        helpMessage.innerHTML = `<div class="video-card"><div class="video-info text-center"><h4>Want to help improve this mod page?</h4><p class="video-description">Share videos from your favorite creators that showcase this mod, or send in your own! If you're a content creator and have featured this mod in your content, reach out to us or the mod's creator, we'd love to highlight your work here!</p></div></div>`;
         parentContainer.appendChild(helpMessage);
         return;
     }
-
-    // Generate video HTML based on layout
     let videoHTML = '';
-
     switch (layout) {
-        case 'single':
-            videoHTML = generateSingleLayout(videos.slice(0, 1));
-            break;
-        case 'two':
-            videoHTML = generateTwoLayout(videos.slice(0, 2));
-            break;
-        case 'heroPlusTwo':
-            videoHTML = generateHeroPlusTwoLayout(videos.slice(0, 3));
-            break;
-        case 'grid':
-            videoHTML = generateGridLayout(videos.slice(0, 4));
-            break;
-        default:
-            videoHTML = generateGridLayout(videos.slice(0, 4));
+        case 'single': videoHTML = generateSingleLayout(videos.slice(0, 1)); break;
+        case 'two': videoHTML = generateTwoLayout(videos.slice(0, 2)); break;
+        case 'heroPlusTwo': videoHTML = generateHeroPlusTwoLayout(videos.slice(0, 3)); break;
+        case 'grid': videoHTML = generateGridLayout(videos.slice(0, 4)); break;
+        default: videoHTML = generateGridLayout(videos.slice(0, 4));
     }
-
-    // Append the video HTML to the container
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = videoHTML;
-
-    // Append each grid element
     while (tempDiv.firstChild) {
         parentContainer.appendChild(tempDiv.firstChild);
     }
-
-    // Add the help message at the bottom
     const helpMessage = document.createElement('div');
     helpMessage.className = 'grid grid-cols-1 md:grid-cols-1 gap-8 my-8';
-    helpMessage.innerHTML = `
-        <div class="video-card">
-            <div class="video-info text-center">
-                <h4>Want to help improve this mod page?</h4>
-                <p class="video-description">Share videos from your favorite creators that showcase this mod, or send in your own! If you're a content creator and have featured this mod in your content, reach out to us or the mod's creator, we'd love to highlight your work here!</p>
-            </div>
-        </div>
-    `;
+    helpMessage.innerHTML = `<div class="video-card"><div class="video-info text-center"><h4>Want to help improve this mod page?</h4><p class="video-description">Share videos from your favorite creators that showcase this mod, or send in your own! If you're a content creator and have featured this mod in your content, reach out to us or the mod's creator, we'd love to highlight your work here!</p></div></div>`;
     parentContainer.appendChild(helpMessage);
 }
 
-// Helper function to generate a video card HTML
 function generateVideoCard(video) {
-    return `
-        <div class="video-card">
-            <div class="video-thumbnail">
-                <iframe width="100%" height="100%" src="${video.url}" title="${video.title}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
-                ></iframe>
-            </div>
-            <div class="video-info">
-                <h4>${video.title}</h4>
-                <p class="video-author">by ${video.creator}</p>
-                ${video.type ? `` : ''}
-            </div>
-        </div>
-    `;
+    return `<div class="video-card"><div class="video-thumbnail"><iframe width="100%" height="100%" src="${video.url}" title="${video.title}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"></iframe></div><div class="video-info"><h4>${video.title}</h4><p class="video-author">by ${video.creator}</p></div></div>`;
 }
 
-// Layout generators
 function generateSingleLayout(videos) {
     if (videos.length === 0) return '';
-
-    return `
-        <div class="grid grid-cols-1 md:grid-cols-1 gap-8 my-8">
-            ${videos.map(video => generateVideoCard(video)).join('')}
-        </div>
-    `;
+    return `<div class="grid grid-cols-1 md:grid-cols-1 gap-8 my-8">${videos.map(v => generateVideoCard(v)).join('')}</div>`;
 }
 
 function generateTwoLayout(videos) {
     if (videos.length === 0) return '';
-
-    return `
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-8">
-            ${videos.map(video => generateVideoCard(video)).join('')}
-        </div>
-    `;
+    return `<div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-8">${videos.map(v => generateVideoCard(v)).join('')}</div>`;
 }
 
 function generateHeroPlusTwoLayout(videos) {
     if (videos.length === 0) return '';
-
     let html = '';
-
-    // Hero video (first video)
     if (videos.length >= 1) {
-        html += `
-            <div class="grid grid-cols-1 md:grid-cols-1 gap-8 my-8">
-                ${generateVideoCard(videos[0])}
-            </div>
-        `;
+        html += `<div class="grid grid-cols-1 md:grid-cols-1 gap-8 my-8">${generateVideoCard(videos[0])}</div>`;
     }
-
-    // Two additional videos
     if (videos.length >= 2) {
         const remainingVideos = videos.slice(1, 3);
-        html += `
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-8">
-                ${remainingVideos.map(video => generateVideoCard(video)).join('')}
-            </div>
-        `;
+        html += `<div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-8">${remainingVideos.map(v => generateVideoCard(v)).join('')}</div>`;
     }
-
     return html;
 }
 
 function generateGridLayout(videos) {
     if (videos.length === 0) return '';
-
     const colClass = videos.length <= 2 ? 'md:grid-cols-1' : 'md:grid-cols-2';
-
-    return `
-        <div class="grid grid-cols-1 ${colClass} gap-8 my-8">
-            ${videos.map(video => generateVideoCard(video)).join('')}
-        </div>
-    `;
+    return `<div class="grid grid-cols-1 ${colClass} gap-8 my-8">${videos.map(v => generateVideoCard(v)).join('')}</div>`;
 }
 
 // Function to fetch and display related mods
@@ -989,50 +838,31 @@ async function updateRelatedMods(currentMod) {
     try {
         const modsResponse = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/mods.json');
         const modsData = await modsResponse.json();
-
-        // Find mods from the same creator or same category
         const relatedMods = modsData.filter(m =>
             m.id !== currentMod.id &&
             (m.creator === currentMod.creator || m.category === currentMod.category)
         ).slice(0, 3);
-
         const relatedGuidesContainer = document.querySelector('.sidebar-card .related-guide')?.parentElement;
         if (relatedGuidesContainer) {
-            // Clear existing related guides except the first one which is a placeholder
             const existingGuides = relatedGuidesContainer.querySelectorAll('.related-guide');
             existingGuides.forEach(guide => guide.remove());
-
             if (relatedMods.length > 0) {
-                // Fetch versions for related mods
                 for (const mod of relatedMods) {
                     let modVersion = mod.modVersion || '';
                     if (modVersion && modVersion.includes('github.com')) {
                         modVersion = await fetchGitHubVersion(modVersion);
                     }
-
                     const guideDiv = document.createElement('div');
                     guideDiv.className = 'related-guide';
-                    guideDiv.innerHTML = `
-                        <h4>
-                            <a href="../details/${mod.name.toLowerCase().replace(/\s+/g, '-')}">${mod.name}</a>
-                        </h4>
-                        <p>${mod.category} • by ${mod.creator}</p>
-                        ${modVersion && modVersion !== mod.modVersion ? `<small>${modVersion}</small>` : ''}
-                    `;
+                    guideDiv.innerHTML = `<h4><a href="../details/${mod.name.toLowerCase().replace(/\s+/g, '-')}">${mod.name}</a></h4><p>${mod.category} • by ${mod.creator}</p>${modVersion && modVersion !== mod.modVersion ? `<small>${modVersion}</small>` : ''}`;
                     relatedGuidesContainer.appendChild(guideDiv);
                 }
             } else {
-                // Show "no related mods" message
                 const noModsDiv = document.createElement('div');
                 noModsDiv.className = 'related-guide';
-                noModsDiv.innerHTML = `
-                    <h4>No Related Mods Yet</h4>
-                    <p>Mods from the same creator or similar mods will appear here.</p>
-                `;
+                noModsDiv.innerHTML = `<h4>No Related Mods Yet</h4><p>Mods from the same creator or similar mods will appear here.</p>`;
                 relatedGuidesContainer.appendChild(noModsDiv);
             }
-
-            // Re-add the "View all mods" button
             const buttonDiv = document.createElement('div');
             buttonDiv.className = 'button text-center';
             buttonDiv.innerHTML = `<a href="../index">View all mods</a>`;
@@ -1044,27 +874,19 @@ async function updateRelatedMods(currentMod) {
 }
 
 function initializeModPageElements() {
-    // Initialize image gallery
     initializeImageGallery();
-
-    // FAQ Accordion functionality
     const faqItems = document.querySelectorAll('.faq-item');
     faqItems.forEach(item => {
         const question = item.querySelector('.faq-question');
         question.addEventListener('click', () => {
-            // Close all other FAQ items
             faqItems.forEach(otherItem => {
                 if (otherItem !== item) {
                     otherItem.classList.remove('active');
                 }
             });
-
-            // Toggle current item
             item.classList.toggle('active');
         });
     });
-
-    // Add intersection observer for animated elements if needed
     if ('IntersectionObserver' in window) {
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
@@ -1073,11 +895,7 @@ function initializeModPageElements() {
                     observer.unobserve(entry.target);
                 }
             });
-        }, {
-            threshold: 0.1
-        });
-
-        // Observe any elements that need to animate in
+        }, { threshold: 0.1 });
         document.querySelectorAll('.mod-image, .sidebar-card').forEach(el => {
             observer.observe(el);
         });
@@ -1093,10 +911,7 @@ function initializeImageGallery() {
     const galleryPrevBtn = document.getElementById('galleryPrevBtn');
     const galleryNextBtn = document.getElementById('galleryNextBtn');
 
-    // Collect all images from the page that should be in the gallery
     const galleryImages = [];
-
-    // Add main content images
     document.querySelectorAll('.mod-image img').forEach(img => {
         galleryImages.push({
             src: img.src,
@@ -1104,8 +919,6 @@ function initializeImageGallery() {
             caption: img.nextElementSibling?.textContent || ''
         });
     });
-
-    // Add sidebar gallery images
     document.querySelectorAll('.sidebar-card .gallery-thumbnail img').forEach(img => {
         galleryImages.push({
             src: img.parentElement.href,
@@ -1113,78 +926,58 @@ function initializeImageGallery() {
             caption: img.alt
         });
     });
-
-    // If no images found, don't initialize the gallery
     if (galleryImages.length === 0) return;
 
     let currentImageIndex = 0;
 
-    // Function to open the gallery at a specific index
     function openGallery(index) {
         if (index < 0 || index >= galleryImages.length) return;
-
         currentImageIndex = index;
         updateGalleryImage();
         galleryModal.classList.add('active');
         document.body.style.overflow = 'hidden';
     }
 
-    // Function to update the gallery with current image
     function updateGalleryImage() {
         const currentImage = galleryImages[currentImageIndex];
         galleryMainImage.src = currentImage.src;
         galleryMainImage.alt = currentImage.alt;
         galleryImageCaption.textContent = currentImage.caption;
-
-        // Update active thumbnail
         document.querySelectorAll('.gallery-thumbnail-item').forEach((thumb, idx) => {
             thumb.classList.toggle('active', idx === currentImageIndex);
         });
-
-        // Scroll thumbnails to show active one
         const activeThumb = document.querySelector('.gallery-thumbnail-item.active');
         if (activeThumb) {
-            activeThumb.scrollIntoView({
-                behavior: 'smooth',
-                block: 'nearest',
-                inline: 'center'
-            });
+            activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }
     }
 
-    // Function to close the gallery
     function closeGallery() {
         galleryModal.classList.remove('active');
         document.body.style.overflow = '';
         galleryMainImage.classList.remove('zoomed');
     }
 
-    // Create thumbnail items
     function createThumbnails() {
         galleryThumbnailsContainer.innerHTML = '';
         galleryImages.forEach((img, index) => {
             const thumbItem = document.createElement('div');
             thumbItem.className = 'gallery-thumbnail-item';
             if (index === currentImageIndex) thumbItem.classList.add('active');
-
             const thumbImg = document.createElement('img');
             thumbImg.src = img.src;
             thumbImg.alt = img.alt;
-
             thumbItem.appendChild(thumbImg);
             thumbItem.addEventListener('click', () => {
                 currentImageIndex = index;
                 updateGalleryImage();
             });
-
             galleryThumbnailsContainer.appendChild(thumbItem);
         });
     }
 
-    // Initialize thumbnails
     createThumbnails();
 
-    // Set up click handlers for all gallery images
     document.querySelectorAll('.mod-image img, .sidebar-card .gallery-thumbnail').forEach((element, index) => {
         element.addEventListener('click', (e) => {
             e.preventDefault();
@@ -1192,40 +985,26 @@ function initializeImageGallery() {
         });
     });
 
-    // Navigation buttons
     galleryPrevBtn.addEventListener('click', () => {
         currentImageIndex = (currentImageIndex - 1 + galleryImages.length) % galleryImages.length;
         updateGalleryImage();
     });
-
     galleryNextBtn.addEventListener('click', () => {
         currentImageIndex = (currentImageIndex + 1) % galleryImages.length;
         updateGalleryImage();
     });
-
-    // Close button
     galleryCloseBtn.addEventListener('click', closeGallery);
-
-    // Close when clicking outside the image
     galleryModal.addEventListener('click', (e) => {
-        if (e.target === galleryModal) {
-            closeGallery();
-        }
+        if (e.target === galleryModal) closeGallery();
     });
-
-    // Zoom functionality
     galleryMainImage.addEventListener('click', () => {
         galleryMainImage.classList.toggle('zoomed');
     });
 
-    // Keyboard navigation
     document.addEventListener('keydown', (e) => {
         if (!galleryModal.classList.contains('active')) return;
-
         switch (e.key) {
-            case 'Escape':
-                closeGallery();
-                break;
+            case 'Escape': closeGallery(); break;
             case 'ArrowLeft':
                 currentImageIndex = (currentImageIndex - 1 + galleryImages.length) % galleryImages.length;
                 updateGalleryImage();
@@ -1237,32 +1016,19 @@ function initializeImageGallery() {
         }
     });
 
-    // Swipe support for touch devices
     let touchStartX = 0;
     let touchEndX = 0;
-
     galleryMainImage.addEventListener('touchstart', (e) => {
         touchStartX = e.changedTouches[0].screenX;
-    }, {
-        passive: true
-    });
-
+    }, { passive: true });
     galleryMainImage.addEventListener('touchend', (e) => {
         touchEndX = e.changedTouches[0].screenX;
-        handleSwipe();
-    }, {
-        passive: true
-    });
-
-    function handleSwipe() {
         if (touchStartX - touchEndX > 50) {
-            // Swipe left - next image
             currentImageIndex = (currentImageIndex + 1) % galleryImages.length;
             updateGalleryImage();
         } else if (touchEndX - touchStartX > 50) {
-            // Swipe right - previous image
             currentImageIndex = (currentImageIndex - 1 + galleryImages.length) % galleryImages.length;
             updateGalleryImage();
         }
-    }
+    }, { passive: true });
 }
