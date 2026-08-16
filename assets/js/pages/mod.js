@@ -179,7 +179,9 @@ async function fetchModData(modId, modSlug) {
             try {
                 const detailsResponse = await fetch(mod.details);
                 const detailsText = await detailsResponse.text();
+                console.log('MD file content:', detailsText);
                 modDetails = parseModDetails(detailsText);
+                console.log('Parsed modDetails:', modDetails);
             } catch (error) {
                 console.warn('Could not fetch mod details:', error);
             }
@@ -200,17 +202,62 @@ async function fetchModData(modId, modSlug) {
 }
 
 // Function to parse mod details from MD file
+async function fetchModData(modId, modSlug) {
+    try {
+        const modsResponse = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/mods.json');
+        const modsData = await modsResponse.json();
+
+        let mod = null;
+
+        if (modId) {
+            mod = modsData.find(m => m.id.toString() === modId.toString());
+        }
+
+        if (!mod && modSlug) {
+            mod = modsData.find(m => {
+                const slugMatches = m.slug && m.slug.toLowerCase().includes(modSlug.toLowerCase());
+                const nameMatches = m.name.toLowerCase().replace(/\s+/g, '-') === modSlug.toLowerCase();
+                return slugMatches || nameMatches;
+            });
+        }
+
+        if (!mod) {
+            console.error('Mod not found with ID:', modId, 'or slug:', modSlug);
+            return;
+        }
+
+        let modDetails = null;
+        if (mod.details) {
+            try {
+                const detailsResponse = await fetch(mod.details);
+                const detailsText = await detailsResponse.text();
+                modDetails = parseModDetails(detailsText);
+            } catch (error) {
+                console.warn('Could not fetch mod details:', error);
+            }
+        }
+
+        let modVersion = mod.modVersion || 'Info coming soon';
+        if (modVersion && modVersion.includes('github.com')) {
+            modVersion = await fetchGitHubVersion(modVersion);
+        }
+
+        updateModPageElements(mod, modVersion, modDetails);
+
+    } catch (error) {
+        console.error('Error fetching mod data:', error);
+    }
+}
+
+// Function to parse mod details from MD file
 function parseModDetails(mdContent) {
     const details = {};
 
     // Extract category
     const categoryMatch = mdContent.match(/category:\s*([^#\n]+)/i);
     if (categoryMatch && categoryMatch[1]) {
-        // Get all categories, split by comma, trim each
         const categories = categoryMatch[1].split(',').map(cat => cat.trim());
-        // Store full category string for the mod facts section
         details.categoryFull = categories.join(', ');
-        // Store just the first category for the badge
         details.category = categories[0];
     }
 
@@ -248,7 +295,6 @@ function parseModDetails(mdContent) {
     details.overviewImages = [];
     const itemsMatch = mdContent.match(/overview:[\s\S]*?items:([\s\S]*?)(?=\n\s*\w+:|$)/i);
     if (itemsMatch && itemsMatch[1]) {
-        // Find all image paths in the items section
         const imageRegex = /-\s*([^\n]+)/gi;
         let imageMatch;
         while ((imageMatch = imageRegex.exec(itemsMatch[1])) !== null) {
@@ -261,18 +307,69 @@ function parseModDetails(mdContent) {
 
     // Extract installation steps
     details.installationSteps = [];
-    const installationMatch = mdContent.match(/installation:[\s\S]*?steps:([\s\S]*?)(?=\n\w+:|$)/i);
-    if (installationMatch && installationMatch[1]) {
-        // Parse individual steps
-        const stepRegex = /-\s*name:\s*Step\s*#(\d+)\s*description:\s*(.+?)(?=\n\s*-|\n\s*\w+:|$)/gi;
-        let stepMatch;
-        while ((stepMatch = stepRegex.exec(installationMatch[1])) !== null) {
-            const stepNumber = stepMatch[1];
-            const description = stepMatch[2].trim();
-            details.installationSteps.push({
-                name: `Step #${stepNumber}`,
-                description: description
-            });
+    const installationSectionMatch = mdContent.match(/installation:[\s\S]*?(?=\n\w+:|$)/i);
+    if (installationSectionMatch) {
+        const installationSection = installationSectionMatch[0];
+        const stepsMatch = installationSection.match(/steps:([\s\S]*?)(?=\n\w+:|$)/i);
+        if (stepsMatch) {
+            const stepsContent = stepsMatch[1];
+
+            // Try regex approach first
+            const stepRegex = /-\s*name:\s*Step\s*#(\d+)\s*description:\s*([^\n]+)(?:\n|$)/gi;
+            let stepMatch;
+            let foundSteps = false;
+
+            while ((stepMatch = stepRegex.exec(stepsContent)) !== null) {
+                const stepNumber = stepMatch[1];
+                const description = stepMatch[2].trim();
+                details.installationSteps.push({
+                    name: `Step #${stepNumber}`,
+                    description: description
+                });
+                foundSteps = true;
+            }
+
+            // If regex failed, try manual parsing
+            if (!foundSteps) {
+                const lines = stepsContent.split('\n');
+                let currentStep = null;
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+
+                    if (line.includes('- name: Step #') || line.includes('- name: Step')) {
+                        if (currentStep) {
+                            details.installationSteps.push(currentStep);
+                        }
+
+                        const stepNumMatch = line.match(/Step\s*#(\d+)/i) || line.match(/Step\s*(\d+)/i);
+                        const stepNumber = stepNumMatch ? stepNumMatch[1] : String(details.installationSteps.length + 1);
+
+                        currentStep = {
+                            name: `Step #${stepNumber}`,
+                            description: ''
+                        };
+                    }
+                    else if (line.includes('description:') && currentStep) {
+                        const descMatch = line.match(/description:\s*(.+)/i);
+                        if (descMatch && descMatch[1]) {
+                            currentStep.description = descMatch[1].trim();
+                        }
+                    }
+                    else if (currentStep && !line.startsWith('-') && !line.includes(':')) {
+                        if (currentStep.description) {
+                            currentStep.description += ' ' + line;
+                        } else {
+                            currentStep.description = line;
+                        }
+                    }
+                }
+
+                if (currentStep) {
+                    details.installationSteps.push(currentStep);
+                }
+            }
         }
     }
 
@@ -293,10 +390,8 @@ function updateModPageElements(mod, modVersion, modDetails) {
         const modMeta = modHeader.querySelector('.mod-meta');
 
         if (modMeta) {
-            // Clear the meta container but keep the structure
             modMeta.innerHTML = '';
 
-            // Category Badge
             let category = mod.category || 'Unknown';
             if (modDetails && modDetails.category) {
                 category = modDetails.category;
@@ -306,7 +401,6 @@ function updateModPageElements(mod, modVersion, modDetails) {
             categorySpan.textContent = category;
             modMeta.appendChild(categorySpan);
 
-            // Creator
             const creatorSpan = document.createElement('span');
             creatorSpan.innerHTML = `<i class="fas fa-users mr-1"></i> ${mod.creator || 'Unknown'}`;
             modMeta.appendChild(creatorSpan);
@@ -318,166 +412,147 @@ function updateModPageElements(mod, modVersion, modDetails) {
         }
 
         const modDescription = modHeader.querySelector('.mod-description');
-        if (modDescription) {
-            // Use short description from mods.json
-            if (mod.description) {
-                modDescription.textContent = mod.description;
-            }
+        if (modDescription && mod.description) {
+            modDescription.textContent = mod.description;
         }
     }
 
-    // Update "Mod Introduction" text in the main content
+    // Update "Mod Introduction" text
     const modIntroParagraph = document.querySelector('#mod-introduction');
     if (modIntroParagraph) {
         const introText = modIntroParagraph.closest('.mb-12')?.querySelector('.text-center');
-        if (introText) {
-            // Use description from MD file if available
-            if (modDetails && modDetails.description) {
-                introText.textContent = modDetails.description;
-            }
+        if (introText && modDetails && modDetails.description) {
+            introText.textContent = modDetails.description;
         }
     }
 
-    // Update mod image in the main content
+    // Update mod image
     const modImage = document.querySelector('.mod-image img');
     if (modImage && mod.image) {
         modImage.src = mod.image;
         modImage.alt = mod.name;
     }
 
-    // Update overview section with description and images from MD file
+    // Update overview section
     const overviewSection = document.getElementById('standard');
     if (overviewSection && modDetails) {
-        // Update overview description
         const overviewParagraph = overviewSection.querySelector('.text-center');
-        if (overviewParagraph) {
-            if (modDetails.overviewDescription) {
-                overviewParagraph.textContent = modDetails.overviewDescription;
-            }
+        if (overviewParagraph && modDetails.overviewDescription) {
+            overviewParagraph.textContent = modDetails.overviewDescription;
         }
 
-        // Update overview images based on layout
         const layout = modDetails.overviewLayout || 'none';
         const images = modDetails.overviewImages || [];
 
-        // Remove existing image grids
         const existingGrids = overviewSection.querySelectorAll('.grid');
         existingGrids.forEach(grid => grid.remove());
 
-        // If layout is 'none' or no images, don't add any images
-        if (layout === 'none' || images.length === 0) {
-            return;
-        }
+        if (layout !== 'none' && images.length > 0) {
+            let layoutHTML = '';
 
-        // Build the layout
-        let layoutHTML = '';
-
-        switch (layout) {
-            case 'single':
-                if (images.length >= 1) {
-                    layoutHTML = `
-                        <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
-                            <div>
-                                <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
+            switch (layout) {
+                case 'single':
+                    if (images.length >= 1) {
+                        layoutHTML = `
+                            <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
+                                <div>
+                                    <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
+                                </div>
                             </div>
-                        </div>
-                    `;
+                        `;
+                    }
+                    break;
+
+                case 'two':
+                    if (images.length >= 2) {
+                        layoutHTML = `
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+                                <div>
+                                    <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
+                                </div>
+                                <div>
+                                    <img src="${images[1]}" alt="Mod Overview" class="rounded-lg">
+                                </div>
+                            </div>
+                        `;
+                    } else if (images.length === 1) {
+                        layoutHTML = `
+                            <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
+                                <div>
+                                    <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
+                                </div>
+                            </div>
+                        `;
+                    }
+                    break;
+
+                case 'heroPlusTwo':
+                    if (images.length >= 3) {
+                        layoutHTML = `
+                            <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
+                                <div>
+                                    <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+                                <div>
+                                    <img src="${images[1]}" alt="Mod Overview" class="rounded-lg">
+                                </div>
+                                <div>
+                                    <img src="${images[2]}" alt="Mod Overview" class="rounded-lg">
+                                </div>
+                            </div>
+                        `;
+                    } else if (images.length === 2) {
+                        layoutHTML = `
+                            <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
+                                <div>
+                                    <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
+                                <div>
+                                    <img src="${images[1]}" alt="Mod Overview" class="rounded-lg">
+                                </div>
+                            </div>
+                        `;
+                    } else if (images.length === 1) {
+                        layoutHTML = `
+                            <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
+                                <div>
+                                    <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
+                                </div>
+                            </div>
+                        `;
+                    }
+                    break;
+
+                case 'grid':
+                    const gridImages = images.slice(0, 4);
+                    const gridItems = gridImages.map(img => `
+                            <div>
+                                <img src="${img}" alt="Mod Overview" class="rounded-lg">
+                            </div>
+                        `).join('');
+                    layoutHTML = `
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+                                ${gridItems}
+                            </div>
+                        `;
+                    break;
+            }
+
+            if (layoutHTML) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = layoutHTML;
+                const gridElements = tempDiv.children;
+                if (overviewParagraph) {
+                    for (let i = 0; i < gridElements.length; i++) {
+                        overviewParagraph.after(gridElements[i]);
+                    }
+                } else {
+                    overviewSection.append(tempDiv);
                 }
-                break;
-
-            case 'two':
-                if (images.length >= 2) {
-                    layoutHTML = `
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
-                            <div>
-                                <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
-                            </div>
-                            <div>
-                                <img src="${images[1]}" alt="Mod Overview" class="rounded-lg">
-                            </div>
-                        </div>
-                    `;
-                } else if (images.length === 1) {
-                    layoutHTML = `
-                        <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
-                            <div>
-                                <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
-                            </div>
-                        </div>
-                    `;
-                }
-                break;
-
-            case 'heroPlusTwo':
-                if (images.length >= 3) {
-                    layoutHTML = `
-                        <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
-                            <div>
-                                <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
-                            <div>
-                                <img src="${images[1]}" alt="Mod Overview" class="rounded-lg">
-                            </div>
-                            <div>
-                                <img src="${images[2]}" alt="Mod Overview" class="rounded-lg">
-                            </div>
-                        </div>
-                    `;
-                } else if (images.length === 2) {
-                    layoutHTML = `
-                        <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
-                            <div>
-                                <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
-                            <div>
-                                <img src="${images[1]}" alt="Mod Overview" class="rounded-lg">
-                            </div>
-                        </div>
-                    `;
-                } else if (images.length === 1) {
-                    layoutHTML = `
-                        <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
-                            <div>
-                                <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
-                            </div>
-                        </div>
-                    `;
-                }
-                break;
-
-            case 'grid':
-                const gridImages = images.slice(0, 4);
-                const gridItems = gridImages.map(img => `
-                        <div>
-                            <img src="${img}" alt="Mod Overview" class="rounded-lg">
-                        </div>
-                    `).join('');
-                layoutHTML = `
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
-                            ${gridItems}
-                        </div>
-                    `;
-                break;
-        }
-
-        // Insert the layout HTML after the description paragraph
-        if (layoutHTML) {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = layoutHTML;
-            const gridElements = tempDiv.children;
-
-            // Insert each grid after the description paragraph
-            if (overviewParagraph) {
-                for (let i = 0; i < gridElements.length; i++) {
-                    overviewParagraph.after(gridElements[i]);
-                }
-            } else {
-                // If no description paragraph, append to the section
-                overviewSection.append(tempDiv);
             }
         }
     }
@@ -489,10 +564,8 @@ function updateModPageElements(mod, modVersion, modDetails) {
         if (heading && heading.textContent === 'Mod Facts') {
             const quickFactsList = card.querySelector('ul');
             if (quickFactsList) {
-                // Clear existing items
                 quickFactsList.innerHTML = '';
 
-                // Category
                 let category = mod.category || 'Info coming soon';
                 if (modDetails && modDetails.categoryFull) {
                     category = modDetails.categoryFull;
@@ -503,7 +576,6 @@ function updateModPageElements(mod, modVersion, modDetails) {
                 categoryItem.innerHTML = `<strong>Category:</strong> ${category}`;
                 quickFactsList.appendChild(categoryItem);
 
-                // Type
                 let type = 'Info coming soon';
                 if (modDetails && modDetails.type) {
                     type = modDetails.type;
@@ -512,7 +584,6 @@ function updateModPageElements(mod, modVersion, modDetails) {
                 typeItem.innerHTML = `<strong>Type:</strong> ${type}`;
                 quickFactsList.appendChild(typeItem);
 
-                // Game Version
                 let gameVersion = 'Info coming soon';
                 if (modDetails && modDetails.gameVersion) {
                     gameVersion = modDetails.gameVersion;
@@ -521,7 +592,6 @@ function updateModPageElements(mod, modVersion, modDetails) {
                 gameVersionItem.innerHTML = `<strong>Game Version:</strong> ${gameVersion}`;
                 quickFactsList.appendChild(gameVersionItem);
 
-                // Mod Version
                 const displayVersion = modVersion || 'Info coming soon';
                 const modVersionItem = document.createElement('li');
                 modVersionItem.innerHTML = `<strong>Mod Version:</strong> ${displayVersion}`;
@@ -533,10 +603,8 @@ function updateModPageElements(mod, modVersion, modDetails) {
     // Update installation steps
     const faqContainer = document.querySelector('.faq-container');
     if (faqContainer && modDetails && modDetails.installationSteps && modDetails.installationSteps.length > 0) {
-        // Clear existing FAQ items
         faqContainer.innerHTML = '';
 
-        // Create new FAQ items from installation steps
         modDetails.installationSteps.forEach((step, index) => {
             const faqItem = document.createElement('div');
             faqItem.className = `faq-item ${index === 0 ? 'active' : ''}`;
@@ -557,12 +625,10 @@ function updateModPageElements(mod, modVersion, modDetails) {
             faqContainer.appendChild(faqItem);
         });
 
-        // Re-attach click event listeners to FAQ items
         const newFaqItems = faqContainer.querySelectorAll('.faq-item');
         newFaqItems.forEach(item => {
             const question = item.querySelector('.faq-question');
             question.addEventListener('click', () => {
-                // Close all other FAQ items
                 newFaqItems.forEach(otherItem => {
                     if (otherItem !== item) {
                         otherItem.classList.remove('active');
@@ -571,7 +637,6 @@ function updateModPageElements(mod, modVersion, modDetails) {
                     }
                 });
 
-                // Toggle current item
                 item.classList.toggle('active');
                 const answer = item.querySelector('.faq-answer');
                 if (answer) answer.classList.toggle('active');
