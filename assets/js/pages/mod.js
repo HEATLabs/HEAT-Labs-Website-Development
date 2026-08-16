@@ -462,19 +462,6 @@ function updateModPageElements(mod, modVersion, modDetails) {
                         </div>
                     `;
                 break;
-
-            default:
-                // Default to single image if layout is unknown but images exist
-                if (images.length >= 1) {
-                    layoutHTML = `
-                        <div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6">
-                            <div>
-                                <img src="${images[0]}" alt="Mod Overview" class="rounded-lg">
-                            </div>
-                        </div>
-                    `;
-                }
-                break;
         }
 
         // Insert the layout HTML after the description paragraph
