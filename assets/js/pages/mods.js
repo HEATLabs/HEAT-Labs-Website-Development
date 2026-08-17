@@ -27,14 +27,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Get first category for display (splits by comma and takes the first one)
+    function getDisplayCategory(category) {
+        if (!category) return 'Unknown';
+        const categories = category.split(',').map(c => c.trim());
+        return categories[0] || 'Unknown';
+    }
+
+    // Get all categories as an array for filtering
+    function getCategoryArray(category) {
+        if (!category) return ['Unknown'];
+        return category.split(',').map(c => c.trim());
+    }
+
     // Create mod card HTML
     function createModCard(mod) {
         const card = document.createElement('div');
         card.className = 'mod-card';
         card.setAttribute('data-creator', mod.creator);
-        card.setAttribute('data-category', mod.category);
+        // Store the raw category string for filtering
+        card.setAttribute('data-category-raw', mod.category);
+        // Store individual categories as data attributes for easier filtering
+        const categories = getCategoryArray(mod.category);
+        card.setAttribute('data-categories', JSON.stringify(categories));
         card.setAttribute('data-status', mod.status);
         card.setAttribute('data-mod-id', mod.id);
+
+        const displayCategory = getDisplayCategory(mod.category);
 
         // Only show mod status if it exists
         const modStatusHTML = mod.status && mod.status.trim() !== '' ?
@@ -48,8 +67,8 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="mod-info">
                 <h3>${mod.name}</h3>
                 <div class="mod-meta">
-                    <span><i class="fas fa-user"></i> ${mod.creator}</span>
-                    <span><i class="fas fa-gamepad"></i> ${mod.gameVersion}</span>
+                    <span><i class="fas fa-user"></i> By ${mod.creator}</span>
+                    <span><i class="fas fa-tag"></i> ${displayCategory}</span>
                 </div>
                 <div class="mod-description">
                     ${mod.description}
@@ -201,11 +220,31 @@ document.addEventListener('DOMContentLoaded', function() {
         if (modCards.length === 0) return;
 
         modCards.forEach(card => {
-            const cardCategory = card.getAttribute('data-category');
+            // Get the status from the mod-status element (if it exists)
             const cardStatus = card.querySelector('.mod-status') ?
                 card.querySelector('.mod-status').textContent : 'Unknown';
 
-            const categoryMatch = filters.category.length === 0 || filters.category.includes(cardCategory);
+            // Get the categories from the data-categories attribute
+            let cardCategories = [];
+            try {
+                const categoriesData = card.getAttribute('data-categories');
+                if (categoriesData) {
+                    cardCategories = JSON.parse(categoriesData);
+                }
+            } catch (e) {
+                // Fallback: try to get from raw category attribute
+                const rawCategory = card.getAttribute('data-category-raw');
+                if (rawCategory) {
+                    cardCategories = rawCategory.split(',').map(c => c.trim());
+                } else {
+                    cardCategories = ['Unknown'];
+                }
+            }
+
+            // Check if any of the card's categories match the selected filters
+            const categoryMatch = filters.category.length === 0 ||
+                cardCategories.some(cat => filters.category.includes(cat));
+
             const statusMatch = filters.status.length === 0 || filters.status.includes(cardStatus);
 
             if (categoryMatch && statusMatch) {
