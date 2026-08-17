@@ -62,10 +62,12 @@ document.addEventListener('DOMContentLoaded', function() {
             "MAIN SHELL PENETRATION": "Penetration",
             "MAIN SHELL VELOCITY": "Shell Velocity",
             "MAIN SHELL EXPLOSION RADIUS": "Explosion Radius",
+            "MAIN SHELL TYPE": "Main Shell Type",
             "SECONDARY SHELL DAMAGE": "Secondary Damage",
             "SECONDARY SHELL PENETRATION": "Secondary Penetration",
             "SECONDARY SHELL VELOCITY": "Secondary Velocity",
             "SECONDARY SHELL EXPLOSION RADIUS": "Secondary Explosion Radius",
+            "SECONDARY SHELL TYPE": "Secondary Shell Type",
             "AIMING SPEED": "Aiming Speed",
             "RELOAD TIME": "Reload Time",
             "TIME BETWEEN SHOTS": "Time Between Shots",
@@ -76,10 +78,15 @@ document.addEventListener('DOMContentLoaded', function() {
             "RETICLE SIZE STATIONARY": "Reticle Size, Standing",
             "ACCURACY AFTER SHOT": "Reticle Size, After Shot",
             "ACCURACY MAX": "Reticle Size, Max",
+            "ACCURACY DURING TURRET TRAVERSE": "Turret Traverse Accuracy",
             "OPTIMAL RANGE": "Optimal Range",
             "DAMAGE REDUCTION BEYOND OPTIMAL": "Damage Reduction Beyond Optimal",
             "FALLOFF DISTANCE": "Falloff Distance",
             "INTERNAL MODULE HIT": "Internal Module Hit Chance",
+            "AMMO CRIT MODIFIER": "Ammo Rack Crit Modifier",
+            "ENGINE CRIT MODIFIER": "Engine Crit Modifier",
+            "FUEL CRIT MODIFIER": "Fuel Tank Crit Modifier",
+            "RAMMING DAMAGE MULTIPLIER": "Ramming Damage Bonus",
 
             // Survivability stats
             "HIT POINTS": "Hit Points",
@@ -92,11 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
             "TURRET RING ARMOR": "Turret Ring Armor",
             "HULL SIDE ARMOR": "Hull Side Armor",
             "RECOVERY TIME": "Crew Recovery Time",
-            "AMMO CRIT MODIFIER": "Ammo Rack Crit Modifier",
-            "ENGINE CRIT MODIFIER": "Engine Crit Modifier",
-            "FUEL CRIT MODIFIER": "Fuel Tank Crit Modifier",
             "RAMMING DAMAGE RESISTANCE FRONT": "Ramming Damage Resistance",
-            "RAMMING DAMAGE MULTIPLIER": "Ramming Damage Bonus",
             "SPACED ARMOR HP": "Spaced Armor HP",
             "FIRE RESISTANCE": "Fire Resistance",
             "RADIATION RESISTANCE": "Radiation Resistance",
@@ -146,14 +149,17 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
-    // Check if a value should be considered for comparison (not zero/empty)
+    // Check if a value should be considered for comparison
     function isValidStatValue(value) {
         if (value === null || value === undefined) return false;
         if (typeof value === 'string') {
-            if (value === "" || value === "N/A" || value === "0") return false;
+            const trimmed = value.trim();
+            if (trimmed === "" || trimmed === "N/A" || trimmed === "0" || trimmed === "0.0") return false;
             // Check if it's a number string that equals 0
-            const num = parseFloat(value);
+            const num = parseFloat(trimmed);
             if (!isNaN(num) && num === 0) return false;
+            // If it's a string with content, show it
+            return true;
         }
         if (typeof value === 'number' && value === 0) return false;
         return true;
@@ -163,10 +169,84 @@ document.addEventListener('DOMContentLoaded', function() {
     function parseNumericValue(value) {
         if (typeof value === 'number') return value;
         if (typeof value === 'string') {
-            const num = parseFloat(value);
+            const trimmed = value.trim();
+            const num = parseFloat(trimmed);
             return isNaN(num) ? null : num;
         }
         return null;
+    }
+
+    // Format stat name for display
+    function formatStatName(stat) {
+        // If it has underscores, replace with spaces
+        let formatted = stat.replace(/_/g, ' ');
+        // Convert from ALL CAPS to Title Case
+        return formatted.toLowerCase()
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    }
+
+    // Get the appropriate unit for a stat
+    function getStatUnit(statKey) {
+        // Speed stats (km/h)
+        if (statKey === 'FORWARD SPEED' || statKey === 'REVERSE SPEED') {
+            return 'km/h';
+        }
+        // Traverse stats (degrees per second)
+        if (statKey === 'HULL TRAVERSE' || statKey === 'TURRET TRAVERSE SPEED') {
+            return '°/s';
+        }
+        // Time stats (seconds)
+        if (statKey.includes('TIME') || statKey.includes('RELOAD') ||
+            statKey.includes('COOLDOWN') || statKey.includes('DURATION') ||
+            statKey.includes('INTERVAL')) {
+            return 's';
+        }
+        // Range stats (meters)
+        if (statKey.includes('RANGE') || statKey.includes('RADIUS') ||
+            statKey.includes('DISTANCE') || statKey.includes('FALLOFF')) {
+            return 'm';
+        }
+        // Speed/velocity stats (m/s)
+        if (statKey.includes('VELOCITY')) {
+            return 'm/s';
+        }
+        // Damage and HP stats
+        if (statKey.includes('DAMAGE') || statKey.includes('HP') ||
+            statKey.includes('HIT POINTS') || statKey.includes('PENETRATION')) {
+            return '';
+        }
+        // Armor stats
+        if (statKey.includes('ARMOR') || statKey.includes('ARMOUR')) {
+            return 'mm';
+        }
+        return '';
+    }
+
+    // Format value with appropriate unit
+    function formatValueWithUnit(value, statKey) {
+        const unit = getStatUnit(statKey);
+        let formattedValue = value;
+
+        // Round appropriately
+        if (typeof value === 'number') {
+            if (statKey.includes('TIME') || statKey.includes('RELOAD') ||
+                statKey.includes('COOLDOWN') || statKey.includes('DURATION') ||
+                statKey.includes('INTERVAL')) {
+                formattedValue = value.toFixed(2);
+            } else if (statKey.includes('DAMAGE') || statKey.includes('HP') ||
+                       statKey.includes('HIT POINTS') || statKey.includes('PENETRATION') ||
+                       statKey.includes('ARMOR') || statKey.includes('ARMOUR') ||
+                       statKey.includes('RANGE') || statKey.includes('RADIUS') ||
+                       statKey.includes('DISTANCE') || statKey.includes('FALLOFF')) {
+                formattedValue = Math.round(value);
+            } else if (!Number.isInteger(value)) {
+                formattedValue = value.toFixed(2);
+            }
+        }
+
+        return unit ? `${formattedValue}${unit}` : formattedValue;
     }
 
     // Render the comparison table
@@ -263,21 +343,57 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Define stat categories and the stats that should be "lower is better"
         const lowerIsBetter = new Set([
-            'RELOAD TIME', 'TIME BETWEEN SHOTS', 'SHELL LOADING TIME BETWEEN SHOTS',
-            'TRACK REPAIR TIME', 'RECOVERY TIME', 'AIMING SPEED', 'RETICLE SIZE MOVING',
-            'RETICLE SIZE STATIONARY', 'ACCURACY AFTER SHOT', 'ACCURACY MAX',
-            'DAMAGE REDUCTION BEYOND OPTIMAL', 'FALLOFF DISTANCE', 'ENERGY REGENERATION',
-            'MAIN ABILITY COOLDOWN', 'SECOND ABILITY COOLDOWN', 'MAIN ABILITY ENERGY COST',
-            'SECOND ABILITY ENERGY COST', 'RADAR UPDATE INTERVAL'
+            'AIMING SPEED',
+            'RELOAD TIME',
+            'TIME BETWEEN SHOTS',
+            'SHELL LOADING TIME BETWEEN SHOTS',
+            'RETICLE SIZE MOVING',
+            'RETICLE SIZE STATIONARY',
+            'ACCURACY AFTER SHOT',
+            'ACCURACY MAX',
+            'ACCURACY DURING TURRET TRAVERSE',
+            'DAMAGE REDUCTION BEYOND OPTIMAL',
+            'FALLOFF DISTANCE',
+            'VEHICLE LATERAL FRICTION',
+            'SHOT NOISE VALUE',
+            'MOVING NOISE INTEL',
+            'TRACK REPAIR TIME',
+            'RECOVERY TIME',
+            'RADAR UPDATE INTERVAL',
+            'ENERGY REGENERATION',
+            'MAIN ABILITY COOLDOWN',
+            'SECOND ABILITY COOLDOWN',
+            'MAIN ABILITY ENERGY COST',
+            'SECOND ABILITY ENERGY COST'
         ]);
 
-        // Add stats rows for each category
-        const statCategories = ['FIREPOWER', 'MOBILITY', 'SURVIVABILITY', 'RECON', 'UTILITY'];
+        // Get all categories from all tanks
+        const allCategories = new Set();
+        validTanks.forEach(tank => {
+            if (tank.stats) {
+                Object.keys(tank.stats).forEach(category => allCategories.add(category));
+            }
+        });
 
-        for (const category of statCategories) {
-            // Check if any tank has this category
-            const hasCategory = validTanks.some(tank => tank.stats[category]);
-            if (!hasCategory) continue;
+        // Sort categories with preferred order
+        const categoryOrder = ['FIREPOWER', 'MOBILITY', 'SURVIVABILITY', 'RECON', 'UTILITY'];
+        const sortedCategories = Array.from(allCategories).sort((a, b) => {
+            const indexA = categoryOrder.indexOf(a);
+            const indexB = categoryOrder.indexOf(b);
+            if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+            if (indexA === -1) return 1;
+            if (indexB === -1) return -1;
+            return indexA - indexB;
+        });
+
+        for (const category of sortedCategories) {
+            // Check if any tank has this category with valid data
+            const hasData = validTanks.some(tank => {
+                const catData = tank.stats[category];
+                if (!catData) return false;
+                return Object.keys(catData).some(key => isValidStatValue(catData[key]));
+            });
+            if (!hasData) continue;
 
             tableHTML += `<tr class="stat-category"><td colspan="${validTanks.length + 1}">${category}</td></tr>`;
 
@@ -300,17 +416,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     return parseNumericValue(rawValue);
                 });
 
-                // Skip if all values are null
+                // Skip if all values are null (no numeric data to compare)
                 const validValues = values.filter(v => v !== null);
                 if (validValues.length === 0) continue;
 
                 // Get display name for stat
                 const displayName = statMapping[statKey] || formatStatName(statKey);
-
-                // Determine if we should show units
-                const shouldShowUnits = statKey.includes('TIME') || statKey.includes('RELOAD') ||
-                                       statKey.includes('SPEED') || statKey.includes('RANGE') ||
-                                       statKey.includes('RADIUS') || statKey.includes('HP');
+                const unit = getStatUnit(statKey);
+                const displayNameWithUnit = unit ? `${displayName} (${unit})` : displayName;
 
                 // Calculate best and worst based on stat type
                 let maxValue = Math.max(...validValues);
@@ -322,7 +435,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Handle case where all values are the same
                 if (valueRange === 0) valueRange = 1;
 
-                tableHTML += `<tr><td>${displayName}</td>`;
+                tableHTML += `<tr><td>${displayNameWithUnit}</td>`;
 
                 values.forEach((value, i) => {
                     let cellClass = '';
@@ -331,39 +444,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (value !== null) {
                         let stepIndex;
                         if (isLowerBetter) {
-                            // For lower is better stats, lowest value gets best score
-                            stepIndex = Math.floor((value - minValue) / (valueRange / 6));
-                            cellClass = `stat-${6 - Math.min(5, stepIndex)}`;
+                            // For lower is better stats, lowest value = best (green)
+                            // Calculate position from 0 (best) to 6 (worst)
+                            stepIndex = Math.round(((value - minValue) / valueRange) * 6);
+                            // Clamp stepIndex to 0-6
+                            stepIndex = Math.max(0, Math.min(6, stepIndex));
+                            // Map: 0->stat-1 (best/green), 6->stat-7 (worst/red)
+                            cellClass = `stat-${stepIndex + 1}`;
                         } else {
-                            // For higher is better stats, highest value gets best score
-                            stepIndex = Math.floor((maxValue - value) / (valueRange / 6));
-                            cellClass = `stat-${Math.min(6, stepIndex)}`;
+                            // For higher is better stats, highest value = best (green)
+                            // Calculate position from 0 (best) to 6 (worst)
+                            stepIndex = Math.round(((maxValue - value) / valueRange) * 6);
+                            // Clamp stepIndex to 0-6
+                            stepIndex = Math.max(0, Math.min(6, stepIndex));
+                            // Map: 0->stat-1 (best/green), 6->stat-7 (worst/red)
+                            cellClass = `stat-${stepIndex + 1}`;
                         }
 
-                        // Ensure cellClass is between 1-7
-                        const classNum = parseInt(cellClass.split('-')[1]);
-                        if (isNaN(classNum)) {
-                            cellClass = 'stat-4';
-                        } else if (classNum < 1) {
-                            cellClass = 'stat-1';
-                        } else if (classNum > 7) {
-                            cellClass = 'stat-7';
-                        }
-
-                        // Format value with units
-                        if (shouldShowUnits) {
-                            if (statKey.includes('TIME') || statKey.includes('RELOAD') || statKey.includes('COOLDOWN')) {
-                                displayValue = `${value}s`;
-                            } else if (statKey.includes('SPEED') && !statKey.includes('AIMING')) {
-                                displayValue = `${value} km/h`;
-                            } else if (statKey.includes('RANGE') || statKey.includes('RADIUS')) {
-                                displayValue = `${value}m`;
-                            } else if (statKey.includes('HP') || statKey.includes('HIT POINTS') || statKey.includes('DAMAGE')) {
-                                displayValue = Math.round(value);
-                            }
-                        } else if (typeof value === 'number' && !Number.isInteger(value)) {
-                            displayValue = value.toFixed(2);
-                        }
+                        // Format value with proper unit
+                        displayValue = formatValueWithUnit(value, statKey);
                     } else {
                         displayValue = '-';
                         cellClass = '';
@@ -385,15 +484,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 removeTankFromComparison(tankId);
             });
         });
-    }
-
-    // Format stat names for display
-    function formatStatName(stat) {
-        // Convert from ALL CAPS to Title Case
-        return stat.toLowerCase()
-            .split('_')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
     }
 
     // Remove tank from comparison
