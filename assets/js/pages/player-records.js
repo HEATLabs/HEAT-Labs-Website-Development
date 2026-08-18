@@ -1159,9 +1159,20 @@ class PlayerRecords {
                         if (value.toLowerCase() === 'victory') value = 'Victory';
                         else if (value.toLowerCase() === 'defeat') value = 'Defeat';
                         else if (value.toLowerCase() === 'draw') value = 'Draw';
+                        distribution[value] = (distribution[value] || 0) + 1;
                     }
-                    const key = String(value);
-                    distribution[key] = (distribution[key] || 0) + 1;
+                    // Special handling for vehicle
+                    else if (field === 'vehicle') {
+                        // Split by comma and trim whitespace
+                        const vehicles = value.split(',').map(v => v.trim()).filter(v => v.length > 0);
+                        for (const vehicle of vehicles) {
+                            distribution[vehicle] = (distribution[vehicle] || 0) + 1;
+                        }
+                    }
+                    // For all other fields, use the value as-is
+                    else {
+                        distribution[value] = (distribution[value] || 0) + 1;
+                    }
                 }
             }
         }
