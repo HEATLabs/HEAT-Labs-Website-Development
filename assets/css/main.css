@@ -471,7 +471,6 @@ body {
 
 .btn-accent:hover {
 	background-color: var(--accent-color-hover);
-	transform: scale(1.02);
 	box-shadow: 0 0.25rem 0.5rem rgba(255, 131, 0, 0.3);
 }
 
