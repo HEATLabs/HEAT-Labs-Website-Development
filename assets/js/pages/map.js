@@ -59,15 +59,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize any interactive elements specific to map pages
     initializeMapPageElements();
 
-    // Fetch map data and update sidebar quick facts
-    fetchMapDataAndUpdateSidebar();
-
-    // Initialize gamemode buttons and data from JSON
-    initializeGamemodeSelector();
+    // Fetch map data
+    fetchMapDataAndInitialize();
 });
 
-// Function to initialize gamemode selector from JSON data
-async function initializeGamemodeSelector() {
+// Fetch map data
+async function fetchMapDataAndInitialize() {
     try {
         // Get the current page slug from the URL
         const currentPath = window.location.pathname;
@@ -80,7 +77,7 @@ async function initializeGamemodeSelector() {
         }
 
         if (!slug || slug === 'maps' || slug === '') {
-            console.log('No valid map slug found for gamemode selector');
+            console.log('No valid map slug found');
             return;
         }
 
@@ -93,16 +90,21 @@ async function initializeGamemodeSelector() {
         const data = await response.json();
         const mapData = data.maps.find(map => map.slug === slug);
 
-        if (!mapData || !mapData.gamemodes) {
-            console.warn('No gamemode data found for slug:', slug);
+        if (!mapData) {
+            console.warn('No map data found for slug:', slug);
             return;
         }
 
-        // Generate gamemode buttons and populate details
+        console.log('Found map data:', mapData.name);
+
+        // Update sidebar quick facts
+        updateQuickFacts(mapData);
+
+        // Initialize gamemode selector with the same data
         renderGamemodeSelector(mapData);
 
     } catch (error) {
-        console.error('Error loading gamemode data:', error);
+        console.error('Error loading map data:', error);
     }
 }
 
@@ -244,59 +246,6 @@ async function fetchViewCount() {
         return {
             totalViews: 0
         }; // Return 0 if there's an error
-    }
-}
-
-// Function to fetch map data from JSON and update sidebar
-async function fetchMapDataAndUpdateSidebar() {
-    try {
-        // Get the current page slug from the URL and clean it
-        const currentPath = window.location.pathname;
-        let slug = currentPath.split('/').pop() || '';
-
-        // Remove .html extension if present
-        slug = slug.replace(/\.html$/, '');
-
-        // If it's a directory path (ends with /), try to get the last part
-        if (slug === '') {
-            const pathParts = currentPath.split('/').filter(part => part !== '');
-            slug = pathParts[pathParts.length - 1] || '';
-        }
-
-        // If no slug or it's not a map page, exit
-        if (!slug || slug === 'maps' || slug === '') {
-            console.log('No valid map slug found in URL');
-            return;
-        }
-
-        console.log('Fetching map data for slug:', slug);
-
-        // Fetch the maps data from GitHub
-        const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/maps.json');
-
-        if (!response.ok) {
-            throw new Error('Failed to load map data');
-        }
-
-        const data = await response.json();
-        console.log('Map data loaded successfully');
-
-        // Find the map that matches the current slug
-        const mapData = data.maps.find(map => map.slug === slug);
-
-        if (!mapData) {
-            console.warn('No map data found for slug:', slug);
-            return;
-        }
-
-        console.log('Found map data:', mapData.name);
-
-        // Update the sidebar quick facts
-        updateQuickFacts(mapData);
-
-    } catch (error) {
-        console.error('Error loading map data:', error);
-        // Leave default placeholder text if data fails to load
     }
 }
 
