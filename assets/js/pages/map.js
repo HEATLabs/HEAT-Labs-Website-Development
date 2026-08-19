@@ -108,13 +108,19 @@ async function fetchMapDataAndInitialize() {
     }
 }
 
+// Helper function to replace {mapName} placeholders in text
+function replaceMapNamePlaceholders(text, mapName) {
+    if (!text) return text;
+    return text.replace(/\{mapName\}/g, mapName);
+}
+
 // Function to render gamemode selector and details
 function renderGamemodeSelector(mapData) {
     const gamemodes = mapData.gamemodes;
-    const modeKeys = Object.keys(gamemodes).filter(key => key !== 'unknown');
+    const modeKeys = Object.keys(gamemodes);
 
     if (modeKeys.length === 0) {
-        // If no valid gamemodes, show a message
+        // If no gamemodes at all, show a message
         const container = document.getElementById('gamemodeButtonsContainer');
         if (container) {
             container.innerHTML = '<p class="text-gray-500">No gamemode information available for this map yet.</p>';
@@ -129,23 +135,27 @@ function renderGamemodeSelector(mapData) {
     // Clear existing buttons
     buttonsContainer.innerHTML = '';
 
-    // Create buttons for each gamemode - NO ICONS
+    // Create buttons for each gamemode (including 'unknown')
     modeKeys.forEach((key, index) => {
         const mode = gamemodes[key];
         const button = document.createElement('button');
-        // Use gamemode-selector-btn class
         button.className = `gamemode-selector-btn ${index === 0 ? 'active' : ''}`;
         button.dataset.gamemode = key;
         button.dataset.index = index;
-        // Just the text, no icon
-        button.textContent = mode.mode_name || key.replace('_', ' ').toUpperCase();
+        // Use the mode_name from the data, or fallback to formatted key
+        let displayName = mode.mode_name || key.replace('_', ' ').toUpperCase();
+        // If it's the unknown gamemode, show "Unknown" or the provided name
+        if (key === 'unknown' && mode.mode_name) {
+            displayName = mode.mode_name;
+        }
+        button.textContent = displayName;
         buttonsContainer.appendChild(button);
     });
 
     // Set first gamemode as active by default and display its data
     const firstKey = modeKeys[0];
     if (firstKey) {
-        updateGamemodeDetails(gamemodes[firstKey]);
+        updateGamemodeDetails(gamemodes[firstKey], mapData.name);
     }
 
     // Add click event listeners to the new buttons
@@ -164,58 +174,61 @@ function renderGamemodeSelector(mapData) {
             // Get the gamemode key and update details
             const modeKey = this.dataset.gamemode;
             if (modeKey && gamemodes[modeKey]) {
-                updateGamemodeDetails(gamemodes[modeKey]);
+                updateGamemodeDetails(gamemodes[modeKey], mapData.name);
             }
         });
     });
 }
 
 // Function to update gamemode details in the UI
-function updateGamemodeDetails(modeData) {
+function updateGamemodeDetails(modeData, mapName) {
+    // Helper to replace placeholders
+    const replacePlaceholders = (text) => replaceMapNamePlaceholders(text, mapName || 'this map');
+
     // Update description
     const descriptionElement = document.getElementById('modeDescription');
     if (descriptionElement) {
-        descriptionElement.textContent = modeData.mode_description || 'No description available';
+        descriptionElement.textContent = replacePlaceholders(modeData.mode_description) || 'No description available';
     }
 
     // Update Match Format
     const matchFormat = document.getElementById('matchFormat');
     const matchFormatDesc = document.getElementById('matchFormatDesc');
     if (matchFormat) {
-        matchFormat.textContent = modeData.match_format || 'Unknown Format';
+        matchFormat.textContent = replacePlaceholders(modeData.match_format) || 'Unknown Format';
     }
     if (matchFormatDesc) {
-        matchFormatDesc.textContent = modeData.match_format_description || 'Match format details coming soon';
+        matchFormatDesc.textContent = replacePlaceholders(modeData.match_format_description) || 'Match format details coming soon';
     }
 
     // Update Time Limit
     const timeLimit = document.getElementById('timeLimit');
     const timeLimitDesc = document.getElementById('timeLimitDesc');
     if (timeLimit) {
-        timeLimit.textContent = modeData.max_match_time || 'Unknown Time Limit';
+        timeLimit.textContent = replacePlaceholders(modeData.max_match_time) || 'Unknown Time Limit';
     }
     if (timeLimitDesc) {
-        timeLimitDesc.textContent = modeData.max_match_description || 'Time limit details coming soon';
+        timeLimitDesc.textContent = replacePlaceholders(modeData.max_match_description) || 'Time limit details coming soon';
     }
 
     // Update Control Points
     const controlPoints = document.getElementById('controlPoints');
     const controlPointsDesc = document.getElementById('controlPointsDesc');
     if (controlPoints) {
-        controlPoints.textContent = modeData.control_points || 'Unknown Control Points';
+        controlPoints.textContent = replacePlaceholders(modeData.control_points) || 'Unknown Control Points';
     }
     if (controlPointsDesc) {
-        controlPointsDesc.textContent = modeData.control_points_description || 'Control point details coming soon';
+        controlPointsDesc.textContent = replacePlaceholders(modeData.control_points_description) || 'Control point details coming soon';
     }
 
     // Update Win Condition
     const winCondition = document.getElementById('winCondition');
     const winConditionDesc = document.getElementById('winConditionDesc');
     if (winCondition) {
-        winCondition.textContent = modeData.win_condition || 'Unknown Win Condition';
+        winCondition.textContent = replacePlaceholders(modeData.win_condition) || 'Unknown Win Condition';
     }
     if (winConditionDesc) {
-        winConditionDesc.textContent = modeData.win_condition_description || 'Win condition details coming soon';
+        winConditionDesc.textContent = replacePlaceholders(modeData.win_condition_description) || 'Win condition details coming soon';
     }
 }
 
@@ -280,7 +293,6 @@ function updateQuickFacts(mapData) {
     if (sizeSpan) {
         sizeSpan.textContent = mapData.size || 'Info coming soon';
     } else {
-        // If no span, just update the text node after the strong tag
         const strong = listItems[0].querySelector('strong');
         if (strong) {
             const textNode = strong.nextSibling;
@@ -310,11 +322,10 @@ function updateQuickFacts(mapData) {
 
     if (mapData.gamemodes) {
         const modeNames = Object.keys(mapData.gamemodes)
-            .filter(key => key !== 'unknown') // Filter out 'unknown' gamemodes
             .map(key => {
-                // Try to get the mode name from the object, or fallback to formatted key
                 const mode = mapData.gamemodes[key];
-                if (mode && mode.mode_name && mode.mode_name !== 'Unknown Gamemodes') {
+                // Get the mode name from the object, or fallback to formatted key
+                if (mode && mode.mode_name) {
                     return mode.mode_name;
                 }
                 // Format the key as a readable name
@@ -322,7 +333,7 @@ function updateQuickFacts(mapData) {
                     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                     .join(' ');
             })
-            .filter(name => name && name !== 'Unknown Gamemodes');
+            .filter(name => name && name !== '');
 
         if (modeNames.length > 0) {
             modesText = modeNames.join(', ');
