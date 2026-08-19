@@ -185,6 +185,15 @@ p {
     opacity: 1;
 }
 
+#matchFormat,
+#timeLimit,
+#controlPoints,
+#winCondition {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
 /* Responsive adjustments */
 @media (max-width: 640px) {
     .gamemode-selector-btn {
