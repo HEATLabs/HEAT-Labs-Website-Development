@@ -258,6 +258,32 @@ p {
 	color: var(--accent-color);
 }
 
+.related-guide {
+	margin-bottom: 1.25rem;
+	padding-bottom: 1.25rem;
+	border-bottom: 1px solid var(--border-color);
+	transition: transform 0.2s ease;
+}
+
+.related-guide:last-child {
+	margin-bottom: 0;
+	padding-bottom: 0;
+	border-bottom: none;
+}
+
+.related-guide h4 {
+	font-size: 1rem;
+	font-weight: 600;
+	margin-bottom: 0.5rem;
+	color: var(--text-primary);
+}
+
+.related-guide p {
+	font-size: 0.9rem;
+	color: var(--text-secondary);
+	margin-bottom: 0;
+}
+
 /* Pro Tip Cards */
 .pro-tip-card {
 	background-color: var(--card-bg);
