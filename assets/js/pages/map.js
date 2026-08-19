@@ -58,6 +58,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize any interactive elements specific to map pages
     initializeMapPageElements();
+
+    // Fetch map data and update sidebar quick facts
+    fetchMapDataAndUpdateSidebar();
 });
 
 // Function to fetch view count from API
@@ -87,6 +90,152 @@ async function fetchViewCount() {
         return {
             totalViews: 0
         }; // Return 0 if there's an error
+    }
+}
+
+// Function to fetch map data from JSON and update sidebar
+async function fetchMapDataAndUpdateSidebar() {
+    try {
+        // Get the current page slug from the URL and clean it
+        const currentPath = window.location.pathname;
+        let slug = currentPath.split('/').pop() || '';
+
+        // Remove .html extension if present
+        slug = slug.replace(/\.html$/, '');
+
+        // If it's a directory path (ends with /), try to get the last part
+        if (slug === '') {
+            const pathParts = currentPath.split('/').filter(part => part !== '');
+            slug = pathParts[pathParts.length - 1] || '';
+        }
+
+        // If no slug or it's not a map page, exit
+        if (!slug || slug === 'maps' || slug === '') {
+            console.log('No valid map slug found in URL');
+            return;
+        }
+
+        console.log('Fetching map data for slug:', slug);
+
+        // Fetch the maps data from GitHub
+        const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/maps.json');
+
+        if (!response.ok) {
+            throw new Error('Failed to load map data');
+        }
+
+        const data = await response.json();
+        console.log('Map data loaded successfully');
+
+        // Find the map that matches the current slug
+        const mapData = data.maps.find(map => map.slug === slug);
+
+        if (!mapData) {
+            console.warn('No map data found for slug:', slug);
+            return;
+        }
+
+        console.log('Found map data:', mapData.name);
+
+        // Update the sidebar quick facts
+        updateQuickFacts(mapData);
+
+    } catch (error) {
+        console.error('Error loading map data:', error);
+        // Leave default placeholder text if data fails to load
+    }
+}
+
+// Function to update the quick facts sidebar card
+function updateQuickFacts(mapData) {
+    // Find the Quick Facts card by looking for the heading text
+    const allCards = document.querySelectorAll('.sidebar-card');
+    let quickFactsCard = null;
+
+    allCards.forEach(card => {
+        const h3 = card.querySelector('h3');
+        if (h3 && h3.textContent.trim() === 'Map Quick Facts') {
+            quickFactsCard = card;
+        }
+    });
+
+    if (!quickFactsCard) {
+        console.warn('Map Quick Facts card not found in DOM');
+        return;
+    }
+
+    // Get all list items in the card
+    const listItems = quickFactsCard.querySelectorAll('li');
+
+    if (listItems.length < 3) {
+        console.warn('Not enough list items found in Quick Facts card');
+        return;
+    }
+
+    // Update Size (first list item)
+    const sizeSpan = listItems[0].querySelector('span');
+    if (sizeSpan) {
+        sizeSpan.textContent = mapData.size || 'Info coming soon';
+    } else {
+        // If no span, just update the text node after the strong tag
+        const strong = listItems[0].querySelector('strong');
+        if (strong) {
+            const textNode = strong.nextSibling;
+            if (textNode) {
+                textNode.textContent = ' ' + (mapData.size || 'Info coming soon');
+            }
+        }
+    }
+
+    // Update Terrain (second list item)
+    const terrainSpan = listItems[1].querySelector('span');
+    if (terrainSpan) {
+        terrainSpan.textContent = mapData.terrain || 'Info coming soon';
+    } else {
+        const strong = listItems[1].querySelector('strong');
+        if (strong) {
+            const textNode = strong.nextSibling;
+            if (textNode) {
+                textNode.textContent = ' ' + (mapData.terrain || 'Info coming soon');
+            }
+        }
+    }
+
+    // Update Game Modes (third list item)
+    const modesSpan = listItems[2].querySelector('span');
+    let modesText = 'Info coming soon';
+
+    if (mapData.gamemodes) {
+        const modeNames = Object.keys(mapData.gamemodes)
+            .filter(key => key !== 'unknown') // Filter out 'unknown' gamemodes
+            .map(key => {
+                // Try to get the mode name from the object, or fallback to formatted key
+                const mode = mapData.gamemodes[key];
+                if (mode && mode.mode_name && mode.mode_name !== 'Unknown Gamemodes') {
+                    return mode.mode_name;
+                }
+                // Format the key as a readable name
+                return key.split('_')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+            })
+            .filter(name => name && name !== 'Unknown Gamemodes');
+
+        if (modeNames.length > 0) {
+            modesText = modeNames.join(', ');
+        }
+    }
+
+    if (modesSpan) {
+        modesSpan.textContent = modesText;
+    } else {
+        const strong = listItems[2].querySelector('strong');
+        if (strong) {
+            const textNode = strong.nextSibling;
+            if (textNode) {
+                textNode.textContent = ' ' + modesText;
+            }
+        }
     }
 }
 
