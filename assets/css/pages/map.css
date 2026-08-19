@@ -134,73 +134,86 @@ p {
 }
 
 /* Gamemode Selector */
-.gamemode-selector {
-	padding: 1.5rem;
-	background-color: var(--card-bg);
-	border-radius: 0.75rem;
-	box-shadow: var(--shadow);
-	border: 1px solid var(--border-color);
+.gamemode-selector-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all var(--transition-speed);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 2px solid var(--border-color);
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    min-width: 120px;
+    text-align: center;
 }
 
-.gamemode-selector h2 {
-	text-align: center;
-	font-size: 1.5rem;
-	margin-top: 0;
-	margin-bottom: 1.5rem;
+/* Inactive state */
+.gamemode-selector-btn:hover:not(.active) {
+    background-color: var(--card-bg);
+    border-color: var(--accent-color);
 }
 
-.gamemode-buttons {
-	display: flex;
-	justify-content: center;
-	gap: 0.75rem;
-	flex-wrap: wrap;
+/* Active state */
+.gamemode-selector-btn.active {
+    background-color: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
 }
 
-.gamemode-btn {
-	padding: 0.75rem 1.5rem;
-	border-radius: 0.5rem;
-	background-color: var(--bg-tertiary);
-	color: var(--text-primary);
-	border: 1px solid var(--border-color);
-	cursor: pointer;
-	transition: all var(--transition-speed);
-	font-size: 0.95rem;
-	font-weight: 500;
+.gamemode-selector-btn.active:hover {
+    background-color: var(--accent-color-hover);
 }
 
-.gamemode-btn:hover {
-	background-color: var(--accent-color-light);
-	border-color: var(--accent-color);
-	transform: translateY(-2px);
+/* Focus state for accessibility */
+.gamemode-selector-btn:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
 }
 
-.gamemode-btn.active {
-	background-color: var(--accent-color);
-	color: white;
-	border-color: var(--accent-color);
-	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+/* Icons inside buttons */
+.gamemode-selector-btn i {
+    font-size: 1rem;
+    opacity: 0.8;
 }
 
-/* Gamemode Content Sections */
-.gamemode-section {
-	display: none;
-	animation: fadeIn 0.3s ease-out;
+.gamemode-selector-btn.active i {
+    opacity: 1;
 }
 
-.gamemode-section.active {
-	display: block;
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .gamemode-selector-btn {
+        width: 100%;
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+        min-width: unset;
+        justify-content: center;
+    }
+
+    .gamemode-selector-btn i {
+        font-size: 0.9rem;
+    }
 }
 
-@keyframes fadeIn {
-	from {
-		opacity: 0;
-		transform: translateY(10px);
-	}
+/* Container styling for button row */
+#gamemodeButtonsContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
+    padding: 0.5rem 0;
+}
 
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
+@media (max-width: 640px) {
+    #gamemodeButtonsContainer {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
 }
 
 /* Map Images */

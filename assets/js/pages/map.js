@@ -61,7 +61,161 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Fetch map data and update sidebar quick facts
     fetchMapDataAndUpdateSidebar();
+
+    // Initialize gamemode buttons and data from JSON
+    initializeGamemodeSelector();
 });
+
+// Function to initialize gamemode selector from JSON data
+async function initializeGamemodeSelector() {
+    try {
+        // Get the current page slug from the URL
+        const currentPath = window.location.pathname;
+        let slug = currentPath.split('/').pop() || '';
+        slug = slug.replace(/\.html$/, '');
+
+        if (slug === '') {
+            const pathParts = currentPath.split('/').filter(part => part !== '');
+            slug = pathParts[pathParts.length - 1] || '';
+        }
+
+        if (!slug || slug === 'maps' || slug === '') {
+            console.log('No valid map slug found for gamemode selector');
+            return;
+        }
+
+        // Fetch the maps data from GitHub
+        const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/maps.json');
+        if (!response.ok) {
+            throw new Error('Failed to load map data');
+        }
+
+        const data = await response.json();
+        const mapData = data.maps.find(map => map.slug === slug);
+
+        if (!mapData || !mapData.gamemodes) {
+            console.warn('No gamemode data found for slug:', slug);
+            return;
+        }
+
+        // Generate gamemode buttons and populate details
+        renderGamemodeSelector(mapData);
+
+    } catch (error) {
+        console.error('Error loading gamemode data:', error);
+    }
+}
+
+// Function to render gamemode selector and details
+function renderGamemodeSelector(mapData) {
+    const gamemodes = mapData.gamemodes;
+    const modeKeys = Object.keys(gamemodes).filter(key => key !== 'unknown');
+
+    if (modeKeys.length === 0) {
+        // If no valid gamemodes, show a message
+        const container = document.getElementById('gamemodeButtonsContainer');
+        if (container) {
+            container.innerHTML = '<p class="text-gray-500">No gamemode information available for this map yet.</p>';
+        }
+        return;
+    }
+
+    // Get the buttons container
+    const buttonsContainer = document.getElementById('gamemodeButtonsContainer');
+    if (!buttonsContainer) return;
+
+    // Clear existing buttons
+    buttonsContainer.innerHTML = '';
+
+    // Create buttons for each gamemode - NO ICONS
+    modeKeys.forEach((key, index) => {
+        const mode = gamemodes[key];
+        const button = document.createElement('button');
+        // Use gamemode-selector-btn class
+        button.className = `gamemode-selector-btn ${index === 0 ? 'active' : ''}`;
+        button.dataset.gamemode = key;
+        button.dataset.index = index;
+        // Just the text, no icon
+        button.textContent = mode.mode_name || key.replace('_', ' ').toUpperCase();
+        buttonsContainer.appendChild(button);
+    });
+
+    // Set first gamemode as active by default and display its data
+    const firstKey = modeKeys[0];
+    if (firstKey) {
+        updateGamemodeDetails(gamemodes[firstKey]);
+    }
+
+    // Add click event listeners to the new buttons
+    buttonsContainer.querySelectorAll('.gamemode-selector-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // Remove active class from all buttons
+            buttonsContainer.querySelectorAll('.gamemode-selector-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Add active class to clicked button
+            this.classList.add('active');
+
+            // Get the gamemode key and update details
+            const modeKey = this.dataset.gamemode;
+            if (modeKey && gamemodes[modeKey]) {
+                updateGamemodeDetails(gamemodes[modeKey]);
+            }
+        });
+    });
+}
+
+// Function to update gamemode details in the UI
+function updateGamemodeDetails(modeData) {
+    // Update description
+    const descriptionElement = document.getElementById('modeDescription');
+    if (descriptionElement) {
+        descriptionElement.textContent = modeData.mode_description || 'No description available';
+    }
+
+    // Update Match Format
+    const matchFormat = document.getElementById('matchFormat');
+    const matchFormatDesc = document.getElementById('matchFormatDesc');
+    if (matchFormat) {
+        matchFormat.textContent = modeData.match_format || 'Unknown Format';
+    }
+    if (matchFormatDesc) {
+        matchFormatDesc.textContent = modeData.match_format_description || 'Match format details coming soon';
+    }
+
+    // Update Time Limit
+    const timeLimit = document.getElementById('timeLimit');
+    const timeLimitDesc = document.getElementById('timeLimitDesc');
+    if (timeLimit) {
+        timeLimit.textContent = modeData.max_match_time || 'Unknown Time Limit';
+    }
+    if (timeLimitDesc) {
+        timeLimitDesc.textContent = modeData.max_match_description || 'Time limit details coming soon';
+    }
+
+    // Update Control Points
+    const controlPoints = document.getElementById('controlPoints');
+    const controlPointsDesc = document.getElementById('controlPointsDesc');
+    if (controlPoints) {
+        controlPoints.textContent = modeData.control_points || 'Unknown Control Points';
+    }
+    if (controlPointsDesc) {
+        controlPointsDesc.textContent = modeData.control_points_description || 'Control point details coming soon';
+    }
+
+    // Update Win Condition
+    const winCondition = document.getElementById('winCondition');
+    const winConditionDesc = document.getElementById('winConditionDesc');
+    if (winCondition) {
+        winCondition.textContent = modeData.win_condition || 'Unknown Win Condition';
+    }
+    if (winConditionDesc) {
+        winConditionDesc.textContent = modeData.win_condition_description || 'Win condition details coming soon';
+    }
+}
 
 // Function to fetch view count from API
 async function fetchViewCount() {
