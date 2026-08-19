@@ -122,6 +122,118 @@ function displayViewCounter(views) {
     }
 }
 
+// Fetch and display related guides for tanks
+async function fetchAndDisplayRelatedGuides(tankSlug) {
+    try {
+        const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/guides.json');
+        if (!response.ok) {
+            throw new Error('Failed to load guides data');
+        }
+
+        const data = await response.json();
+        const allGuides = data.posts || [];
+
+        // Filter guides that are relevant to this tank
+        const relevantGuides = allGuides.filter(guide => {
+            if (!guide.sections) return false;
+            // Split sections by comma and trim whitespace
+            const sections = guide.sections.split(',').map(s => s.trim());
+            // Check if 'allTanks' is in sections OR if the tank slug is in sections
+            return sections.includes('allTanks') || sections.includes(tankSlug);
+        });
+
+        // Get the top 3 latest guides (based on raw_date)
+        const sortedGuides = relevantGuides.sort((a, b) => {
+            return new Date(b.raw_date) - new Date(a.raw_date);
+        });
+
+        const top3Guides = sortedGuides.slice(0, 3);
+
+        // Update the Related Guides sidebar section
+        updateRelatedGuidesSidebar(top3Guides);
+
+        return top3Guides;
+
+    } catch (error) {
+        console.error('Error loading guides data:', error);
+        // Show fallback message
+        updateRelatedGuidesSidebar([]);
+        return [];
+    }
+}
+
+// Function to update the Related Guides sidebar section for tanks
+function updateRelatedGuidesSidebar(guides) {
+    // Find the Related Guides card
+    const sidebarCards = document.querySelectorAll('.sidebar-card');
+    let relatedGuidesCard = null;
+
+    sidebarCards.forEach(card => {
+        const h3 = card.querySelector('h3');
+        if (h3 && h3.textContent.trim() === 'Related Guides') {
+            relatedGuidesCard = card;
+        }
+    });
+
+    if (!relatedGuidesCard) {
+        console.warn('Related Guides card not found in DOM');
+        return;
+    }
+
+    // Get the container where guides are displayed
+    const guideContainer = relatedGuidesCard.querySelector('.related-guide');
+    const buttonContainer = relatedGuidesCard.querySelector('.button');
+
+    if (!guideContainer) {
+        console.warn('Guide container not found in Related Guides card');
+        return;
+    }
+
+    // If no guides available, show a message
+    if (!guides || guides.length === 0) {
+        guideContainer.innerHTML = `
+            <h4><a href="../resources/contact-us">No Guides Available Yet</a></h4>
+            <p>We're still working on writing guides for this section. If you've got helpful info to share, click right here to submit your own guide!</p>
+        `;
+        return;
+    }
+
+    // Build the HTML for the guides
+    let guidesHTML = '';
+    guides.forEach(guide => {
+        // Determine the link URL
+        let linkUrl = guide.slug;
+        // If it's an official guide with a full URL, use it as-is
+        // Otherwise, build the relative path
+        if (!linkUrl.startsWith('http://') && !linkUrl.startsWith('https://')) {
+            linkUrl = `../guides/${linkUrl}`;
+        }
+
+        guidesHTML += `
+            <div class="related-guide">
+                <h4>
+                    <a href="${linkUrl}">${guide.title}</a>
+                </h4>
+                <p>${guide.description || ''}</p>
+            </div>
+        `;
+    });
+
+    // Update the guide container
+    guideContainer.innerHTML = guidesHTML;
+
+    // Ensure the "View all Guides" button exists
+    if (!buttonContainer) {
+        const newButtonContainer = document.createElement('div');
+        newButtonContainer.className = 'button text-center';
+        newButtonContainer.innerHTML = `<a href="../guides">View all Guides</a>`;
+        relatedGuidesCard.appendChild(newButtonContainer);
+    } else {
+        // Update existing button if needed
+        buttonContainer.innerHTML = `<a href="../guides">View all Guides</a>`;
+    }
+}
+
 function isValidTankStats(stats) {
     if (!stats) return false;
 
@@ -375,6 +487,11 @@ async function fetchTankData(tankId) {
         // Fetch videos data if tank has a slug
         if (tank.slug) {
             await fetchAndPopulateVideos(tank.slug);
+        }
+
+        // Fetch and display related guides
+        if (tank.slug) {
+            await fetchAndDisplayRelatedGuides(tank.slug);
         }
 
     } catch (error) {
