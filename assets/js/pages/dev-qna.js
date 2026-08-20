@@ -55,6 +55,73 @@ function showError(container, message) {
     `;
 }
 
+// Format date to "20 August 2026" style
+function formatDate(dateString) {
+    if (!dateString || dateString === 'Unknown') return 'Unknown';
+
+    try {
+        // Try to parse the date - handles various formats
+        const date = new Date(dateString);
+
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+            // If parsing fails, try to handle common formats manually
+            // Try "YYYY-MM-DD" format
+            const parts = dateString.split('-');
+            if (parts.length === 3) {
+                const year = parseInt(parts[0]);
+                const month = parseInt(parts[1]) - 1;
+                const day = parseInt(parts[2]);
+                const parsedDate = new Date(year, month, day);
+                if (!isNaN(parsedDate.getTime())) {
+                    return formatDateObject(parsedDate);
+                }
+            }
+            // Try "DD-MM-YYYY" format
+            const parts2 = dateString.split('-');
+            if (parts2.length === 3) {
+                const day = parseInt(parts2[0]);
+                const month = parseInt(parts2[1]) - 1;
+                const year = parseInt(parts2[2]);
+                const parsedDate = new Date(year, month, day);
+                if (!isNaN(parsedDate.getTime())) {
+                    return formatDateObject(parsedDate);
+                }
+            }
+            // Try "MM/DD/YYYY" format
+            const parts3 = dateString.split('/');
+            if (parts3.length === 3) {
+                const month = parseInt(parts3[0]) - 1;
+                const day = parseInt(parts3[1]);
+                const year = parseInt(parts3[2]);
+                const parsedDate = new Date(year, month, day);
+                if (!isNaN(parsedDate.getTime())) {
+                    return formatDateObject(parsedDate);
+                }
+            }
+            return dateString; // Return original if we can't parse it
+        }
+
+        return formatDateObject(date);
+    } catch (e) {
+        return dateString; // Return original on error
+    }
+}
+
+// Format a Date object to "20 August 2026" style
+function formatDateObject(date) {
+    const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    const day = date.getDate();
+    const month = monthNames[date.getMonth()];
+    const year = date.getFullYear();
+
+    return `${day} ${month} ${year}`;
+}
+
 // Build the full content
 function buildContent(container, data) {
     // Get episode keys and sort them in reverse order (latest first)
@@ -149,10 +216,12 @@ function buildEpisodes(data, episodeKeys) {
         const episode = data.episodes[key];
         const episodeNum = episode.episode_number || (index + 1);
         const sectionId = `section-${episodeNum}`;
+        // Format the date using the new function
+        const formattedDate = formatDate(episode.date);
 
         html += `
             <h2 id="${sectionId}" class="qa-section-target">Episode #${episodeNum}</h2>
-            <p class="qa-episode-date"><strong>Date:</strong> ${episode.date || 'Unknown'}</p>
+            <p class="qa-episode-date"><strong>Date:</strong> ${formattedDate}</p>
             <div class="qa-episode-tldr"><strong>TLDR:</strong> ${episode.tldr || 'No summary available'}</div>
             ${buildQuestions(episode.questions, episodeNum)}
         `;
@@ -222,7 +291,7 @@ function buildAnswers(answers, notes) {
     if (notes && notes.length > 0) {
         html += `
             <div class="qa-notes">
-                <strong>Notes:</strong>
+                <strong>Notes from Daiske:</strong>
                 <ul class="list-disc">
                     ${notes.map(note => `<li>${formatTextWithNewlines(escapeHtml(note))}</li>`).join('')}
                 </ul>
