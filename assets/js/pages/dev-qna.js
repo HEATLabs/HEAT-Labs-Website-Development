@@ -57,7 +57,14 @@ function showError(container, message) {
 
 // Build the full content
 function buildContent(container, data) {
-    const episodeKeys = Object.keys(data.episodes).sort();
+    // Get episode keys and sort them in reverse order (latest first)
+    const episodeKeys = Object.keys(data.episodes).sort((a, b) => {
+        // Extract episode numbers from filenames
+        const numA = parseInt(a.match(/\d+/)?.[0] || 0);
+        const numB = parseInt(b.match(/\d+/)?.[0] || 0);
+        return numB - numA; // Descending order (latest first)
+    });
+
     const totalEpisodes = episodeKeys.length;
 
     // Create the main wrapper
@@ -140,7 +147,7 @@ function buildEpisodes(data, episodeKeys) {
 
     episodeKeys.forEach((key, index) => {
         const episode = data.episodes[key];
-        const episodeNum = index + 1;
+        const episodeNum = episode.episode_number || (index + 1);
         const sectionId = `section-${episodeNum}`;
 
         html += `
@@ -171,9 +178,9 @@ function buildQuestions(questions, episodeNum) {
         const qId = `q-${episodeNum}-${qNumber}`;
 
         html += `
-            <div class="qa-item" data-episode="${episodeNum}" data-question-number="${qNumber}" data-question-text="${q.question.toLowerCase()}">
+            <div class="qa-item" data-episode="${episodeNum}" data-question-number="${qNumber}" data-question-text="${escapeHtml(q.question.toLowerCase())}">
                 <div class="highlight-takeaways">
-                    <p class="title">Q${qNumber}: ${q.question}</p>
+                    <p class="title">Q${qNumber}: ${escapeHtml(q.question)}</p>
                     ${buildAnswers(q.answers, q.notes)}
                 </div>
             </div>
@@ -196,11 +203,15 @@ function buildAnswers(answers, notes) {
     let html = '<ul class="list-disc">';
 
     answers.forEach(answer => {
-        const speaker = answer.speaker || 'Unknown';
-        const text = answer.text || 'No response';
+        const speaker = escapeHtml(answer.speaker || 'Unknown');
+        const text = escapeHtml(answer.text || 'No response');
+
+        // Process newlines in the text
+        const formattedText = formatTextWithNewlines(text);
+
         html += `
             <li>
-                <strong>${speaker}:</strong> ${text}
+                <strong>${speaker}:</strong> ${formattedText}
             </li>
         `;
     });
@@ -213,13 +224,39 @@ function buildAnswers(answers, notes) {
             <div class="qa-notes">
                 <strong>Notes:</strong>
                 <ul class="list-disc">
-                    ${notes.map(note => `<li>${note}</li>`).join('')}
+                    ${notes.map(note => `<li>${formatTextWithNewlines(escapeHtml(note))}</li>`).join('')}
                 </ul>
             </div>
         `;
     }
 
     return html;
+}
+
+// Format text with newlines into HTML paragraphs
+function formatTextWithNewlines(text) {
+    if (!text) return '';
+
+    // Split by double newlines first (paragraphs), then single newlines
+    const paragraphs = text.split(/\n\n+/).filter(p => p.trim().length > 0);
+
+    if (paragraphs.length > 1) {
+        // Multiple paragraphs
+        return paragraphs.map(p =>
+            `<p class="qa-answer-paragraph">${p.replace(/\n/g, '<br>')}</p>`
+        ).join('');
+    } else {
+        // Single paragraph with line breaks
+        return text.replace(/\n/g, '<br>');
+    }
+}
+
+// Escape HTML entities to prevent XSS
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // Build mobile sidebar
@@ -269,11 +306,11 @@ function buildTableOfContents(episodeKeys) {
                 </li>
     `;
 
-    episodeKeys.forEach((key, index) => {
-        const episodeNum = index + 1;
+    episodeKeys.forEach((key) => {
+        const episode = key.episode_number || parseInt(key.match(/\d+/)?.[0] || 0);
         tocHtml += `
             <li>
-                <a href="#section-${episodeNum}" class="qa-toc-link">Episode #${episodeNum}</a>
+                <a href="#section-${episode}" class="qa-toc-link">Episode #${episode}</a>
             </li>
         `;
     });
