@@ -163,6 +163,9 @@ function buildContent(container, data) {
 
     // Initialize search functionality
     initSearch(data, episodeKeys);
+
+    // Initialize collapsible episodes
+    initCollapsibleEpisodes(episodeKeys);
 }
 
 // Build introduction section
@@ -179,7 +182,7 @@ function buildIntroduction(data) {
         </p>
         <p>
             Below you'll find each episode's questions organized by date, with answers from the HEAT development team.
-            Use the search box to quickly find topics that interest you.
+            Use the search box to quickly find topics that interest you. Click on an episode header to expand or collapse it.
         </p>
     `;
 }
@@ -216,14 +219,33 @@ function buildEpisodes(data, episodeKeys) {
         const episode = data.episodes[key];
         const episodeNum = episode.episode_number || (index + 1);
         const sectionId = `section-${episodeNum}`;
-        // Format the date using the new function
+        const contentId = `episode-content-${episodeNum}`;
+        const isLatest = index === 0; // First is latest since we sorted descending
         const formattedDate = formatDate(episode.date);
+        const questionCount = episode.questions ? episode.questions.length : 0;
+        const expandIcon = isLatest ? 'fa-chevron-up' : 'fa-chevron-down';
 
         html += `
-            <h2 id="${sectionId}" class="qa-section-target">Episode #${episodeNum}</h2>
-            <p class="qa-episode-date"><strong>Date:</strong> ${formattedDate}</p>
-            <div class="qa-episode-tldr"><strong>TLDR:</strong> ${episode.tldr || 'No summary available'}</div>
-            ${buildQuestions(episode.questions, episodeNum)}
+            <div class="qa-episode-wrapper" data-episode="${episodeNum}">
+                <div class="qa-episode-header qa-collapsible-header ${isLatest ? 'expanded' : ''}"
+                     data-target="${contentId}"
+                     role="button"
+                     tabindex="0"
+                     aria-expanded="${isLatest ? 'true' : 'false'}">
+                    <div class="qa-episode-header-left">
+                        <span class="qa-episode-number">Episode #${episodeNum}</span>
+                        <span class="qa-episode-date-badge">${formattedDate}</span>
+                        <span class="qa-episode-question-count">${questionCount} questions</span>
+                    </div>
+                    <div class="qa-episode-header-right">
+                        <i class="fas ${expandIcon} qa-episode-toggle-icon"></i>
+                    </div>
+                </div>
+                <div id="${contentId}" class="qa-episode-content ${isLatest ? 'expanded' : ''}">
+                    <div class="qa-episode-tldr"><strong>TLDR:</strong> ${episode.tldr || 'No summary available'}</div>
+                    ${buildQuestions(episode.questions, episodeNum)}
+                </div>
+            </div>
         `;
     });
 
@@ -414,7 +436,7 @@ function initSearch(data, episodeKeys) {
             searchClear.classList.remove('visible');
         }
 
-        // Filter questions
+        // First, filter all questions and count matches
         qaItems.forEach(item => {
             const questionText = item.dataset.questionText || '';
             const answerText = item.textContent.toLowerCase();
@@ -425,6 +447,67 @@ function initSearch(data, episodeKeys) {
                 matchCount++;
             } else {
                 item.classList.add('hidden');
+            }
+        });
+
+        // Now handle episode expansion/collapse based on search
+        const episodeWrappers = document.querySelectorAll('.qa-episode-wrapper');
+        const firstEpisodeNum = episodeWrappers.length > 0 ? episodeWrappers[0].dataset.episode : null;
+
+        episodeWrappers.forEach(wrapper => {
+            const content = wrapper.querySelector('.qa-episode-content');
+            const header = wrapper.querySelector('.qa-collapsible-header');
+            const icon = header ? header.querySelector('.qa-episode-toggle-icon') : null;
+            const episodeNum = wrapper.dataset.episode;
+
+            if (query.length > 0) {
+                // When searching: check if this episode has ANY visible (matching) questions
+                const visibleItems = wrapper.querySelectorAll('.qa-item:not(.hidden)');
+                const hasMatches = visibleItems.length > 0;
+
+                // Only expand if it has matching questions
+                if (hasMatches && content && !content.classList.contains('expanded')) {
+                    content.classList.add('expanded');
+                    if (header) header.classList.add('expanded');
+                    if (icon) {
+                        icon.className = 'fas fa-chevron-up qa-episode-toggle-icon';
+                    }
+                    if (header) header.setAttribute('aria-expanded', 'true');
+                } else if (!hasMatches && content && content.classList.contains('expanded')) {
+                    // Collapse if it has no matches and is expanded
+                    content.classList.remove('expanded');
+                    if (header) header.classList.remove('expanded');
+                    if (icon) {
+                        icon.className = 'fas fa-chevron-down qa-episode-toggle-icon';
+                    }
+                    if (header) header.setAttribute('aria-expanded', 'false');
+                }
+            } else {
+                // Reset to default state when search is cleared
+                const isLatest = episodeNum === firstEpisodeNum;
+                if (content) {
+                    if (isLatest) {
+                        content.classList.add('expanded');
+                    } else {
+                        content.classList.remove('expanded');
+                    }
+                }
+                if (header) {
+                    if (isLatest) {
+                        header.classList.add('expanded');
+                        header.setAttribute('aria-expanded', 'true');
+                    } else {
+                        header.classList.remove('expanded');
+                        header.setAttribute('aria-expanded', 'false');
+                    }
+                }
+                if (icon) {
+                    if (isLatest) {
+                        icon.className = 'fas fa-chevron-up qa-episode-toggle-icon';
+                    } else {
+                        icon.className = 'fas fa-chevron-down qa-episode-toggle-icon';
+                    }
+                }
             }
         });
 
@@ -450,6 +533,54 @@ function initSearch(data, episodeKeys) {
             this.blur();
         }
     });
+}
+
+// Initialize collapsible episodes
+function initCollapsibleEpisodes(episodeKeys) {
+    const headers = document.querySelectorAll('.qa-collapsible-header');
+
+    headers.forEach(header => {
+        // Click handler
+        header.addEventListener('click', function() {
+            toggleEpisode(this);
+        });
+
+        // Keyboard support (Enter and Space)
+        header.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleEpisode(this);
+            }
+        });
+    });
+}
+
+// Toggle a single episode
+function toggleEpisode(header) {
+    const targetId = header.dataset.target;
+    const content = document.getElementById(targetId);
+    const icon = header.querySelector('.qa-episode-toggle-icon');
+    const isExpanded = header.classList.contains('expanded');
+
+    if (content) {
+        if (isExpanded) {
+            // Collapse
+            content.classList.remove('expanded');
+            header.classList.remove('expanded');
+            header.setAttribute('aria-expanded', 'false');
+            if (icon) {
+                icon.className = 'fas fa-chevron-down qa-episode-toggle-icon';
+            }
+        } else {
+            // Expand
+            content.classList.add('expanded');
+            header.classList.add('expanded');
+            header.setAttribute('aria-expanded', 'true');
+            if (icon) {
+                icon.className = 'fas fa-chevron-up qa-episode-toggle-icon';
+            }
+        }
+    }
 }
 
 // Export for debugging if needed
