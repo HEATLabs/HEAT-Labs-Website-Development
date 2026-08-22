@@ -697,7 +697,7 @@ function updateDownloadButtons(modDetails) {
             let iconClass = 'fa-solid fa-download';
             const osLower = osName.toLowerCase();
             if (osLower.includes('windows') || osLower.includes('win')) {
-                iconClass = 'fa-brands fa-windows';
+                iconClass = 'fa-brands fa-microsoft';
             } else if (osLower.includes('mac') || osLower.includes('apple') || osLower.includes('osx')) {
                 iconClass = 'fa-brands fa-apple';
             } else if (osLower.includes('linux') || osLower.includes('ubuntu') || osLower.includes('debian')) {

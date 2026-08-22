@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Platform icon mapping
     const platformIcons = {
-        'Windows': 'fa-brands fa-windows',
+        'Windows': 'fa-brands fa-microsoft',
         'MacOS': 'fa-brands fa-apple',
         'Linux': 'fa-brands fa-linux'
     };
