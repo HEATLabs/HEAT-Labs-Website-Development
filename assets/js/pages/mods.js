@@ -11,6 +11,156 @@ document.addEventListener('DOMContentLoaded', function() {
     let modCards = [];
     let allModsData = [];
 
+    // Cache for mod details
+    const modDetailsCache = new Map();
+
+    // Platform icon mapping
+    const platformIcons = {
+        'Windows': 'fa-brands fa-windows',
+        'MacOS': 'fa-brands fa-apple',
+        'Linux': 'fa-brands fa-linux'
+    };
+
+    // Platform short names for display
+    const platformShortNames = {
+        'Windows': 'Win',
+        'MacOS': 'Mac',
+        'Linux': 'Lin'
+    };
+
+    // Parse markdown frontmatter
+    function parseFrontmatter(markdown) {
+        try {
+            const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n/;
+            const match = markdown.match(frontmatterRegex);
+
+            if (!match) {
+                console.warn('No frontmatter found in markdown');
+                return null;
+            }
+
+            const frontmatterText = match[1];
+            const lines = frontmatterText.split('\n');
+            const data = {};
+
+            let currentKey = null;
+            let currentValue = [];
+            let isMultiline = false;
+
+            for (let line of lines) {
+                line = line.trim();
+                if (line === '') continue;
+
+                // Check if it's a key: value line
+                const keyValueMatch = line.match(/^([a-zA-Z0-9_-]+):\s*(.*)$/);
+
+                if (keyValueMatch) {
+                    // If we were building a multiline value, save it
+                    if (currentKey && isMultiline) {
+                        data[currentKey] = currentValue.join('\n').trim();
+                        currentKey = null;
+                        currentValue = [];
+                        isMultiline = false;
+                    }
+
+                    const key = keyValueMatch[1];
+                    let value = keyValueMatch[2];
+
+                    // Check if this is the start of a list or multiline value
+                    if (value === '') {
+                        currentKey = key;
+                        currentValue = [];
+                        isMultiline = true;
+                        continue;
+                    }
+
+                    // Try to parse arrays
+                    if (value.startsWith('[') && value.endsWith(']')) {
+                        try {
+                            const arrayMatch = value.match(/\[(.*)\]/);
+                            if (arrayMatch) {
+                                const items = arrayMatch[1].split(',').map(item =>
+                                    item.trim().replace(/^["']|["']$/g, '')
+                                );
+                                data[key] = items;
+                                continue;
+                            }
+                        } catch (e) {
+                            // If parsing fails, store as string
+                        }
+                    }
+
+                    // Try to parse booleans
+                    if (value === 'true' || value === 'false') {
+                        data[key] = value === 'true';
+                        continue;
+                    }
+
+                    // Try to parse numbers
+                    if (!isNaN(value) && value !== '') {
+                        data[key] = Number(value);
+                        continue;
+                    }
+
+                    data[key] = value;
+                } else if (currentKey && isMultiline) {
+                    // This is a continuation of a multiline value
+                    currentValue.push(line);
+                }
+            }
+
+            // Save any remaining multiline value
+            if (currentKey && isMultiline) {
+                data[currentKey] = currentValue.join('\n').trim();
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error parsing frontmatter:', error);
+            return null;
+        }
+    }
+
+    // Fetch mod details from markdown file
+    async function fetchModDetails(detailsUrl) {
+        if (modDetailsCache.has(detailsUrl)) {
+            return modDetailsCache.get(detailsUrl);
+        }
+
+        try {
+            console.log('Fetching details from:', detailsUrl);
+            const response = await fetch(detailsUrl);
+            if (!response.ok) {
+                throw new Error(`Failed to load mod details: ${detailsUrl} (${response.status})`);
+            }
+            const markdown = await response.text();
+            const frontmatter = parseFrontmatter(markdown);
+
+            if (frontmatter) {
+                console.log('Parsed frontmatter:', frontmatter);
+                modDetailsCache.set(detailsUrl, frontmatter);
+                return frontmatter;
+            }
+            return null;
+        } catch (error) {
+            console.error('Error loading mod details:', error);
+            return null;
+        }
+    }
+
+    // Get platform support from downloads
+    function getPlatformsFromDownloads(downloads) {
+        if (!downloads || !downloads.links || !Array.isArray(downloads.links)) {
+            return [];
+        }
+        const platforms = downloads.links
+            .filter(link => link.os && link.os !== 'URL' && link.os.trim() !== '')
+            .map(link => link.os);
+
+        console.log('Extracted platforms:', platforms);
+        return platforms;
+    }
+
     // Fetch mod data from JSON file
     async function fetchModData() {
         try {
@@ -19,25 +169,100 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error('Failed to load mod data');
             }
             const data = await response.json();
-            allModsData = data;
-            return data;
+            console.log('Loaded mods from JSON:', data);
+
+            // Fetch details for each mod to get actual category and platform info
+            const enrichedData = [];
+            for (const mod of data) {
+                let details = null;
+
+                if (mod.details) {
+                    details = await fetchModDetails(mod.details);
+                }
+
+                if (details) {
+                    // Use category from details if available
+                    if (details.category) {
+                        mod.category = details.category;
+                        console.log(`Updated category for ${mod.name}: ${mod.category}`);
+                    } else {
+                        // If no category in details, use a default
+                        mod.category = 'Gameplay';
+                        console.warn(`No category found in details for ${mod.name}, using default: Gameplay`);
+                    }
+
+                    // Store platform info
+                    if (details.downloads) {
+                        mod.platforms = getPlatformsFromDownloads(details.downloads);
+                        console.log(`Platforms for ${mod.name}:`, mod.platforms);
+                    } else {
+                        // Default platform if none found
+                        mod.platforms = ['Windows'];
+                        console.warn(`No downloads found in details for ${mod.name}, using default: Windows`);
+                    }
+                } else {
+                    // No details found, use defaults
+                    console.warn(`No details found for ${mod.name}, using defaults`);
+
+                    // Check if category already exists in the JSON (fallback)
+                    if (!mod.category) {
+                        mod.category = 'Gameplay';
+                    }
+
+                    if (!mod.platforms || mod.platforms.length === 0) {
+                        mod.platforms = ['Windows'];
+                    }
+                }
+
+                // Ensure category is always set
+                if (!mod.category) {
+                    mod.category = 'Gameplay';
+                }
+
+                // Ensure platforms is always an array
+                if (!mod.platforms || !Array.isArray(mod.platforms)) {
+                    mod.platforms = ['Windows'];
+                }
+
+                enrichedData.push(mod);
+            }
+
+            allModsData = enrichedData;
+            console.log('Final enriched data:', enrichedData);
+            return enrichedData;
         } catch (error) {
             console.error('Error loading mod data:', error);
-            return []; // Return empty array if theres an error
+            return []; // Return empty array if there's an error
         }
     }
 
     // Get first category for display (splits by comma and takes the first one)
     function getDisplayCategory(category) {
-        if (!category) return 'Unknown';
+        if (!category) return 'Gameplay';
         const categories = category.split(',').map(c => c.trim());
-        return categories[0] || 'Unknown';
+        return categories[0] || 'Gameplay';
     }
 
     // Get all categories as an array for filtering
     function getCategoryArray(category) {
-        if (!category) return ['Unknown'];
+        if (!category) return ['Gameplay'];
         return category.split(',').map(c => c.trim());
+    }
+
+    // Create platform badges HTML
+    function createPlatformBadges(platforms) {
+        if (!platforms || platforms.length === 0) {
+            console.log('No platforms found for this mod, using default Windows');
+            return '<span class="mod-platform-badge" title="Windows"><i class="fa-brands fa-windows"></i></span>';
+        }
+
+        console.log('Creating badges for platforms:', platforms);
+
+        return platforms.map(platform => {
+            const icon = platformIcons[platform] || 'fa-solid fa-desktop';
+            const shortName = platformShortNames[platform] || platform.substring(0, 3);
+            return `<span class="mod-platform-badge" title="${platform}"><i class="${icon}"></i></span>`;
+        }).join('');
     }
 
     // Create mod card HTML
@@ -50,7 +275,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Store individual categories as data attributes for easier filtering
         const categories = getCategoryArray(mod.category);
         card.setAttribute('data-categories', JSON.stringify(categories));
-        card.setAttribute('data-status', mod.status);
+        card.setAttribute('data-status', mod.status || 'Unknown');
         card.setAttribute('data-mod-id', mod.id);
 
         const displayCategory = getDisplayCategory(mod.category);
@@ -59,10 +284,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const modStatusHTML = mod.status && mod.status.trim() !== '' ?
             `<div class="mod-status">${mod.status}</div>` : '';
 
+        // Platform badges - force at least Windows if none found
+        let platforms = mod.platforms || [];
+        if (platforms.length === 0) {
+            platforms = ['Windows']; // Default
+        }
+
+        const platformBadgesHTML = `<div class="mod-platforms">${createPlatformBadges(platforms)}</div>`;
+
+        // Use the slug directly - if it's a full URL, use it as-is
+        const viewLink = mod.slug.startsWith('http') ? mod.slug : `${window.location.origin}/${mod.slug}`;
+
         card.innerHTML = `
             <div class="mod-img-container">
                 <img src="${mod.image}" alt="${mod.name} Preview" class="mod-img" onerror="this.src='https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/placeholder/imagefailedtoload.webp'">
                 ${modStatusHTML}
+                ${platformBadgesHTML}
             </div>
             <div class="mod-info">
                 <h3>${mod.name}</h3>
@@ -74,7 +311,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     ${mod.description}
                 </div>
                 <div class="mod-buttons">
-                    <a href="${mod.slug}" class="btn-accent" target="_blank" rel="noopener noreferrer">
+                    <a href="${viewLink}" class="btn-accent" target="_blank" rel="noopener noreferrer">
                         <i class="fas fa-external-link-alt mr-2"></i>View Mod
                     </a>
                 </div>
@@ -237,7 +474,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (rawCategory) {
                     cardCategories = rawCategory.split(',').map(c => c.trim());
                 } else {
-                    cardCategories = ['Unknown'];
+                    cardCategories = ['Gameplay'];
                 }
             }
 
