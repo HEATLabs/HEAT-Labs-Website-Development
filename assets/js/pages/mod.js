@@ -165,10 +165,8 @@ async function fetchModData(modId, modSlug) {
 function parseModDetails(mdContent) {
     const details = {};
 
-    const downloadMatch = mdContent.match(/^download:\s*(.+)$/m);
-    if (downloadMatch && downloadMatch[1]) {
-        details.download = downloadMatch[1].trim();
-    }
+    // Remove the old download field - we now use downloads section
+    // download field is intentionally skipped
 
     const categoryMatch = mdContent.match(/category:\s*([^#\n]+)/i);
     if (categoryMatch && categoryMatch[1]) {
@@ -190,6 +188,70 @@ function parseModDetails(mdContent) {
     const descriptionMatch = mdContent.match(/^description:\s*(.+)$/m);
     if (descriptionMatch && descriptionMatch[1]) {
         details.description = descriptionMatch[1].trim();
+    }
+
+    // Parse downloads section
+    details.downloads = {
+        enabled: false,
+        layout: 'single',
+        links: []
+    };
+
+    const downloadsMatch = mdContent.match(/downloads:[\s\S]*?(?=\n\w+:|$)/i);
+    if (downloadsMatch) {
+        const downloadsSection = downloadsMatch[0];
+        details.downloads.enabled = true;
+
+        const layoutMatch = downloadsSection.match(/layout:\s*([^\n]+)/i);
+        if (layoutMatch && layoutMatch[1]) {
+            details.downloads.layout = layoutMatch[1].trim();
+        }
+
+        const linksMatch = downloadsSection.match(/links:([\s\S]*?)(?=\n\w+:|$)/i);
+        if (linksMatch && linksMatch[1]) {
+            const linksContent = linksMatch[1];
+            const linkRegex = /-\s*os:\s*([^\n]+)\s*url:\s*([^\n]+)/gi;
+            let linkMatch;
+            while ((linkMatch = linkRegex.exec(linksContent)) !== null) {
+                const osName = linkMatch[1].trim();
+                const url = linkMatch[2].trim();
+                if (url && url !== 'URL' && url !== '') {
+                    details.downloads.links.push({
+                        os: osName,
+                        url: url
+                    });
+                }
+            }
+            // Fallback: try parsing without regex
+            if (details.downloads.links.length === 0) {
+                const lines = linksContent.split('\n');
+                let currentOs = null;
+                let currentUrl = null;
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    if (line.includes('os:')) {
+                        if (currentOs && currentUrl) {
+                            details.downloads.links.push({ os: currentOs, url: currentUrl });
+                        }
+                        const osMatch = line.match(/os:\s*([^\n]+)/i);
+                        currentOs = osMatch ? osMatch[1].trim() : null;
+                        currentUrl = null;
+                    } else if (line.includes('url:') && currentOs) {
+                        const urlMatch = line.match(/url:\s*([^\n]+)/i);
+                        currentUrl = urlMatch ? urlMatch[1].trim() : null;
+                        if (currentUrl && currentUrl !== 'URL' && currentUrl !== '') {
+                            details.downloads.links.push({ os: currentOs, url: currentUrl });
+                            currentOs = null;
+                            currentUrl = null;
+                        }
+                    }
+                }
+                if (currentOs && currentUrl && currentUrl !== 'URL' && currentUrl !== '') {
+                    details.downloads.links.push({ os: currentOs, url: currentUrl });
+                }
+            }
+        }
     }
 
     // Extract features
@@ -519,28 +581,8 @@ function updateModPageElements(mod, modVersion, modDetails) {
     // Update video showcase
     updateVideoShowcase(modDetails);
 
-    // Update download button
-    const downloadButton = document.querySelector('.quick-action-btn.download-btn');
-    if (downloadButton) {
-        if (modDetails && modDetails.download) {
-            downloadButton.href = modDetails.download;
-            downloadButton.target = '_blank';
-            downloadButton.rel = 'noopener noreferrer';
-        } else if (mod.modVersion) {
-            downloadButton.href = mod.modVersion;
-            downloadButton.target = '_blank';
-            downloadButton.rel = 'noopener noreferrer';
-        } else {
-            downloadButton.href = '#';
-            downloadButton.style.opacity = '0.6';
-            downloadButton.style.cursor = 'not-allowed';
-            downloadButton.title = 'Download link not available';
-            downloadButton.addEventListener('click', function(e) {
-                e.preventDefault();
-                alert('Download link not available for this mod yet.');
-            });
-        }
-    }
+    // Update download buttons - NEW: Use downloads section from MD
+    updateDownloadButtons(modDetails);
 
     // Update sidebar Quick Facts
     const sidebarCards = document.querySelectorAll('.sidebar-card');
@@ -612,7 +654,86 @@ function updateModPageElements(mod, modVersion, modDetails) {
         });
     }
 
-    updateRelatedMods(mod);
+    updateRelatedMods(mod, modDetails);
+}
+
+// NEW: Function to update download buttons using the downloads section
+function updateDownloadButtons(modDetails) {
+    const quickActionsContainer = document.querySelector('.quick-actions');
+    if (!quickActionsContainer) return;
+
+    // Clear existing download buttons
+    quickActionsContainer.innerHTML = '';
+
+    // Check if we have download links from the MD file
+    if (modDetails && modDetails.downloads && modDetails.downloads.enabled && modDetails.downloads.links.length > 0) {
+        const links = modDetails.downloads.links;
+        const layout = modDetails.downloads.layout || 'single';
+
+        // Determine grid columns based on layout
+        let gridCols = '1fr';
+        if (layout === 'two' && links.length >= 2) gridCols = '1fr 1fr';
+        else if (layout === 'three' && links.length >= 3) gridCols = '1fr 1fr 1fr';
+        else if (layout === 'four' && links.length >= 4) gridCols = '1fr 1fr 1fr 1fr';
+        else if (links.length > 1) gridCols = '1fr 1fr';
+
+        // Set grid style
+        quickActionsContainer.style.display = 'grid';
+        quickActionsContainer.style.gridTemplateColumns = gridCols;
+        quickActionsContainer.style.gap = '0.75rem';
+
+        // Create download buttons for each link
+        links.forEach(link => {
+            const osName = link.os || 'Download';
+            const url = link.url;
+
+            const downloadBtn = document.createElement('a');
+            downloadBtn.className = 'quick-action-btn download-btn';
+            downloadBtn.href = url;
+            downloadBtn.target = '_blank';
+            downloadBtn.rel = 'noopener noreferrer';
+
+            // Get appropriate icon for OS
+            let iconClass = 'fa-solid fa-download';
+            const osLower = osName.toLowerCase();
+            if (osLower.includes('windows') || osLower.includes('win')) {
+                iconClass = 'fa-brands fa-windows';
+            } else if (osLower.includes('mac') || osLower.includes('apple') || osLower.includes('osx')) {
+                iconClass = 'fa-brands fa-apple';
+            } else if (osLower.includes('linux') || osLower.includes('ubuntu') || osLower.includes('debian')) {
+                iconClass = 'fa-brands fa-linux';
+            } else if (osLower.includes('android')) {
+                iconClass = 'fa-brands fa-android';
+            } else if (osLower.includes('ios') || osLower.includes('iphone')) {
+                iconClass = 'fa-brands fa-apple';
+            }
+
+            downloadBtn.innerHTML = `
+                <i class="${iconClass}"></i>
+                <span>Download for ${osName}</span>
+            `;
+
+            quickActionsContainer.appendChild(downloadBtn);
+        });
+    } else {
+        // Fallback: if no downloads section found, show a disabled button or message
+        const fallbackBtn = document.createElement('a');
+        fallbackBtn.className = 'quick-action-btn download-btn';
+        fallbackBtn.href = '#';
+        fallbackBtn.style.opacity = '0.6';
+        fallbackBtn.style.cursor = 'not-allowed';
+        fallbackBtn.innerHTML = `
+            <i class="fa-solid fa-download"></i>
+            <span>Download Not Available</span>
+        `;
+        fallbackBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('Download links not available for this mod yet.');
+        });
+        quickActionsContainer.style.display = 'grid';
+        quickActionsContainer.style.gridTemplateColumns = '1fr';
+        quickActionsContainer.appendChild(fallbackBtn);
+    }
 }
 
 // Function to update feature cards with force visibility
@@ -837,19 +958,38 @@ function generateGridLayout(videos) {
     return `<div class="grid grid-cols-1 ${colClass} gap-8 my-8">${videos.map(v => generateVideoCard(v)).join('')}</div>`;
 }
 
-// Function to fetch and display related mods
-async function updateRelatedMods(currentMod) {
+// Function to fetch and display related mods - UPDATED to use category from MD
+async function updateRelatedMods(currentMod, modDetails) {
     try {
         const modsResponse = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/mods.json');
         const modsData = await modsResponse.json();
-        const relatedMods = modsData.filter(m =>
-            m.id !== currentMod.id &&
-            (m.creator === currentMod.creator || m.category === currentMod.category)
-        ).slice(0, 3);
+
+        // Get the category from modDetails (from MD file) or fallback to mod.category
+        let category = modDetails?.category || currentMod.category || '';
+
+        // Find related mods by matching category (if available) or creator
+        let relatedMods = modsData.filter(m => {
+            if (m.id === currentMod.id) return false;
+
+            // First try to match by category from the MD file
+            // For other mods, we need to fetch their details to get category
+            // Since we can't fetch all, we'll use the JSON category as fallback
+            const otherCategory = m.category || '';
+            return otherCategory.toLowerCase() === category.toLowerCase() || m.creator === currentMod.creator;
+        }).slice(0, 3);
+
+        // If no related mods found by category, try to find by creator
+        if (relatedMods.length === 0) {
+            relatedMods = modsData.filter(m =>
+                m.id !== currentMod.id && m.creator === currentMod.creator
+            ).slice(0, 3);
+        }
+
         const relatedGuidesContainer = document.querySelector('.sidebar-card .related-guide')?.parentElement;
         if (relatedGuidesContainer) {
             const existingGuides = relatedGuidesContainer.querySelectorAll('.related-guide');
             existingGuides.forEach(guide => guide.remove());
+
             if (relatedMods.length > 0) {
                 for (const mod of relatedMods) {
                     let modVersion = mod.modVersion || '';
@@ -858,7 +998,7 @@ async function updateRelatedMods(currentMod) {
                     }
                     const guideDiv = document.createElement('div');
                     guideDiv.className = 'related-guide';
-                    guideDiv.innerHTML = `<h4><a href="../details/${mod.name.toLowerCase().replace(/\s+/g, '-')}">${mod.name}</a></h4><p>${mod.category} • by ${mod.creator}</p>${modVersion && modVersion !== mod.modVersion ? `<small>${modVersion}</small>` : ''}`;
+                    guideDiv.innerHTML = `<h4><a href="../details/${mod.name.toLowerCase().replace(/\s+/g, '-')}">${mod.name}</a></h4><p>${mod.category || 'Mod'} • by ${mod.creator}</p>${modVersion && modVersion !== mod.modVersion ? `<small>${modVersion}</small>` : ''}`;
                     relatedGuidesContainer.appendChild(guideDiv);
                 }
             } else {
