@@ -1226,61 +1226,7 @@ class PlayerRecords {
             }
         });
 
-        // 2. Top Damage Records
-        const topDamage = this.getUniqueTopRecords('damage_caused', 10);
-        const damageLabels = topDamage.map(r => this.truncatePlayerName(r.playerId, 12));
-        const damageValues = topDamage.map(r => r.damage_caused || 0);
-
-        const ctx2 = document.getElementById('globalTopDamageChart').getContext('2d');
-        this.globalCharts.topDamage = new Chart(ctx2, {
-            type: 'bar',
-            data: {
-                labels: damageLabels,
-                datasets: [{
-                    label: 'Damage',
-                    data: damageValues,
-                    backgroundColor: 'rgba(255, 131, 0, 0.7)',
-                    borderColor: 'rgba(255, 131, 0, 1)',
-                    borderWidth: 2,
-                    borderRadius: 4,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        display: false,
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            color: secondaryColor,
-                            callback: (value) => this.formatNumber(value),
-                        },
-                        grid: {
-                            color: 'rgba(255,255,255,0.05)',
-                        }
-                    },
-                    x: {
-                        ticks: {
-                            color: secondaryColor,
-                            maxTicksLimit: 10,
-                            font: {
-                                size: 8
-                            },
-                        },
-                        grid: {
-                            display: false,
-                        }
-                    }
-                }
-            }
-        });
-
-        // 3. Records by Category
+        // 2. Records by Category (removed Top Damage chart)
         const categoryData = this.getCategoryStats();
         const categoryLabels = ['Damage', 'Kills', 'Assists', 'XP', 'Captures', 'Confirms', 'Denies', 'Plants', 'Defuses'];
         const categoryColors = [
@@ -1326,90 +1272,7 @@ class PlayerRecords {
             }
         });
 
-        // 4. Player Records Distribution
-        const playerRecordCounts = [];
-        for (const player of this.players.values()) {
-            let count = 0;
-            for (const record of player.records) {
-                const includePve = this.isPveIncluded('global');
-                if (includePve || record.matchType !== 'pve') {
-                    count++;
-                }
-            }
-            if (count > 0) {
-                playerRecordCounts.push(count);
-            }
-        }
-        playerRecordCounts.sort((a, b) => a - b);
-
-        const binEdges = [1, 2, 3, 4, 5, 6];
-        const histogram = Array(binEdges.length - 1).fill(0);
-
-        for (const count of playerRecordCounts) {
-            for (let i = 0; i < binEdges.length - 1; i++) {
-                if (count >= binEdges[i] && count < binEdges[i + 1]) {
-                    histogram[i]++;
-                    break;
-                }
-            }
-            if (count >= binEdges[binEdges.length - 1]) {
-                histogram[histogram.length - 1]++;
-            }
-        }
-
-        const histLabels = histogram.map((_, i) => {
-            return `${binEdges[i]}-${binEdges[i+1]}`;
-        });
-
-        const ctx4 = document.getElementById('globalPlayerRecordsChart').getContext('2d');
-        this.globalCharts.playerRecords = new Chart(ctx4, {
-            type: 'bar',
-            data: {
-                labels: histLabels,
-                datasets: [{
-                    label: 'Players',
-                    data: histogram,
-                    backgroundColor: 'rgba(46, 204, 113, 0.7)',
-                    borderColor: 'rgba(46, 204, 113, 1)',
-                    borderWidth: 1,
-                    borderRadius: 2,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        display: false,
-                    },
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            color: secondaryColor,
-                        },
-                        grid: {
-                            color: 'rgba(255,255,255,0.05)',
-                        }
-                    },
-                    x: {
-                        ticks: {
-                            color: secondaryColor,
-                            maxTicksLimit: 10,
-                            font: {
-                                size: 8
-                            },
-                        },
-                        grid: {
-                            display: false,
-                        }
-                    }
-                }
-            }
-        });
-
-        // 5. Map Distribution (Bar Chart)
+        // 3. Map Distribution (Bar Chart)
         const mapData = this.getDistributionData('map', true);
         const mapLabels = Object.keys(mapData);
         const mapValues = Object.values(mapData);
@@ -1464,7 +1327,7 @@ class PlayerRecords {
             }
         });
 
-        // 6. Outcome Distribution
+        // 4. Outcome Distribution
         const outcomeData = this.getDistributionData('outcome', true);
         const outcomeLabels = Object.keys(outcomeData);
         const outcomeValues = Object.values(outcomeData);
@@ -1529,7 +1392,7 @@ class PlayerRecords {
             }
         });
 
-        // 7. Tank Distribution (Bar Chart)
+        // 5. Tank Distribution (Bar Chart)
         const tankData = this.getDistributionData('vehicle', true);
         const tankLabels = Object.keys(tankData);
         const tankValues = Object.values(tankData);
@@ -1585,7 +1448,7 @@ class PlayerRecords {
             }
         });
 
-        // 8. Agent Distribution (Bar Chart)
+        // 6. Agent Distribution (Bar Chart)
         const agentData = this.getDistributionData('agent', true);
         const agentLabels = Object.keys(agentData);
         const agentValues = Object.values(agentData);
@@ -1665,9 +1528,7 @@ class PlayerRecords {
     }
 
     destroyGlobalCharts() {
-        const chartKeys = ['recordsByMode', 'topDamage', 'recordsByCategory', 'playerRecords',
-            'mapDistribution', 'outcomeDistribution', 'tankDistribution', 'agentDistribution'
-        ];
+        const chartKeys = ['recordsByMode', 'recordsByCategory', 'mapDistribution', 'outcomeDistribution', 'tankDistribution', 'agentDistribution'];
         for (const key of chartKeys) {
             if (this.globalCharts[key]) {
                 this.globalCharts[key].destroy();
