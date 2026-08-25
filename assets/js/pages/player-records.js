@@ -7,7 +7,8 @@ class PlayerRecords {
             conquest: [],
             control: [],
             hardpoint: [],
-            'kill-confirmed': []
+            'kill-confirmed': [],
+            'plant-defuse': []
         };
         this.isLoading = false;
         this.isDataLoaded = false;
@@ -22,7 +23,8 @@ class PlayerRecords {
             conquest: null,
             control: null,
             hardpoint: null,
-            'kill-confirmed': null
+            'kill-confirmed': null,
+            'plant-defuse': null
         };
         this.currentFilter = {
             mode: 'global',
@@ -49,11 +51,13 @@ class PlayerRecords {
             tabControl: document.getElementById('tabControl'),
             tabHardpoint: document.getElementById('tabHardpoint'),
             tabKillConfirmed: document.getElementById('tabKillConfirmed'),
+            tabPlantDefuse: document.getElementById('tabPlantDefuse'),
             tabContentGlobal: document.getElementById('tabContentGlobal'),
             tabContentConquest: document.getElementById('tabContentConquest'),
             tabContentControl: document.getElementById('tabContentControl'),
             tabContentHardpoint: document.getElementById('tabContentHardpoint'),
             tabContentKillConfirmed: document.getElementById('tabContentKillConfirmed'),
+            tabContentPlantDefuse: document.getElementById('tabContentPlantDefuse'),
             globalDamageTableBody: document.getElementById('globalDamageTableBody'),
             globalKillsTableBody: document.getElementById('globalKillsTableBody'),
             globalAssistsTableBody: document.getElementById('globalAssistsTableBody'),
@@ -64,10 +68,13 @@ class PlayerRecords {
             globalIntelTableBody: document.getElementById('globalIntelTableBody'),
             globalConfirmsTableBody: document.getElementById('globalConfirmsTableBody'),
             globalDeniesTableBody: document.getElementById('globalDeniesTableBody'),
+            globalPlantsTableBody: document.getElementById('globalPlantsTableBody'),
+            globalDefusesTableBody: document.getElementById('globalDefusesTableBody'),
             conquestContent: document.getElementById('conquestContent'),
             controlContent: document.getElementById('controlContent'),
             hardpointContent: document.getElementById('hardpointContent'),
             killConfirmedContent: document.getElementById('killConfirmedContent'),
+            plantDefuseContent: document.getElementById('plantDefuseContent'),
         };
 
         // Stat counter configurations (all except the 3 basic ones)
@@ -142,6 +149,20 @@ class PlayerRecords {
                 id: 'statCardDenies'
             },
             {
+                key: 'plants',
+                label: 'Most Plants',
+                icon: 'fa-bomb',
+                color: '#e67e22',
+                id: 'statCardPlants'
+            },
+            {
+                key: 'defuses',
+                label: 'Most Defuses',
+                icon: 'fa-shield-halved',
+                color: '#2ecc71',
+                id: 'statCardDefuses'
+            },
+            {
                 key: 'deaths',
                 label: 'Most Deaths',
                 icon: 'fa-skull-crossbones',
@@ -177,13 +198,13 @@ class PlayerRecords {
             conquest: true,
             control: true,
             hardpoint: true,
-            'kill-confirmed': true
+            'kill-confirmed': true,
+            'plant-defuse': true
         };
         try {
             const saved = localStorage.getItem('playerRecords_pveToggle');
             if (saved) {
                 const parsed = JSON.parse(saved);
-                // Merge with defaults to ensure all keys exist
                 return {
                     ...defaultState,
                     ...parsed
@@ -216,12 +237,13 @@ class PlayerRecords {
     // Update the PvE toggle button text/color
     updatePveToggleButton(tab) {
         const isEnabled = this.pveToggleState[tab] !== false;
-        // Map tab names to button IDs correctly
         let buttonId;
         if (tab === 'global') {
             buttonId = 'pveToggleGlobal';
         } else if (tab === 'kill-confirmed') {
             buttonId = 'pveToggleKillconfirmed';
+        } else if (tab === 'plant-defuse') {
+            buttonId = 'pveTogglePlantdefuse';
         } else {
             buttonId = `pveToggle${tab.charAt(0).toUpperCase() + tab.slice(1)}`;
         }
@@ -244,30 +266,25 @@ class PlayerRecords {
         this.updatePveToggleButton('control');
         this.updatePveToggleButton('hardpoint');
         this.updatePveToggleButton('kill-confirmed');
+        this.updatePveToggleButton('plant-defuse');
     }
 
     // Check if PvE records should be included for a given tab
     isPveIncluded(tab) {
-        // If the tab is 'global', check the global toggle state
         if (tab === 'global') {
             return this.pveToggleState['global'] !== false;
         }
-        // For mode tabs, check the mode-specific toggle state
         return this.pveToggleState[tab] !== false;
     }
 
-    // Get filtered records for a mode (excluding PvE if toggle is OFF)
-    // This now checks the global toggle state when called from global context
+    // Get filtered records for a mode
     getFilteredRecordsForMode(mode, useGlobalFilter = false) {
         const allRecords = this.recordsByMode[mode] || [];
-        // If useGlobalFilter is true, use the global toggle state
-        // Otherwise use the mode-specific toggle state
         const includePve = useGlobalFilter ?
             this.isPveIncluded('global') :
             this.isPveIncluded(mode);
         return allRecords.filter(record => {
             if (includePve) return true;
-            // Exclude PvE records (matchType === 'pve')
             return record.matchType !== 'pve';
         });
     }
@@ -275,9 +292,8 @@ class PlayerRecords {
     // Get all filtered records across modes (for global tab)
     getAllFilteredRecords() {
         const allRecords = [];
-        const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed'];
+        const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed', 'plant-defuse'];
         for (const mode of modes) {
-            // For global tab, always use the global filter
             const filtered = this.getFilteredRecordsForMode(mode, true);
             allRecords.push(...filtered);
         }
@@ -299,7 +315,6 @@ class PlayerRecords {
             this.renderGlobalCharts();
             this.renderGlobalTables();
         } else {
-            // Re-render the specific mode tab
             this.renderModeTab(tab);
         }
     }
@@ -310,7 +325,8 @@ class PlayerRecords {
             conquest: this.elements.conquestContent,
             control: this.elements.controlContent,
             hardpoint: this.elements.hardpointContent,
-            'kill-confirmed': this.elements.killConfirmedContent
+            'kill-confirmed': this.elements.killConfirmedContent,
+            'plant-defuse': this.elements.plantDefuseContent
         } [mode];
 
         if (!container) return;
@@ -320,7 +336,8 @@ class PlayerRecords {
             'conquest': 'Conquest',
             'control': 'Control',
             'hardpoint': 'Hardpoint',
-            'kill-confirmed': 'Kill Confirmed'
+            'kill-confirmed': 'Kill Confirmed',
+            'plant-defuse': 'Plant & Defuse'
         };
 
         // Base stat configs for all modes
@@ -421,6 +438,21 @@ class PlayerRecords {
                     label: 'Denies',
                     icon: 'fa-ban',
                     color: '#9b59b6'
+                }
+            ],
+            'plant-defuse': [
+                ...baseStatConfigs,
+                {
+                    key: 'plants',
+                    label: 'Plants',
+                    icon: 'fa-bomb',
+                    color: '#e67e22'
+                },
+                {
+                    key: 'defuses',
+                    label: 'Defuses',
+                    icon: 'fa-shield-halved',
+                    color: '#2ecc71'
                 }
             ]
         };
@@ -531,9 +563,10 @@ class PlayerRecords {
         this.elements.tabControl.addEventListener('click', () => this.switchTab('control'));
         this.elements.tabHardpoint.addEventListener('click', () => this.switchTab('hardpoint'));
         this.elements.tabKillConfirmed.addEventListener('click', () => this.switchTab('kill-confirmed'));
+        this.elements.tabPlantDefuse.addEventListener('click', () => this.switchTab('plant-defuse'));
 
         // Guidelines buttons - all tabs
-        const guidelinesBtns = document.querySelectorAll('#openGuidelinesBtn, #openGuidelinesBtn2, #openGuidelinesBtn3, #openGuidelinesBtn4, #openGuidelinesBtn5');
+        const guidelinesBtns = document.querySelectorAll('#openGuidelinesBtn, #openGuidelinesBtn2, #openGuidelinesBtn3, #openGuidelinesBtn4, #openGuidelinesBtn5, #openGuidelinesBtn6');
         guidelinesBtns.forEach(btn => {
             if (btn) {
                 btn.addEventListener('click', () => this.showGuidelinesModal());
@@ -559,7 +592,8 @@ class PlayerRecords {
             'conquest': this.elements.tabConquest,
             'control': this.elements.tabControl,
             'hardpoint': this.elements.tabHardpoint,
-            'kill-confirmed': this.elements.tabKillConfirmed
+            'kill-confirmed': this.elements.tabKillConfirmed,
+            'plant-defuse': this.elements.tabPlantDefuse
         };
 
         if (tabMap[tab]) {
@@ -574,7 +608,8 @@ class PlayerRecords {
             'conquest': this.elements.tabContentConquest,
             'control': this.elements.tabContentControl,
             'hardpoint': this.elements.tabContentHardpoint,
-            'kill-confirmed': this.elements.tabContentKillConfirmed
+            'kill-confirmed': this.elements.tabContentKillConfirmed,
+            'plant-defuse': this.elements.tabContentPlantDefuse
         };
 
         if (contentMap[tab]) {
@@ -593,7 +628,6 @@ class PlayerRecords {
             this.elements.loadingProgressPercent.textContent = '0%';
             this.elements.loadingProgressBar.style.width = '0%';
 
-            // Load the records data
             const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/player-records.json');
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const data = await response.json();
@@ -605,7 +639,8 @@ class PlayerRecords {
                     conquest: this.records.ROOT.last_updated.conquest || null,
                     control: this.records.ROOT.last_updated.control || null,
                     hardpoint: this.records.ROOT.last_updated.hardpoint || null,
-                    'kill-confirmed': this.records.ROOT.last_updated['kill-confirmed'] || null
+                    'kill-confirmed': this.records.ROOT.last_updated['kill-confirmed'] || null,
+                    'plant-defuse': this.records.ROOT.last_updated['plant-defuse'] || null
                 };
             }
 
@@ -629,15 +664,13 @@ class PlayerRecords {
     }
 
     processRecords() {
-        // Process each mode
-        const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed'];
+        const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed', 'plant-defuse'];
 
         for (const mode of modes) {
             this.recordsByMode[mode] = [];
 
             if (this.records[mode]) {
                 for (const [playerId, playerRecords] of Object.entries(this.records[mode])) {
-                    // Store player in map
                     if (!this.players.has(playerId)) {
                         this.players.set(playerId, {
                             id: playerId,
@@ -646,9 +679,7 @@ class PlayerRecords {
                         });
                     }
 
-                    // Process each record
                     for (const record of playerRecords) {
-                        // Determine match type based on tech value
                         const tech = record.tech || 0;
                         const matchType = tech < 40 ? 'pve' : 'pvp';
 
@@ -675,7 +706,6 @@ class PlayerRecords {
             const filename = proofUrl.split('/').pop();
             if (!filename) return null;
 
-            // Pattern: date in format DDMMYYYY
             const dateMatch = filename.match(/(\d{2})(\d{2})(\d{4})/);
             if (dateMatch) {
                 const day = parseInt(dateMatch[1]);
@@ -695,7 +725,6 @@ class PlayerRecords {
     // Sort records by stat value (descending) and then by date (descending, most recent first)
     sortRecordsByStatAndDate(records, statKey) {
         return [...records].sort((a, b) => {
-            // First sort by stat value (descending)
             const aValue = a[statKey] || 0;
             const bValue = b[statKey] || 0;
 
@@ -703,30 +732,24 @@ class PlayerRecords {
                 return bValue - aValue;
             }
 
-            // If stat values are equal, sort by date (descending - most recent first)
             const aDate = this.extractDateFromProof(a.proof);
             const bDate = this.extractDateFromProof(b.proof);
 
-            // If both have valid dates, compare them
             if (aDate && bDate) {
                 return bDate.getTime() - aDate.getTime();
             }
 
-            // If one has a date and the other doesn't, the one with date comes first
             if (aDate && !bDate) return -1;
             if (!aDate && bDate) return 1;
 
-            // If neither has a date, maintain original order or fallback to player ID
             return (a.playerId || '').localeCompare(b.playerId || '');
         });
     }
 
-    // Get unique players with their best record for a stat (each player appears once)
-    // When tied, keeps the most recent entry (based on proof date)
+    // Get unique players with their best record for a stat
     getUniqueTopRecords(statKey, limit = 10, mode = null) {
         const allRecords = [];
 
-        // Get records from specific mode or all modes
         if (mode) {
             const filteredRecords = this.getFilteredRecordsForMode(mode);
             for (const record of filteredRecords) {
@@ -736,8 +759,7 @@ class PlayerRecords {
                 }
             }
         } else {
-            // For global tab, use all modes with the global PvE filter
-            const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed'];
+            const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed', 'plant-defuse'];
             for (const modeName of modes) {
                 const filteredRecords = this.getFilteredRecordsForMode(modeName, true);
                 for (const record of filteredRecords) {
@@ -749,8 +771,6 @@ class PlayerRecords {
             }
         }
 
-        // Group by player, keep only their best record for this stat
-        // If tied on value, keep the most recent one
         const playerBestMap = new Map();
         for (const record of allRecords) {
             const playerId = record.playerId;
@@ -761,13 +781,11 @@ class PlayerRecords {
                 const existingValue = existing[statKey] || 0;
                 const newValue = record[statKey] || 0;
 
-                // Keep the higher value, or if equal, keep the more recent one
                 if (newValue > existingValue) {
                     playerBestMap.set(playerId, record);
                 } else if (newValue === existingValue) {
                     const existingDate = this.extractDateFromProof(existing.proof);
                     const newDate = this.extractDateFromProof(record.proof);
-                    // If new record has a date and existing doesn't, or new date is more recent
                     if (newDate && (!existingDate || newDate > existingDate)) {
                         playerBestMap.set(playerId, record);
                     }
@@ -775,24 +793,20 @@ class PlayerRecords {
             }
         }
 
-        // Convert to array and sort
         const uniqueRecords = Array.from(playerBestMap.values());
         const sorted = this.sortRecordsByStatAndDate(uniqueRecords, statKey);
 
-        // Return with rank information
         return sorted.slice(0, limit).map((record, index) => ({
             ...record,
             rank: index + 1
         }));
     }
 
-    // Get a player's rank for a specific stat (global, all modes, no PvE filter)
-    // Handles ties by giving priority to more recent entries
+    // Get a player's rank for a specific stat
     getPlayerRankForStat(playerId, statKey) {
         const allRecords = [];
-        const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed'];
+        const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed', 'plant-defuse'];
 
-        // Collect all records from all modes (no PvE filter for rank calculation)
         for (const modeName of modes) {
             const modeRecords = this.recordsByMode[modeName] || [];
             for (const record of modeRecords) {
@@ -803,7 +817,6 @@ class PlayerRecords {
             }
         }
 
-        // Group by player, keep best record per player (with tie-breaking by recency)
         const playerBestMap = new Map();
         for (const record of allRecords) {
             const pid = record.playerId;
@@ -816,7 +829,6 @@ class PlayerRecords {
                 if (newValue > existingValue) {
                     playerBestMap.set(pid, record);
                 } else if (newValue === existingValue) {
-                    // If tied, keep the more recent one
                     const existingDate = this.extractDateFromProof(existing.proof);
                     const newDate = this.extractDateFromProof(record.proof);
                     if (newDate && (!existingDate || newDate > existingDate)) {
@@ -826,12 +838,10 @@ class PlayerRecords {
             }
         }
 
-        // Sort by stat value descending, then by date descending (most recent first for ties)
         const sorted = Array.from(playerBestMap.values()).sort((a, b) => {
             const aVal = a[statKey] || 0;
             const bVal = b[statKey] || 0;
             if (bVal !== aVal) return bVal - aVal;
-            // If values are equal, sort by date (most recent first)
             const aDate = this.extractDateFromProof(a.proof);
             const bDate = this.extractDateFromProof(b.proof);
             if (aDate && bDate) return bDate.getTime() - aDate.getTime();
@@ -840,7 +850,6 @@ class PlayerRecords {
             return 0;
         });
 
-        // Find the player's rank (1-indexed)
         let rank = 0;
         for (let i = 0; i < sorted.length; i++) {
             if (sorted[i].playerId === playerId) {
@@ -874,7 +883,6 @@ class PlayerRecords {
         const sum = values.reduce((a, b) => a + b, 0);
         const average = sum / values.length;
 
-        // Find the record with the highest value (tie-breaking by recency)
         let bestRecord = validRecords[0];
         for (const r of validRecords) {
             const rVal = r[statKey] || 0;
@@ -903,10 +911,10 @@ class PlayerRecords {
             'conquest': 'Conquest',
             'control': 'Control',
             'hardpoint': 'Hardpoint',
-            'kill-confirmed': 'Kill Confirmed'
+            'kill-confirmed': 'Kill Confirmed',
+            'plant-defuse': 'Plant & Defuse'
         };
 
-        // Add last updated to each mode tab header
         for (const [mode, timestamp] of Object.entries(this.lastUpdated)) {
             if (!timestamp) continue;
 
@@ -914,7 +922,6 @@ class PlayerRecords {
             const tabContent = document.getElementById(tabContentId);
             if (!tabContent) continue;
 
-            // Find or create the last updated element
             let lastUpdatedEl = tabContent.querySelector('.mode-last-updated');
             if (!lastUpdatedEl) {
                 lastUpdatedEl = document.createElement('div');
@@ -937,7 +944,6 @@ class PlayerRecords {
             lastUpdatedEl.innerHTML = `<p class="last-updated-text"><i class="fas fa-clock"></i> Last Updated: ${formattedDate} UTC</p>`;
         }
 
-        // Also add to global tab
         const globalHeader = document.querySelector('#tabContentGlobal .global-stats-header');
         if (globalHeader) {
             let globalUpdated = globalHeader.querySelector('.global-last-updated');
@@ -947,7 +953,6 @@ class PlayerRecords {
                 globalHeader.appendChild(globalUpdated);
             }
 
-            // Find the most recent update across all modes
             let mostRecent = null;
             for (const timestamp of Object.values(this.lastUpdated)) {
                 if (timestamp && (!mostRecent || new Date(timestamp) > new Date(mostRecent))) {
@@ -976,7 +981,6 @@ class PlayerRecords {
         let modeCount = 0;
         const uniquePlayers = new Set();
 
-        // Calculate stat maxima for each counter
         const statMaxima = {};
         for (const config of this.statCounters) {
             statMaxima[config.key] = {
@@ -984,14 +988,13 @@ class PlayerRecords {
                 playerId: null,
                 proof: null,
                 record: null,
-                date: null // Store the date for tie-breaking
+                date: null
             };
         }
 
         for (const record of allFilteredRecords) {
             uniquePlayers.add(record.playerId);
 
-            // Check each stat counter
             for (const config of this.statCounters) {
                 const key = config.key;
                 const value = record[key];
@@ -999,7 +1002,6 @@ class PlayerRecords {
                     const current = statMaxima[key];
                     const recordDate = this.extractDateFromProof(record.proof);
 
-                    // If value is higher, or value is equal and record is more recent
                     if (value > current.value) {
                         current.value = value;
                         current.playerId = record.playerId;
@@ -1007,7 +1009,6 @@ class PlayerRecords {
                         current.record = record;
                         current.date = recordDate;
                     } else if (value === current.value) {
-                        // If tied, keep the most recent one
                         if (recordDate && (!current.date || recordDate > current.date)) {
                             current.playerId = record.playerId;
                             current.proof = record.proof || null;
@@ -1019,8 +1020,7 @@ class PlayerRecords {
             }
         }
 
-        // Count modes that have records (after filtering)
-        const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed'];
+        const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed', 'plant-defuse'];
         for (const mode of modes) {
             const filtered = this.getFilteredRecordsForMode(mode, true);
             if (filtered.length > 0) {
@@ -1028,12 +1028,10 @@ class PlayerRecords {
             }
         }
 
-        // Update basic stats
         if (this.elements.globalTotalRecords) this.elements.globalTotalRecords.textContent = totalRecords;
         if (this.elements.globalRecordHolders) this.elements.globalRecordHolders.textContent = uniquePlayers.size;
         if (this.elements.globalModesCount) this.elements.globalModesCount.textContent = modeCount;
 
-        // Now update the stat counters in the row2 grid
         this.updateStatCounters(statMaxima);
     }
 
@@ -1041,10 +1039,8 @@ class PlayerRecords {
         const row2Grid = document.querySelector('.global-stats-grid-row2');
         if (!row2Grid) return;
 
-        // Clear all existing stat cards in row2
         row2Grid.innerHTML = '';
 
-        // Create cards for all stat counters
         for (const config of this.statCounters) {
             const data = statMaxima[config.key];
             const value = data ? data.value : 0;
@@ -1055,13 +1051,11 @@ class PlayerRecords {
             card.className = 'global-stat-card';
             card.id = config.id || `statCard${config.key.charAt(0).toUpperCase() + config.key.slice(1)}`;
 
-            // Icon
             const icon = document.createElement('div');
             icon.className = 'global-stat-icon';
             icon.innerHTML = `<i class="fas ${config.icon}" style="color: ${config.color};"></i>`;
             card.appendChild(icon);
 
-            // Value
             const valueEl = document.createElement('div');
             valueEl.className = 'global-stat-value';
             valueEl.id = `globalStat${config.key.charAt(0).toUpperCase() + config.key.slice(1)}`;
@@ -1072,7 +1066,6 @@ class PlayerRecords {
             valueEl.textContent = this.formatNumber(value);
             card.appendChild(valueEl);
 
-            // Label with info icon
             const labelEl = document.createElement('div');
             labelEl.className = 'global-stat-label';
 
@@ -1090,32 +1083,24 @@ class PlayerRecords {
 
             card.appendChild(labelEl);
 
-            // Player name - display only, NO click functionality
             if (playerId) {
                 const playerNameEl = document.createElement('div');
                 playerNameEl.className = 'global-stat-player';
                 playerNameEl.textContent = this.truncatePlayerName(playerId, 20);
                 playerNameEl.title = playerId;
-                // No click event listener - just display the name
                 card.appendChild(playerNameEl);
             }
 
-            // Add to row2 grid
             row2Grid.appendChild(card);
-
-            // Store reference
             this.statCounterElements[config.key] = valueEl;
         }
 
-        // Setup event listeners for stat info clicks (proof modal only)
         this.setupStatInfoListeners();
     }
 
     setupStatInfoListeners() {
-        // Remove existing listeners by cloning and re-adding
         const infoElements = document.querySelectorAll('.global-stat-info');
         infoElements.forEach(el => {
-            // Remove old listeners by replacing with clone
             const newEl = el.cloneNode(true);
             el.parentNode.replaceChild(newEl, el);
 
@@ -1127,57 +1112,43 @@ class PlayerRecords {
                 const label = newEl.closest('.global-stat-label')?.textContent?.trim() || statKey;
 
                 if (proof) {
-                    // Simply open the proof modal
                     this.showProofModal(proof);
                 } else if (playerId) {
-                    // If no proof, show player profile
                     this.showPlayerProfile(playerId, statKey);
                 } else {
                     this.showToast(`No proof available for ${label}`, 'warning');
                 }
             });
         });
-
-        // NOTE: We DO NOT add click listeners to .global-stat-player elements anymore
-        // This prevents the profile modal from opening when clicking player names in stat counters
     }
 
     // Helper method to get distribution data for bar charts
     getDistributionData(field, sortAlphabetically = true, modeFilter = null) {
         const distribution = {};
-        const modes = modeFilter ? [modeFilter] : ['conquest', 'control', 'hardpoint', 'kill-confirmed'];
+        const modes = modeFilter ? [modeFilter] : ['conquest', 'control', 'hardpoint', 'kill-confirmed', 'plant-defuse'];
 
         for (const mode of modes) {
-            // For global distribution, use the global filter
             const filteredRecords = this.getFilteredRecordsForMode(mode, true);
             for (const record of filteredRecords) {
                 let value = record[field];
                 if (value !== undefined && value !== null && value !== '') {
-                    // Special handling for outcome - ensure "Draw" is included if present
                     if (field === 'outcome') {
-                        // Normalize outcome values
                         if (value.toLowerCase() === 'victory') value = 'Victory';
                         else if (value.toLowerCase() === 'defeat') value = 'Defeat';
                         else if (value.toLowerCase() === 'draw') value = 'Draw';
                         distribution[value] = (distribution[value] || 0) + 1;
-                    }
-                    // Special handling for vehicle
-                    else if (field === 'vehicle') {
-                        // Split by comma and trim whitespace
+                    } else if (field === 'vehicle') {
                         const vehicles = value.split(',').map(v => v.trim()).filter(v => v.length > 0);
                         for (const vehicle of vehicles) {
                             distribution[vehicle] = (distribution[vehicle] || 0) + 1;
                         }
-                    }
-                    // For all other fields, use the value as-is
-                    else {
+                    } else {
                         distribution[value] = (distribution[value] || 0) + 1;
                     }
                 }
             }
         }
 
-        // Sort entries alphabetically by key (label name)
         const sortedEntries = Object.entries(distribution).sort((a, b) => a[0].localeCompare(b[0]));
 
         const result = {};
@@ -1186,7 +1157,6 @@ class PlayerRecords {
             result[key] = count;
         }
 
-        // If there are more than 10 entries, add an "Others" category
         if (sortedEntries.length > 10) {
             const othersCount = sortedEntries.slice(10).reduce((sum, [, count]) => sum + count, 0);
             result['Others'] = othersCount;
@@ -1198,19 +1168,18 @@ class PlayerRecords {
         const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-primary') || '#ffffff';
         const secondaryColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') || '#999';
 
-        // Destroy existing global charts
         this.destroyGlobalCharts();
 
-        // Get all filtered records for distribution
         const allFilteredRecords = this.getAllFilteredRecords();
 
         // 1. Records by Mode
-        const modeLabels = ['Conquest', 'Control', 'Hardpoint', 'Kill Confirmed'];
+        const modeLabels = ['Conquest', 'Control', 'Hardpoint', 'Kill Confirmed', 'Plant & Defuse'];
         const modeData = [
             this.getFilteredRecordsForMode('conquest', true).length,
             this.getFilteredRecordsForMode('control', true).length,
             this.getFilteredRecordsForMode('hardpoint', true).length,
-            this.getFilteredRecordsForMode('kill-confirmed', true).length
+            this.getFilteredRecordsForMode('kill-confirmed', true).length,
+            this.getFilteredRecordsForMode('plant-defuse', true).length
         ];
 
         const ctx1 = document.getElementById('globalRecordsByModeChart').getContext('2d');
@@ -1221,8 +1190,8 @@ class PlayerRecords {
                 datasets: [{
                     label: 'Records',
                     data: modeData,
-                    backgroundColor: ['rgba(255, 131, 0, 0.7)', 'rgba(52, 152, 219, 0.7)', 'rgba(46, 204, 113, 0.7)', 'rgba(155, 89, 182, 0.7)'],
-                    borderColor: ['rgba(255, 131, 0, 1)', 'rgba(52, 152, 219, 1)', 'rgba(46, 204, 113, 1)', 'rgba(155, 89, 182, 1)'],
+                    backgroundColor: ['rgba(255, 131, 0, 0.7)', 'rgba(52, 152, 219, 0.7)', 'rgba(46, 204, 113, 0.7)', 'rgba(155, 89, 182, 0.7)', 'rgba(0, 229, 200, 0.7)'],
+                    borderColor: ['rgba(255, 131, 0, 1)', 'rgba(52, 152, 219, 1)', 'rgba(46, 204, 113, 1)', 'rgba(155, 89, 182, 1)', 'rgba(0, 229, 200, 1)'],
                     borderWidth: 2,
                     borderRadius: 4,
                 }]
@@ -1313,7 +1282,7 @@ class PlayerRecords {
 
         // 3. Records by Category
         const categoryData = this.getCategoryStats();
-        const categoryLabels = ['Damage', 'Kills', 'Assists', 'XP', 'Captures', 'Confirms', 'Denies'];
+        const categoryLabels = ['Damage', 'Kills', 'Assists', 'XP', 'Captures', 'Confirms', 'Denies', 'Plants', 'Defuses'];
         const categoryColors = [
             'rgba(255, 131, 0, 0.8)',
             'rgba(231, 76, 60, 0.8)',
@@ -1321,7 +1290,9 @@ class PlayerRecords {
             'rgba(241, 196, 15, 0.8)',
             'rgba(46, 204, 113, 0.8)',
             'rgba(155, 89, 182, 0.8)',
-            'rgba(230, 126, 34, 0.8)'
+            'rgba(230, 126, 34, 0.8)',
+            'rgba(231, 76, 60, 0.8)',
+            'rgba(52, 152, 219, 0.8)'
         ];
         const filteredData = categoryData;
 
@@ -1358,7 +1329,6 @@ class PlayerRecords {
         // 4. Player Records Distribution
         const playerRecordCounts = [];
         for (const player of this.players.values()) {
-            // Count only records that are included based on global filter
             let count = 0;
             for (const record of player.records) {
                 const includePve = this.isPveIncluded('global');
@@ -1719,7 +1689,9 @@ class PlayerRecords {
             xp = 0,
             captures = 0,
             confirms = 0,
-            denies = 0;
+            denies = 0,
+            plants = 0,
+            defuses = 0;
 
         const allRecords = this.getAllFilteredRecords();
         for (const record of allRecords) {
@@ -1743,14 +1715,20 @@ class PlayerRecords {
 
             if (record.denies && record.denies > 2) denies++;
             else if (record.denies) denies++;
+
+            if (record.plants && record.plants > 3) plants++;
+            else if (record.plants) plants++;
+
+            if (record.defuses && record.defuses > 2) defuses++;
+            else if (record.defuses) defuses++;
         }
 
-        const total = damage + kills + assists + xp + captures + confirms + denies;
+        const total = damage + kills + assists + xp + captures + confirms + denies + plants + defuses;
         if (total === 0) {
-            return [1, 1, 1, 1, 1, 1, 1];
+            return [1, 1, 1, 1, 1, 1, 1, 1, 1];
         }
 
-        return [damage, kills, assists, xp, captures, confirms, denies];
+        return [damage, kills, assists, xp, captures, confirms, denies, plants, defuses];
     }
 
     renderGlobalTables() {
@@ -1764,13 +1742,14 @@ class PlayerRecords {
         this.renderGlobalTable('intel', 'Intel', this.elements.globalIntelTableBody);
         this.renderGlobalTable('confirms', 'Confirms', this.elements.globalConfirmsTableBody);
         this.renderGlobalTable('denies', 'Denies', this.elements.globalDeniesTableBody);
+        this.renderGlobalTable('plants', 'Plants', this.elements.globalPlantsTableBody);
+        this.renderGlobalTable('defuses', 'Defuses', this.elements.globalDefusesTableBody);
     }
 
     // Uses getUniqueTopRecords to show each player only once
     renderGlobalTable(statKey, statLabel, tbody) {
         if (!tbody) return;
 
-        // Get unique players with their best record for this stat
         const records = this.getUniqueTopRecords(statKey, 20);
 
         if (!records.length) {
@@ -1837,7 +1816,7 @@ class PlayerRecords {
     }
 
     renderModeTabs() {
-        const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed'];
+        const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed', 'plant-defuse'];
         for (const mode of modes) {
             this.renderModeTab(mode);
         }
@@ -1891,7 +1870,6 @@ class PlayerRecords {
 
     // Uses unique players for full leaderboard
     showFullLeaderboard(mode, statKey, label) {
-        // Use unique players for this mode and stat
         const sorted = this.getUniqueTopRecords(statKey, 1000, mode);
 
         if (!sorted.length) {
@@ -1903,7 +1881,6 @@ class PlayerRecords {
             return;
         }
 
-        // Store data for pagination
         this.leaderboardData = sorted;
         this.leaderboardStatKey = statKey;
         this.currentLeaderboardPage = 1;
@@ -1929,13 +1906,14 @@ class PlayerRecords {
             'credits': 'Credits',
             'intel': 'Intel',
             'confirms': 'Confirms',
-            'denies': 'Denies'
+            'denies': 'Denies',
+            'plants': 'Plants',
+            'defuses': 'Defuses'
         };
 
         const statLabel = statLabels[statKey] || statKey;
         const modeName = this.getModeDisplayName(mode);
 
-        // Build leaderboard HTML
         let html = `
             <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);" id="leaderboardModal" data-mode="${mode}" data-stat="${statKey}" data-label="${label}">
                 <div style="background: var(--card-bg); border-radius: 1rem; border: 1px solid var(--border-color); padding: 2rem; max-width: 1000px; width: 95%; max-height: 85vh; overflow-y: auto; position: relative;">
@@ -2013,7 +1991,6 @@ class PlayerRecords {
             </div>
         `;
 
-        // Remove existing modal if any
         const existingModal = document.getElementById('leaderboardModal');
         if (existingModal) {
             existingModal.remove();
@@ -2021,10 +1998,8 @@ class PlayerRecords {
 
         document.body.insertAdjacentHTML('beforeend', html);
 
-        // Store instance reference for pagination
         window.playerRecordsInstance = this;
 
-        // Add proof click handlers
         document.querySelectorAll('#leaderboardModal .action-btn-proof').forEach(btn => {
             btn.addEventListener('click', () => {
                 const proofUrl = btn.dataset.proof;
@@ -2032,19 +2007,16 @@ class PlayerRecords {
             });
         });
 
-        // Add profile click handlers
         document.querySelectorAll('#leaderboardModal .action-btn-profile, #leaderboardModal .player-name-clickable').forEach(el => {
             el.addEventListener('click', () => {
                 const playerId = el.dataset.playerid;
                 const statKey = el.dataset.statkey || 'damage_caused';
-                // Close leaderboard modal first
                 const modal = document.getElementById('leaderboardModal');
                 if (modal) modal.remove();
                 this.showPlayerProfile(playerId, statKey);
             });
         });
 
-        // Close modal on overlay click
         document.getElementById('leaderboardModal').addEventListener('click', (e) => {
             if (e.target === e.currentTarget) {
                 e.currentTarget.remove();
@@ -2059,22 +2031,18 @@ class PlayerRecords {
 
         this.currentLeaderboardPage = page;
 
-        // Get the current modal and re-render
         const modal = document.getElementById('leaderboardModal');
         if (modal) {
-            // Get mode, statKey, and label from modal data attributes
             const mode = modal.dataset.mode || 'conquest';
             const statKey = modal.dataset.stat || 'damage_caused';
             const label = modal.dataset.label || 'Damage';
 
-            // Remove old modal and render new page
             modal.remove();
             this.renderLeaderboardPage(mode, statKey, label);
         }
     }
 
     // Enhanced player profile modal
-    // Enhanced player profile modal - shows stats in a clean, organized grid
     showPlayerProfile(playerId, statKey = 'damage_caused') {
         const player = this.players.get(playerId);
         if (!player) {
@@ -2093,6 +2061,8 @@ class PlayerRecords {
             'intel': 'Intel',
             'confirms': 'Confirms',
             'denies': 'Denies',
+            'plants': 'Plants',
+            'defuses': 'Defuses',
             'deaths': 'Deaths',
             'tech': 'Tech'
         };
@@ -2100,10 +2070,8 @@ class PlayerRecords {
         const truncatedName = this.truncatePlayerName(playerId, 20);
         const allRecords = this.getAllRecordsForPlayer(playerId);
 
-        // Calculate stats for all tracked metrics
-        const trackedStats = ['damage_caused', 'destroyed', 'assists', 'XP', 'captures', 'damage_blocked', 'credits', 'intel', 'confirms', 'denies', 'deaths', 'tech'];
+        const trackedStats = ['damage_caused', 'destroyed', 'assists', 'XP', 'captures', 'damage_blocked', 'credits', 'intel', 'confirms', 'denies', 'plants', 'defuses', 'deaths', 'tech'];
 
-        // Build stat cards in a clean grid layout
         let statsHtml = '';
         let hasAnyStats = false;
 
@@ -2115,7 +2083,6 @@ class PlayerRecords {
             if (summary.count > 0) {
                 hasAnyStats = true;
                 const rankDisplay = rank > 0 ? `#${rank}` : 'N/A';
-                // Get the best record for this stat to show proof
                 const proofUrl = summary.bestRecord?.proof || null;
                 const bestValue = summary.highest;
 
@@ -2144,7 +2111,6 @@ class PlayerRecords {
             statsHtml = `<div class="profile-no-stats">No statistics available for this player.</div>`;
         }
 
-        // Build the profile modal - clean design without records table
         let html = `
             <div class="profile-modal-overlay" id="profileModal">
                 <div class="profile-modal-content profile-modal-enhanced">
@@ -2152,7 +2118,6 @@ class PlayerRecords {
                         <i class="fas fa-times"></i>
                     </button>
 
-                    <!-- Player Header -->
                     <div class="profile-header">
                         <div class="profile-avatar">
                             <i class="fas fa-user-circle"></i>
@@ -2166,7 +2131,6 @@ class PlayerRecords {
                         </div>
                     </div>
 
-                    <!-- Stats Grid -->
                     <div class="profile-stats-grid">
                         ${statsHtml}
                     </div>
@@ -2178,7 +2142,6 @@ class PlayerRecords {
             </div>
         `;
 
-        // Remove existing profile modal if any
         const existingModal = document.getElementById('profileModal');
         if (existingModal) {
             existingModal.remove();
@@ -2186,7 +2149,6 @@ class PlayerRecords {
 
         document.body.insertAdjacentHTML('beforeend', html);
 
-        // Add proof button click handlers
         document.querySelectorAll('#profileModal .profile-stat-proof-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -2199,14 +2161,12 @@ class PlayerRecords {
             });
         });
 
-        // Close modal on overlay click
         document.getElementById('profileModal').addEventListener('click', (e) => {
             if (e.target === e.currentTarget) {
                 e.currentTarget.remove();
             }
         });
 
-        // Close on Escape key
         const closeHandler = (e) => {
             if (e.key === 'Escape') {
                 const modal = document.getElementById('profileModal');
@@ -2222,25 +2182,21 @@ class PlayerRecords {
     showProofModal(proofUrl) {
         if (!proofUrl) return;
 
-        // Check if a proof modal already exists and remove it
         const existingModal = document.getElementById('proofModal');
         if (existingModal) {
             existingModal.remove();
         }
 
-        // Close any leaderboard modal that might be open
         const leaderboardModal = document.getElementById('leaderboardModal');
         if (leaderboardModal) {
             leaderboardModal.remove();
         }
 
-        // Close any profile modal that might be open
         const profileModal = document.getElementById('profileModal');
         if (profileModal) {
             profileModal.remove();
         }
 
-        // Close any tooltip
         const tooltip = document.querySelector('.stat-info-tooltip');
         if (tooltip) {
             tooltip.remove();
@@ -2262,14 +2218,12 @@ class PlayerRecords {
 
         document.body.insertAdjacentHTML('beforeend', html);
 
-        // Close on overlay click
         document.getElementById('proofModal').addEventListener('click', (e) => {
             if (e.target === e.currentTarget) {
                 e.currentTarget.remove();
             }
         });
 
-        // Close on Escape key
         const closeHandler = (e) => {
             if (e.key === 'Escape') {
                 const modal = document.getElementById('proofModal');
@@ -2285,11 +2239,9 @@ class PlayerRecords {
     getRecordDate(proofUrl) {
         if (!proofUrl) return 'N/A';
         try {
-            // Extract filename from URL
             const filename = proofUrl.split('/').pop();
             if (!filename) return 'N/A';
 
-            // Pattern: date in format DDMMYYYY or DDMMYYYY with hyphens
             const dateMatch = filename.match(/(\d{2})(\d{2})(\d{4})/);
             if (dateMatch) {
                 const day = dateMatch[1];
@@ -2315,7 +2267,8 @@ class PlayerRecords {
             'conquest': 'Conquest',
             'control': 'Control',
             'hardpoint': 'Hardpoint',
-            'kill-confirmed': 'Kill Confirmed'
+            'kill-confirmed': 'Kill Confirmed',
+            'plant-defuse': 'Plant & Defuse'
         };
         return displayNames[mode] || mode;
     }
@@ -2443,14 +2396,12 @@ class PlayerRecords {
 
         document.body.insertAdjacentHTML('beforeend', html);
 
-        // Close on overlay click
         document.getElementById('guidelinesModal').addEventListener('click', (e) => {
             if (e.target === e.currentTarget) {
                 e.currentTarget.remove();
             }
         });
 
-        // Close on Escape key
         const closeHandler = (e) => {
             if (e.key === 'Escape') {
                 const modal = document.getElementById('guidelinesModal');
