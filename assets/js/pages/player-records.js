@@ -175,6 +175,21 @@ class PlayerRecords {
                 icon: 'fa-microchip',
                 color: '#00bcd4',
                 id: 'statCardTech'
+            },
+            // NEW COUNTERS
+            {
+                key: 'matches',
+                label: 'Most Matches',
+                icon: 'fa-clock',
+                color: '#f1c40f',
+                id: 'statCardMatches'
+            },
+            {
+                key: 'fastest_match',
+                label: 'Fastest Match',
+                icon: 'fa-bolt',
+                color: '#ff6b6b',
+                id: 'statCardFastestMatch'
             }
         ];
 
@@ -992,11 +1007,38 @@ class PlayerRecords {
             };
         }
 
+        // Special handling for 'matches' counter: count total records per player
+        const playerMatchCount = new Map();
         for (const record of allFilteredRecords) {
             uniquePlayers.add(record.playerId);
+            // Count matches per player
+            const pid = record.playerId;
+            playerMatchCount.set(pid, (playerMatchCount.get(pid) || 0) + 1);
+        }
 
+        // For 'matches' we need the player with most records
+        let maxMatches = 0;
+        let maxMatchesPlayer = null;
+        for (const [pid, count] of playerMatchCount.entries()) {
+            if (count > maxMatches) {
+                maxMatches = count;
+                maxMatchesPlayer = pid;
+            }
+        }
+        // Store in statMaxima for 'matches'
+        statMaxima['matches'] = {
+            value: maxMatches,
+            playerId: maxMatchesPlayer,
+            proof: null,
+            record: null,
+            date: null
+        };
+
+        // For other stats, compute as before
+        for (const record of allFilteredRecords) {
             for (const config of this.statCounters) {
                 const key = config.key;
+                if (key === 'matches' || key === 'fastest_match') continue; // skip, handled separately
                 const value = record[key];
                 if (value !== undefined && value !== null && value > 0) {
                     const current = statMaxima[key];
@@ -1019,6 +1061,15 @@ class PlayerRecords {
                 }
             }
         }
+
+        // For 'fastest_match' we show "Coming Soon" without logic
+        statMaxima['fastest_match'] = {
+            value: 'Coming Soon',
+            playerId: null,
+            proof: null,
+            record: null,
+            date: null
+        };
 
         const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed', 'plant-defuse'];
         for (const mode of modes) {
@@ -1043,9 +1094,14 @@ class PlayerRecords {
 
         for (const config of this.statCounters) {
             const data = statMaxima[config.key];
-            const value = data ? data.value : 0;
+            let value = data ? data.value : 0;
             const playerId = data ? data.playerId : null;
             const proof = data ? data.proof : null;
+
+            // For 'fastest_match' we always show "Coming Soon"
+            if (config.key === 'fastest_match') {
+                value = 'Coming Soon';
+            }
 
             const card = document.createElement('div');
             card.className = 'global-stat-card';
@@ -1062,8 +1118,13 @@ class PlayerRecords {
             valueEl.dataset.stat = config.key;
             valueEl.dataset.player = playerId || '';
             valueEl.dataset.proof = proof || '';
-            valueEl.dataset.value = value;
-            valueEl.textContent = this.formatNumber(value);
+            valueEl.dataset.value = (typeof value === 'number') ? value : value;
+            // If value is "Coming Soon" display as is, else format number
+            if (config.key === 'fastest_match') {
+                valueEl.textContent = 'Coming Soon';
+            } else {
+                valueEl.textContent = this.formatNumber(value);
+            }
             card.appendChild(valueEl);
 
             const labelEl = document.createElement('div');
@@ -1072,18 +1133,21 @@ class PlayerRecords {
             const labelText = document.createTextNode(config.label + ' ');
             labelEl.appendChild(labelText);
 
-            const infoEl = document.createElement('span');
-            infoEl.className = 'global-stat-info';
-            infoEl.dataset.stat = config.key;
-            infoEl.dataset.player = playerId || '';
-            infoEl.dataset.proof = proof || '';
-            infoEl.dataset.value = value;
-            infoEl.innerHTML = '<i class="fas fa-info-circle"></i>';
-            labelEl.appendChild(infoEl);
+            // Only add info icon if not "Coming Soon"
+            if (config.key !== 'fastest_match') {
+                const infoEl = document.createElement('span');
+                infoEl.className = 'global-stat-info';
+                infoEl.dataset.stat = config.key;
+                infoEl.dataset.player = playerId || '';
+                infoEl.dataset.proof = proof || '';
+                infoEl.dataset.value = (typeof value === 'number') ? value : value;
+                infoEl.innerHTML = '<i class="fas fa-info-circle"></i>';
+                labelEl.appendChild(infoEl);
+            }
 
             card.appendChild(labelEl);
 
-            if (playerId) {
+            if (playerId && config.key !== 'fastest_match') {
                 const playerNameEl = document.createElement('div');
                 playerNameEl.className = 'global-stat-player';
                 playerNameEl.textContent = this.truncatePlayerName(playerId, 20);
@@ -1226,7 +1290,7 @@ class PlayerRecords {
             }
         });
 
-        // 2. Records by Category (removed Top Damage chart)
+        // 2. Records by Category
         const categoryData = this.getCategoryStats();
         const categoryLabels = ['Damage', 'Kills', 'Assists', 'XP', 'Captures', 'Confirms', 'Denies', 'Plants', 'Defuses'];
         const categoryColors = [
@@ -1769,7 +1833,9 @@ class PlayerRecords {
             'confirms': 'Confirms',
             'denies': 'Denies',
             'plants': 'Plants',
-            'defuses': 'Defuses'
+            'defuses': 'Defuses',
+            'matches': 'Matches',
+            'fastest_match': 'Fastest Match'
         };
 
         const statLabel = statLabels[statKey] || statKey;
@@ -1925,13 +1991,15 @@ class PlayerRecords {
             'plants': 'Plants',
             'defuses': 'Defuses',
             'deaths': 'Deaths',
-            'tech': 'Tech'
+            'tech': 'Tech',
+            'matches': 'Matches',
+            'fastest_match': 'Fastest Match'
         };
 
         const truncatedName = this.truncatePlayerName(playerId, 20);
         const allRecords = this.getAllRecordsForPlayer(playerId);
 
-        const trackedStats = ['damage_caused', 'destroyed', 'assists', 'XP', 'captures', 'damage_blocked', 'credits', 'intel', 'confirms', 'denies', 'plants', 'defuses', 'deaths', 'tech'];
+        const trackedStats = ['damage_caused', 'destroyed', 'assists', 'XP', 'captures', 'damage_blocked', 'credits', 'intel', 'confirms', 'denies', 'plants', 'defuses', 'deaths', 'tech', 'matches', 'fastest_match'];
 
         let statsHtml = '';
         let hasAnyStats = false;
@@ -1941,11 +2009,21 @@ class PlayerRecords {
             const rank = this.getPlayerRankForStat(playerId, stat);
             const label = statLabels[stat] || stat;
 
-            if (summary.count > 0) {
+            if (stat === 'fastest_match') {
+                // Skip fastest_match logic, just show Coming Soon
+                continue;
+            }
+
+            if (summary.count > 0 || stat === 'matches') {
                 hasAnyStats = true;
                 const rankDisplay = rank > 0 ? `#${rank}` : 'N/A';
                 const proofUrl = summary.bestRecord?.proof || null;
-                const bestValue = summary.highest;
+                let bestValue = summary.highest;
+
+                // For matches, we calculate total matches for this player
+                if (stat === 'matches') {
+                    bestValue = allRecords.length;
+                }
 
                 statsHtml += `
                     <div class="profile-stat-card">
@@ -1967,6 +2045,24 @@ class PlayerRecords {
                 `;
             }
         }
+
+        // Add a "Coming Soon" placeholder for Fastest Match
+        statsHtml += `
+            <div class="profile-stat-card" style="opacity:0.7; border-style:dashed;">
+                <div class="profile-stat-card-header">
+                    <span class="profile-stat-label">Fastest Match</span>
+                    <span class="profile-stat-rank-badge">Coming Soon</span>
+                </div>
+                <div class="profile-stat-card-body">
+                    <div class="profile-stat-main">
+                        <span class="profile-stat-high" style="font-size:1rem; color:var(--text-secondary);">—</span>
+                    </div>
+                    <div class="profile-stat-details">
+                        <span class="profile-stat-avg" style="color:var(--text-secondary);">Not yet available</span>
+                    </div>
+                </div>
+            </div>
+        `;
 
         if (!hasAnyStats) {
             statsHtml = `<div class="profile-no-stats">No statistics available for this player.</div>`;
@@ -2310,6 +2406,7 @@ class PlayerRecords {
 
     formatNumber(num) {
         if (num === undefined || num === null) return '0';
+        if (typeof num === 'string') return num; // for "Coming Soon"
         if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
         if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
         return num.toString();
