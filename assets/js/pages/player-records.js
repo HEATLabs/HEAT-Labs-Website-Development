@@ -176,7 +176,6 @@ class PlayerRecords {
                 color: '#00bcd4',
                 id: 'statCardTech'
             },
-            // NEW COUNTERS
             {
                 key: 'matches',
                 label: 'Most Matches',
