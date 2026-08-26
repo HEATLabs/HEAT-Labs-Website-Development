@@ -178,7 +178,7 @@ class PlayerRecords {
             },
             {
                 key: 'matches',
-                label: 'Most Matches',
+                label: 'Most Entries',
                 icon: 'fa-clock',
                 color: '#f1c40f',
                 id: 'statCardMatches'
