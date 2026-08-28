@@ -30,6 +30,7 @@ class PlayerRecords {
             mode: 'global',
             statKey: 'damage_caused'
         };
+        this.currentGlobalStatKey = 'damage_caused';
 
         // PvE toggle state per tab (persisted in localStorage)
         this.pveToggleState = this.loadPveToggleState();
@@ -58,18 +59,7 @@ class PlayerRecords {
             tabContentHardpoint: document.getElementById('tabContentHardpoint'),
             tabContentKillConfirmed: document.getElementById('tabContentKillConfirmed'),
             tabContentPlantDefuse: document.getElementById('tabContentPlantDefuse'),
-            globalDamageTableBody: document.getElementById('globalDamageTableBody'),
-            globalKillsTableBody: document.getElementById('globalKillsTableBody'),
-            globalAssistsTableBody: document.getElementById('globalAssistsTableBody'),
-            globalXPTableBody: document.getElementById('globalXPTableBody'),
-            globalCapturesTableBody: document.getElementById('globalCapturesTableBody'),
-            globalBlockedTableBody: document.getElementById('globalBlockedTableBody'),
-            globalCreditsTableBody: document.getElementById('globalCreditsTableBody'),
-            globalIntelTableBody: document.getElementById('globalIntelTableBody'),
-            globalConfirmsTableBody: document.getElementById('globalConfirmsTableBody'),
-            globalDeniesTableBody: document.getElementById('globalDeniesTableBody'),
-            globalPlantsTableBody: document.getElementById('globalPlantsTableBody'),
-            globalDefusesTableBody: document.getElementById('globalDefusesTableBody'),
+            globalSingleTableBody: document.getElementById('globalSingleTableBody'),
             conquestContent: document.getElementById('conquestContent'),
             controlContent: document.getElementById('controlContent'),
             hardpointContent: document.getElementById('hardpointContent'),
@@ -77,119 +67,40 @@ class PlayerRecords {
             plantDefuseContent: document.getElementById('plantDefuseContent'),
         };
 
+        // Stat category definitions for the dropdown
+        this.statCategories = [
+            { key: 'damage_caused', label: 'Damage', icon: 'fa-bolt', color: '#ff8300' },
+            { key: 'destroyed', label: 'Kills', icon: 'fa-skull', color: '#e74c3c' },
+            { key: 'assists', label: 'Assists', icon: 'fa-handshake', color: '#3498db' },
+            { key: 'XP', label: 'XP', icon: 'fa-star', color: '#f1c40f' },
+            { key: 'captures', label: 'Captures', icon: 'fa-flag-checkered', color: '#2ecc71' },
+            { key: 'damage_blocked', label: 'Blocked', icon: 'fa-shield', color: '#9b59b6' },
+            { key: 'credits', label: 'Credits', icon: 'fa-coins', color: '#f39c12' },
+            { key: 'intel', label: 'Intel', icon: 'fa-microchip', color: '#1abc9c' },
+            { key: 'confirms', label: 'Confirms', icon: 'fa-check-double', color: '#2ecc71' },
+            { key: 'denies', label: 'Denies', icon: 'fa-ban', color: '#9b59b6' },
+            { key: 'plants', label: 'Plants', icon: 'fa-bomb', color: '#e67e22' },
+            { key: 'defuses', label: 'Defuses', icon: 'fa-shield-halved', color: '#2ecc71' }
+        ];
+
         // Stat counter configurations (all except the 3 basic ones)
-        this.statCounters = [{
-                key: 'damage_caused',
-                label: 'Highest Damage',
-                icon: 'fa-bolt',
-                color: '#ff8300',
-                id: 'statCardDamageCaused'
-            },
-            {
-                key: 'destroyed',
-                label: 'Most Kills',
-                icon: 'fa-skull',
-                color: '#e74c3c',
-                id: 'statCardDestroyed'
-            },
-            {
-                key: 'assists',
-                label: 'Most Assists',
-                icon: 'fa-handshake',
-                color: '#3498db',
-                id: 'statCardAssists'
-            },
-            {
-                key: 'XP',
-                label: 'Highest XP',
-                icon: 'fa-star',
-                color: '#f1c40f',
-                id: 'statCardXP'
-            },
-            {
-                key: 'captures',
-                label: 'Most Captures',
-                icon: 'fa-flag-checkered',
-                color: '#2ecc71',
-                id: 'statCardCaptures'
-            },
-            {
-                key: 'damage_blocked',
-                label: 'Most Blocked',
-                icon: 'fa-shield',
-                color: '#9b59b6',
-                id: 'statCardDamageBlocked'
-            },
-            {
-                key: 'credits',
-                label: 'Most Credits',
-                icon: 'fa-coins',
-                color: '#f39c12',
-                id: 'statCardCredits'
-            },
-            {
-                key: 'intel',
-                label: 'Most Intel',
-                icon: 'fa-microchip',
-                color: '#1abc9c',
-                id: 'statCardIntel'
-            },
-            {
-                key: 'confirms',
-                label: 'Most Confirms',
-                icon: 'fa-check-double',
-                color: '#2ecc71',
-                id: 'statCardConfirms'
-            },
-            {
-                key: 'denies',
-                label: 'Most Denies',
-                icon: 'fa-ban',
-                color: '#9b59b6',
-                id: 'statCardDenies'
-            },
-            {
-                key: 'plants',
-                label: 'Most Plants',
-                icon: 'fa-bomb',
-                color: '#e67e22',
-                id: 'statCardPlants'
-            },
-            {
-                key: 'defuses',
-                label: 'Most Defuses',
-                icon: 'fa-shield-halved',
-                color: '#2ecc71',
-                id: 'statCardDefuses'
-            },
-            {
-                key: 'deaths',
-                label: 'Most Deaths',
-                icon: 'fa-skull-crossbones',
-                color: '#e74c3c',
-                id: 'statCardDeaths'
-            },
-            {
-                key: 'tech',
-                label: 'Most Tech',
-                icon: 'fa-microchip',
-                color: '#00bcd4',
-                id: 'statCardTech'
-            },
-            {
-                key: 'matches',
-                label: 'Most Entries',
-                icon: 'fa-clock',
-                color: '#f1c40f',
-                id: 'statCardMatches'
-            },
-            {
-                key: 'fastest_match',
-                label: 'Fastest Match',
-                icon: 'fa-bolt',
-                color: '#ff6b6b',
-                id: 'statCardFastestMatch'
-            }
+        this.statCounters = [
+            { key: 'damage_caused', label: 'Highest Damage', icon: 'fa-bolt', color: '#ff8300', id: 'statCardDamageCaused' },
+            { key: 'destroyed', label: 'Most Kills', icon: 'fa-skull', color: '#e74c3c', id: 'statCardDestroyed' },
+            { key: 'assists', label: 'Most Assists', icon: 'fa-handshake', color: '#3498db', id: 'statCardAssists' },
+            { key: 'XP', label: 'Highest XP', icon: 'fa-star', color: '#f1c40f', id: 'statCardXP' },
+            { key: 'captures', label: 'Most Captures', icon: 'fa-flag-checkered', color: '#2ecc71', id: 'statCardCaptures' },
+            { key: 'damage_blocked', label: 'Most Blocked', icon: 'fa-shield', color: '#9b59b6', id: 'statCardDamageBlocked' },
+            { key: 'credits', label: 'Most Credits', icon: 'fa-coins', color: '#f39c12', id: 'statCardCredits' },
+            { key: 'intel', label: 'Most Intel', icon: 'fa-microchip', color: '#1abc9c', id: 'statCardIntel' },
+            { key: 'confirms', label: 'Most Confirms', icon: 'fa-check-double', color: '#2ecc71', id: 'statCardConfirms' },
+            { key: 'denies', label: 'Most Denies', icon: 'fa-ban', color: '#9b59b6', id: 'statCardDenies' },
+            { key: 'plants', label: 'Most Plants', icon: 'fa-bomb', color: '#e67e22', id: 'statCardPlants' },
+            { key: 'defuses', label: 'Most Defuses', icon: 'fa-shield-halved', color: '#2ecc71', id: 'statCardDefuses' },
+            { key: 'deaths', label: 'Most Deaths', icon: 'fa-skull-crossbones', color: '#e74c3c', id: 'statCardDeaths' },
+            { key: 'tech', label: 'Most Tech', icon: 'fa-microchip', color: '#00bcd4', id: 'statCardTech' },
+            { key: 'matches', label: 'Most Entries', icon: 'fa-clock', color: '#f1c40f', id: 'statCardMatches' },
+            { key: 'fastest_match', label: 'Fastest Match', icon: 'fa-bolt', color: '#ff6b6b', id: 'statCardFastestMatch' }
         ];
 
         // Store stat counter element references
@@ -219,10 +130,7 @@ class PlayerRecords {
             const saved = localStorage.getItem('playerRecords_pveToggle');
             if (saved) {
                 const parsed = JSON.parse(saved);
-                return {
-                    ...defaultState,
-                    ...parsed
-                };
+                return { ...defaultState, ...parsed };
             }
         } catch (e) {
             console.warn('Failed to load PvE toggle state:', e);
@@ -327,7 +235,7 @@ class PlayerRecords {
             this.renderGlobalStats();
             this.destroyGlobalCharts();
             this.renderGlobalCharts();
-            this.renderGlobalTables();
+            this.renderGlobalSingleTable(this.currentGlobalStatKey);
         } else {
             this.renderModeTab(tab);
         }
@@ -355,119 +263,40 @@ class PlayerRecords {
         };
 
         // Base stat configs for all modes
-        const baseStatConfigs = [{
-                key: 'damage_caused',
-                label: 'Damage',
-                icon: 'fa-bolt',
-                color: 'var(--accent-color)'
-            },
-            {
-                key: 'destroyed',
-                label: 'Kills',
-                icon: 'fa-skull',
-                color: '#e74c3c'
-            },
-            {
-                key: 'assists',
-                label: 'Assists',
-                icon: 'fa-handshake',
-                color: '#3498db'
-            },
-            {
-                key: 'XP',
-                label: 'XP',
-                icon: 'fa-star',
-                color: '#f1c40f'
-            },
-            {
-                key: 'credits',
-                label: 'Credits',
-                icon: 'fa-coins',
-                color: '#f39c12'
-            },
-            {
-                key: 'intel',
-                label: 'Intel',
-                icon: 'fa-microchip',
-                color: '#1abc9c'
-            }
+        const baseStatConfigs = [
+            { key: 'damage_caused', label: 'Damage', icon: 'fa-bolt', color: 'var(--accent-color)' },
+            { key: 'destroyed', label: 'Kills', icon: 'fa-skull', color: '#e74c3c' },
+            { key: 'assists', label: 'Assists', icon: 'fa-handshake', color: '#3498db' },
+            { key: 'XP', label: 'XP', icon: 'fa-star', color: '#f1c40f' },
+            { key: 'credits', label: 'Credits', icon: 'fa-coins', color: '#f39c12' },
+            { key: 'intel', label: 'Intel', icon: 'fa-microchip', color: '#1abc9c' }
         ];
 
         const modeStatConfigs = {
             'conquest': [
                 ...baseStatConfigs,
-                {
-                    key: 'captures',
-                    label: 'Captures',
-                    icon: 'fa-flag-checkered',
-                    color: '#2ecc71'
-                },
-                {
-                    key: 'damage_blocked',
-                    label: 'Blocked',
-                    icon: 'fa-shield',
-                    color: '#9b59b6'
-                }
+                { key: 'captures', label: 'Captures', icon: 'fa-flag-checkered', color: '#2ecc71' },
+                { key: 'damage_blocked', label: 'Blocked', icon: 'fa-shield', color: '#9b59b6' }
             ],
             'control': [
                 ...baseStatConfigs,
-                {
-                    key: 'captures',
-                    label: 'Captures',
-                    icon: 'fa-flag-checkered',
-                    color: '#2ecc71'
-                },
-                {
-                    key: 'damage_blocked',
-                    label: 'Blocked',
-                    icon: 'fa-shield',
-                    color: '#9b59b6'
-                }
+                { key: 'captures', label: 'Captures', icon: 'fa-flag-checkered', color: '#2ecc71' },
+                { key: 'damage_blocked', label: 'Blocked', icon: 'fa-shield', color: '#9b59b6' }
             ],
             'hardpoint': [
                 ...baseStatConfigs,
-                {
-                    key: 'captures',
-                    label: 'Captures',
-                    icon: 'fa-flag-checkered',
-                    color: '#2ecc71'
-                },
-                {
-                    key: 'damage_blocked',
-                    label: 'Blocked',
-                    icon: 'fa-shield',
-                    color: '#9b59b6'
-                }
+                { key: 'captures', label: 'Captures', icon: 'fa-flag-checkered', color: '#2ecc71' },
+                { key: 'damage_blocked', label: 'Blocked', icon: 'fa-shield', color: '#9b59b6' }
             ],
             'kill-confirmed': [
                 ...baseStatConfigs,
-                {
-                    key: 'confirms',
-                    label: 'Confirms',
-                    icon: 'fa-check-double',
-                    color: '#2ecc71'
-                },
-                {
-                    key: 'denies',
-                    label: 'Denies',
-                    icon: 'fa-ban',
-                    color: '#9b59b6'
-                }
+                { key: 'confirms', label: 'Confirms', icon: 'fa-check-double', color: '#2ecc71' },
+                { key: 'denies', label: 'Denies', icon: 'fa-ban', color: '#9b59b6' }
             ],
             'plant-defuse': [
                 ...baseStatConfigs,
-                {
-                    key: 'plants',
-                    label: 'Plants',
-                    icon: 'fa-bomb',
-                    color: '#e67e22'
-                },
-                {
-                    key: 'defuses',
-                    label: 'Defuses',
-                    icon: 'fa-shield-halved',
-                    color: '#2ecc71'
-                }
+                { key: 'plants', label: 'Plants', icon: 'fa-bomb', color: '#e67e22' },
+                { key: 'defuses', label: 'Defuses', icon: 'fa-shield-halved', color: '#2ecc71' }
             ]
         };
 
@@ -564,7 +393,7 @@ class PlayerRecords {
         this.updateAllPveToggleButtons();
         this.renderGlobalStats();
         this.renderGlobalCharts();
-        this.renderGlobalTables();
+        this.renderGlobalSingleTable('damage_caused');
         this.renderModeTabs();
         this.renderLastUpdated();
         this.isDataLoaded = true;
@@ -595,6 +424,15 @@ class PlayerRecords {
                 this.togglePveState(tab);
             });
         });
+
+        // Global stat dropdown change
+        const globalStatSelect = document.getElementById('globalStatSelect');
+        if (globalStatSelect) {
+            globalStatSelect.addEventListener('change', (e) => {
+                this.currentGlobalStatKey = e.target.value;
+                this.renderGlobalSingleTable(this.currentGlobalStatKey);
+            });
+        }
     }
 
     switchTab(tab) {
@@ -1655,24 +1493,20 @@ class PlayerRecords {
         return [damage, kills, assists, xp, captures, confirms, denies, plants, defuses];
     }
 
-    renderGlobalTables() {
-        this.renderGlobalTable('damage_caused', 'Damage', this.elements.globalDamageTableBody);
-        this.renderGlobalTable('destroyed', 'Kills', this.elements.globalKillsTableBody);
-        this.renderGlobalTable('assists', 'Assists', this.elements.globalAssistsTableBody);
-        this.renderGlobalTable('XP', 'XP', this.elements.globalXPTableBody);
-        this.renderGlobalTable('captures', 'Captures', this.elements.globalCapturesTableBody);
-        this.renderGlobalTable('damage_blocked', 'Blocked', this.elements.globalBlockedTableBody);
-        this.renderGlobalTable('credits', 'Credits', this.elements.globalCreditsTableBody);
-        this.renderGlobalTable('intel', 'Intel', this.elements.globalIntelTableBody);
-        this.renderGlobalTable('confirms', 'Confirms', this.elements.globalConfirmsTableBody);
-        this.renderGlobalTable('denies', 'Denies', this.elements.globalDeniesTableBody);
-        this.renderGlobalTable('plants', 'Plants', this.elements.globalPlantsTableBody);
-        this.renderGlobalTable('defuses', 'Defuses', this.elements.globalDefusesTableBody);
-    }
-
-    // Uses getUniqueTopRecords to show each player only once
-    renderGlobalTable(statKey, statLabel, tbody) {
+    // RENDER SINGLE GLOBAL TABLE WITH DROPDOWN
+    renderGlobalSingleTable(statKey) {
+        const tbody = this.elements.globalSingleTableBody;
         if (!tbody) return;
+
+        // Update dropdown to match current selection
+        const select = document.getElementById('globalStatSelect');
+        if (select) {
+            select.value = statKey;
+        }
+
+        // Find the category label
+        const category = this.statCategories.find(c => c.key === statKey);
+        const statLabel = category ? category.label : statKey;
 
         const records = this.getUniqueTopRecords(statKey, 20);
 
@@ -1737,6 +1571,12 @@ class PlayerRecords {
                 this.showPlayerProfile(playerId, statKey);
             });
         });
+    }
+
+    // OLD renderGlobalTables - replaced by renderGlobalSingleTable
+    renderGlobalTables() {
+        // This is now handled by renderGlobalSingleTable
+        // Kept for compatibility but not used
     }
 
     renderModeTabs() {

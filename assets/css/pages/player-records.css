@@ -222,6 +222,86 @@
 	max-height: 200px;
 }
 
+/* Global Records Single Table */
+.global-single-table-section {
+	background-color: var(--card-bg);
+	border-radius: 1rem;
+	border: 1px solid var(--border-color);
+	padding: 1.25rem;
+	margin-top: 2rem;
+}
+
+.global-single-table-section .table-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 1rem;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+}
+
+.global-single-table-section .table-header h3 {
+	font-size: 1.1rem;
+	font-weight: 600;
+	color: var(--text-primary);
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 0;
+}
+
+/* Stat Dropdown Styles */
+.stat-dropdown-container {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.stat-dropdown-container label {
+	font-size: 0.85rem;
+	color: var(--text-secondary);
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.stat-dropdown-select {
+	padding: 0.5rem 2rem 0.5rem 1rem;
+	border-radius: 0.5rem;
+	border: 1px solid var(--border-color);
+	background-color: var(--bg-tertiary);
+	color: var(--text-primary);
+	font-size: 0.9rem;
+	font-weight: 500;
+	cursor: pointer;
+	appearance: none;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 0.75rem center;
+	transition: all 0.2s ease;
+	min-width: 160px;
+}
+
+.stat-dropdown-select:hover {
+	border-color: var(--accent-color, #ff8300);
+}
+
+.stat-dropdown-select:focus {
+	outline: none;
+	border-color: var(--accent-color, #ff8300);
+	box-shadow: 0 0 0 3px rgba(255, 131, 0, 0.15);
+}
+
+.stat-dropdown-select option {
+	background-color: var(--card-bg);
+	color: var(--text-primary);
+}
+
+.stat-dropdown-select option:hover,
+.stat-dropdown-select option:checked {
+	background-color: var(--accent-color, #ff8300);
+	color: #fff;
+}
+
 /* Global Records Tables */
 .global-records-tables {
 	margin-top: 2rem;
@@ -668,6 +748,20 @@
 	.mode-content {
 		grid-template-columns: 1fr;
 	}
+
+	.global-single-table-section .table-header {
+		flex-direction: column;
+		align-items: stretch;
+		text-align: center;
+	}
+
+	.stat-dropdown-container {
+		justify-content: center;
+	}
+
+	.stat-dropdown-select {
+		min-width: 100%;
+	}
 }
 
 @media (max-width: 768px) {
@@ -722,6 +816,21 @@
 		padding: 1rem;
 		max-width: 95vw;
 	}
+
+	.global-single-table-section .table-header {
+		flex-direction: column;
+		align-items: stretch;
+		text-align: center;
+	}
+
+	.stat-dropdown-container {
+		justify-content: center;
+		flex-wrap: wrap;
+	}
+
+	.stat-dropdown-select {
+		min-width: 200px;
+	}
 }
 
 @media (max-width: 480px) {
@@ -767,6 +876,16 @@
 
 	.proof-modal-content {
 		padding: 0.75rem;
+	}
+
+	.global-single-table-section {
+		padding: 0.75rem;
+	}
+
+	.stat-dropdown-select {
+		min-width: 100%;
+		font-size: 0.8rem;
+		padding: 0.4rem 1.75rem 0.4rem 0.75rem;
 	}
 }
 
