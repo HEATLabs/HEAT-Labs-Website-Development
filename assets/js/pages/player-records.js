@@ -31,6 +31,7 @@ class PlayerRecords {
             statKey: 'damage_caused'
         };
         this.currentGlobalStatKey = 'damage_caused';
+        this.removalReasons = {};
 
         // PvE toggle state per tab (persisted in localStorage)
         this.pveToggleState = this.loadPveToggleState();
@@ -114,6 +115,23 @@ class PlayerRecords {
         if (!name) return 'N/A';
         if (name.length <= maxLength) return name;
         return name.substring(0, maxLength) + '...';
+    }
+
+    // Get removal reason for a player
+    getRemovalReason(playerId) {
+        return this.removalReasons[playerId] || null;
+    }
+
+    // Check if a player is disqualified
+    isPlayerDisqualified(playerId) {
+        return this.removalReasons.hasOwnProperty(playerId);
+    }
+
+    // Get removal reason for display
+    getRemovalReasonDisplay(playerId) {
+        const reason = this.getRemovalReason(playerId);
+        if (!reason) return 'This player has been disqualified from the leaderboards.';
+        return reason;
     }
 
     // Load PvE toggle state from localStorage
@@ -222,8 +240,15 @@ class PlayerRecords {
         return allRecords;
     }
 
-    // Get ALL records for a player (no PvE filter - for profile view)
+    // Get ALL records for a player (no filters - for profile view)
     getAllRecordsForPlayer(playerId) {
+        const player = this.players.get(playerId);
+        if (!player) return [];
+        return player.records || [];
+    }
+
+    // Get all records for a player (including disqualified, for profile view)
+    getAllRecordsForPlayerIncludingDisqualified(playerId) {
         const player = this.players.get(playerId);
         if (!player) return [];
         return player.records || [];
@@ -384,6 +409,14 @@ class PlayerRecords {
                 this.showPlayerProfile(playerId, statKey);
             });
         });
+
+        // Add event listeners for disqualification info buttons
+        container.querySelectorAll('.action-btn-disqualify').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const playerId = btn.dataset.playerid;
+                this.showDisqualificationModal(playerId);
+            });
+        });
     }
 
     async init() {
@@ -485,6 +518,11 @@ class PlayerRecords {
             const data = await response.json();
             this.records = data.records || {};
 
+            // Extract removal reasons from ROOT
+            if (this.records.ROOT && this.records.ROOT.removals) {
+                this.removalReasons = this.records.ROOT.removals;
+            }
+
             // Extract last updated times
             if (this.records.ROOT && this.records.ROOT.last_updated) {
                 this.lastUpdated = {
@@ -527,20 +565,24 @@ class PlayerRecords {
                         this.players.set(playerId, {
                             id: playerId,
                             records: [],
-                            totalRecords: 0
+                            totalRecords: 0,
+                            isDisqualified: this.isPlayerDisqualified(playerId)
                         });
                     }
 
                     for (const record of playerRecords) {
                         const tech = record.tech || 0;
                         const matchType = tech < 40 ? 'pve' : 'pvp';
+                        // Check if this specific record is disqualified
+                        const isDisqualified = record.disqualified === true;
 
                         const enrichedRecord = {
                             ...record,
                             playerId: playerId,
                             mode: mode,
                             matchType: matchType,
-                            tech: tech
+                            tech: tech,
+                            disqualified: isDisqualified
                         };
                         this.recordsByMode[mode].push(enrichedRecord);
                         this.players.get(playerId).records.push(enrichedRecord);
@@ -575,8 +617,19 @@ class PlayerRecords {
     }
 
     // Sort records by stat value (descending) and then by date (descending, most recent first)
+    // Disqualified records go to the bottom
     sortRecordsByStatAndDate(records, statKey) {
         return [...records].sort((a, b) => {
+            // Check if player is disqualified (global removal)
+            const aPlayerDisqualified = this.isPlayerDisqualified(a.playerId);
+            const bPlayerDisqualified = this.isPlayerDisqualified(b.playerId);
+            const aDisqualified = a.disqualified || aPlayerDisqualified;
+            const bDisqualified = b.disqualified || bPlayerDisqualified;
+
+            // Disqualified records go to the bottom
+            if (aDisqualified && !bDisqualified) return 1;
+            if (!aDisqualified && bDisqualified) return -1;
+
             const aValue = a[statKey] || 0;
             const bValue = b[statKey] || 0;
 
@@ -656,6 +709,11 @@ class PlayerRecords {
 
     // Get a player's rank for a specific stat
     getPlayerRankForStat(playerId, statKey) {
+        // If player is disqualified, return 0 (N/A)
+        if (this.isPlayerDisqualified(playerId)) {
+            return 0;
+        }
+
         const allRecords = [];
         const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed', 'plant-defuse'];
 
@@ -691,6 +749,12 @@ class PlayerRecords {
         }
 
         const sorted = Array.from(playerBestMap.values()).sort((a, b) => {
+            // Check if player is disqualified
+            const aDisqualified = this.isPlayerDisqualified(a.playerId);
+            const bDisqualified = this.isPlayerDisqualified(b.playerId);
+            if (aDisqualified && !bDisqualified) return 1;
+            if (!aDisqualified && bDisqualified) return -1;
+
             const aVal = a[statKey] || 0;
             const bVal = b[statKey] || 0;
             if (bVal !== aVal) return bVal - aVal;
@@ -828,8 +892,15 @@ class PlayerRecords {
     }
 
     renderGlobalStats() {
-        const allFilteredRecords = this.getAllFilteredRecords();
-        let totalRecords = allFilteredRecords.length;
+        // Get all records WITHOUT filtering out disqualified
+        const allRecords = this.getAllFilteredRecords();
+        // But for counting stats, we need to exclude disqualified records
+        const validRecords = allRecords.filter(r => {
+            const isPlayerDisq = this.isPlayerDisqualified(r.playerId);
+            return !r.disqualified && !isPlayerDisq;
+        });
+
+        let totalRecords = validRecords.length;
         let modeCount = 0;
         const uniquePlayers = new Set();
 
@@ -846,7 +917,7 @@ class PlayerRecords {
 
         // Special handling for 'matches' counter: count total records per player
         const playerMatchCount = new Map();
-        for (const record of allFilteredRecords) {
+        for (const record of validRecords) {
             uniquePlayers.add(record.playerId);
             // Count matches per player
             const pid = record.playerId;
@@ -872,7 +943,7 @@ class PlayerRecords {
         };
 
         // For other stats, compute as before
-        for (const record of allFilteredRecords) {
+        for (const record of validRecords) {
             for (const config of this.statCounters) {
                 const key = config.key;
                 if (key === 'matches' || key === 'fastest_match') continue; // skip, handled separately
@@ -911,7 +982,11 @@ class PlayerRecords {
         const modes = ['conquest', 'control', 'hardpoint', 'kill-confirmed', 'plant-defuse'];
         for (const mode of modes) {
             const filtered = this.getFilteredRecordsForMode(mode, true);
-            if (filtered.length > 0) {
+            const hasValid = filtered.some(r => {
+                const isPlayerDisq = this.isPlayerDisqualified(r.playerId);
+                return !r.disqualified && !isPlayerDisq;
+            });
+            if (hasValid) {
                 modeCount++;
             }
         }
@@ -1031,6 +1106,10 @@ class PlayerRecords {
         for (const mode of modes) {
             const filteredRecords = this.getFilteredRecordsForMode(mode, true);
             for (const record of filteredRecords) {
+                // Skip disqualified records for charts
+                const isPlayerDisq = this.isPlayerDisqualified(record.playerId);
+                if (record.disqualified || isPlayerDisq) continue;
+
                 let value = record[field];
                 if (value !== undefined && value !== null && value !== '') {
                     if (field === 'outcome') {
@@ -1072,15 +1151,35 @@ class PlayerRecords {
         this.destroyGlobalCharts();
 
         const allFilteredRecords = this.getAllFilteredRecords();
+        // For charts, exclude disqualified records
+        const validRecords = allFilteredRecords.filter(r => {
+            const isPlayerDisq = this.isPlayerDisqualified(r.playerId);
+            return !r.disqualified && !isPlayerDisq;
+        });
 
         // 1. Records by Mode
         const modeLabels = ['Conquest', 'Control', 'Hardpoint', 'Kill Confirmed', 'Plant & Defuse'];
         const modeData = [
-            this.getFilteredRecordsForMode('conquest', true).length,
-            this.getFilteredRecordsForMode('control', true).length,
-            this.getFilteredRecordsForMode('hardpoint', true).length,
-            this.getFilteredRecordsForMode('kill-confirmed', true).length,
-            this.getFilteredRecordsForMode('plant-defuse', true).length
+            this.getFilteredRecordsForMode('conquest', true).filter(r => {
+                const isPlayerDisq = this.isPlayerDisqualified(r.playerId);
+                return !r.disqualified && !isPlayerDisq;
+            }).length,
+            this.getFilteredRecordsForMode('control', true).filter(r => {
+                const isPlayerDisq = this.isPlayerDisqualified(r.playerId);
+                return !r.disqualified && !isPlayerDisq;
+            }).length,
+            this.getFilteredRecordsForMode('hardpoint', true).filter(r => {
+                const isPlayerDisq = this.isPlayerDisqualified(r.playerId);
+                return !r.disqualified && !isPlayerDisq;
+            }).length,
+            this.getFilteredRecordsForMode('kill-confirmed', true).filter(r => {
+                const isPlayerDisq = this.isPlayerDisqualified(r.playerId);
+                return !r.disqualified && !isPlayerDisq;
+            }).length,
+            this.getFilteredRecordsForMode('plant-defuse', true).filter(r => {
+                const isPlayerDisq = this.isPlayerDisqualified(r.playerId);
+                return !r.disqualified && !isPlayerDisq;
+            }).length
         ];
 
         const ctx1 = document.getElementById('globalRecordsByModeChart').getContext('2d');
@@ -1457,6 +1556,10 @@ class PlayerRecords {
 
         const allRecords = this.getAllFilteredRecords();
         for (const record of allRecords) {
+            // Skip disqualified records
+            const isPlayerDisq = this.isPlayerDisqualified(record.playerId);
+            if (record.disqualified || isPlayerDisq) continue;
+
             if (record.damage_caused && record.damage_caused > 30000) damage++;
             else if (record.damage_caused && record.damage_caused > 0) damage++;
 
@@ -1512,7 +1615,10 @@ class PlayerRecords {
 
         if (!records.length) {
             const allRecords = this.getAllFilteredRecords();
-            const hasRecords = allRecords.some(r => r[statKey] !== undefined && r[statKey] !== null && r[statKey] > 0);
+            const hasRecords = allRecords.some(r => {
+                const isPlayerDisq = this.isPlayerDisqualified(r.playerId);
+                return !r.disqualified && !isPlayerDisq && r[statKey] !== undefined && r[statKey] !== null && r[statKey] > 0;
+            });
             if (!hasRecords) {
                 tbody.innerHTML = `<tr><td colspan="9" class="no-data">No ${statLabel} records found (PvE may be hidden)</td></tr>`;
             } else {
@@ -1531,11 +1637,23 @@ class PlayerRecords {
             const matchTypeLabel = record.matchType === 'pvp' ? 'PvP' : 'PvE';
             const matchTypeClass = record.matchType === 'pvp' ? 'match-type-pvp' : 'match-type-pve';
             const truncatedName = this.truncatePlayerName(record.playerId, 14);
+            const isDisqualified = record.disqualified || false;
+            const isPlayerDisqualified = this.isPlayerDisqualified(record.playerId);
+
+            // Player name styling - strike through if disqualified
+            const playerNameStyle = isDisqualified || isPlayerDisqualified ?
+                'cursor:pointer;color:var(--accent-color, #ff8300);text-decoration:line-through;' :
+                'cursor:pointer;color:var(--accent-color, #ff8300);';
 
             html += `
-                <tr>
+                <tr class="${isDisqualified || isPlayerDisqualified ? 'disqualified-row' : ''}">
                     <td><span class="rank-badge ${rankClass}">${rank}</span></td>
-                    <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);" title="${record.playerId}">${truncatedName}</strong></td>
+                    <td>
+                        <strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="${playerNameStyle}" title="${record.playerId}">
+                            ${truncatedName}
+                            ${(isDisqualified || isPlayerDisqualified) ? '' : ''}
+                        </strong>
+                    </td>
                     <td>${this.formatNumber(record[statKey] || 0)}</td>
                     <td><span class="mode-badge">${modeDisplayName}</span></td>
                     <td><span class="match-type-badge ${matchTypeClass}">${matchTypeLabel}</span></td>
@@ -1571,6 +1689,59 @@ class PlayerRecords {
                 this.showPlayerProfile(playerId, statKey);
             });
         });
+    }
+
+    // Show disqualification reason modal
+    showDisqualificationModal(playerId) {
+        const reason = this.getRemovalReason(playerId);
+        if (!reason) {
+            this.showToast('No disqualification reason available for this player.', 'warning');
+            return;
+        }
+
+        const existingModal = document.getElementById('disqualifyModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        const html = `
+            <div class="disqualify-modal-overlay" id="disqualifyModal">
+                <div class="disqualify-modal-content">
+                    <button class="disqualify-modal-close" onclick="this.closest('.disqualify-modal-overlay').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
+                        <i class="fas fa-exclamation-triangle" style="color:#e74c3c;font-size:2rem;"></i>
+                        <h3 style="color:var(--text-primary);margin:0;">Player Disqualified</h3>
+                    </div>
+                    <div style="background:var(--bg-tertiary);border-radius:0.5rem;padding:1rem;border-left:4px solid #e74c3c;">
+                        <p style="color:var(--text-primary);margin:0;line-height:1.6;white-space:pre-wrap;word-break:break-word;">${reason}</p>
+                    </div>
+                    <div style="margin-top:1rem;text-align:right;">
+                        <button onclick="this.closest('.disqualify-modal-overlay').remove()" style="padding:0.5rem 1.5rem;border:none;border-radius:0.5rem;background:var(--accent-color);color:#fff;font-weight:600;cursor:pointer;">Close</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', html);
+
+        document.getElementById('disqualifyModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                e.currentTarget.remove();
+            }
+        });
+
+        const closeHandler = (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('disqualifyModal');
+                if (modal) {
+                    modal.remove();
+                    document.removeEventListener('keydown', closeHandler);
+                }
+            }
+        };
+        document.addEventListener('keydown', closeHandler);
     }
 
     // OLD renderGlobalTables - replaced by renderGlobalSingleTable
@@ -1609,11 +1780,22 @@ class PlayerRecords {
             const matchTypeLabel = record.matchType === 'pvp' ? 'PvP' : 'PvE';
             const matchTypeClass = record.matchType === 'pvp' ? 'match-type-pvp' : 'match-type-pve';
             const truncatedName = this.truncatePlayerName(record.playerId, 14);
+            const isDisqualified = record.disqualified || false;
+            const isPlayerDisqualified = this.isPlayerDisqualified(record.playerId);
+
+            const playerNameStyle = isDisqualified || isPlayerDisqualified ?
+                'cursor:pointer;color:var(--accent-color, #ff8300);text-decoration:line-through;' :
+                'cursor:pointer;color:var(--accent-color, #ff8300);';
 
             html += `
-                <tr>
+                <tr class="${isDisqualified || isPlayerDisqualified ? 'disqualified-row' : ''}">
                     <td><span class="rank-badge ${rankClass}">${rank}</span></td>
-                    <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);" title="${record.playerId}">${truncatedName}</strong></td>
+                    <td>
+                        <strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="${playerNameStyle}" title="${record.playerId}">
+                            ${truncatedName}
+                            ${(isDisqualified || isPlayerDisqualified) ? '' : ''}
+                        </strong>
+                    </td>
                     <td>${this.formatNumber(record[statKey] || 0)}</td>
                     <td><span class="match-type-badge ${matchTypeClass}">${matchTypeLabel}</span></td>
                     <td>${record.vehicle || 'N/A'}</td>
@@ -1716,11 +1898,22 @@ class PlayerRecords {
             const matchTypeLabel = record.matchType === 'pvp' ? 'PvP' : 'PvE';
             const matchTypeClass = record.matchType === 'pvp' ? 'match-type-pvp' : 'match-type-pve';
             const truncatedName = this.truncatePlayerName(record.playerId, 14);
+            const isDisqualified = record.disqualified || false;
+            const isPlayerDisqualified = this.isPlayerDisqualified(record.playerId);
+
+            const playerNameStyle = isDisqualified || isPlayerDisqualified ?
+                'cursor:pointer;color:var(--accent-color, #ff8300);text-decoration:line-through;' :
+                'cursor:pointer;color:var(--accent-color, #ff8300);';
 
             html += `
-                <tr>
+                <tr class="${isDisqualified || isPlayerDisqualified ? 'disqualified-row' : ''}">
                     <td><span class="rank-badge ${rankClass}">${rank}</span></td>
-                    <td><strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="cursor:pointer;color:var(--accent-color, #ff8300);" title="${record.playerId}">${truncatedName}</strong></td>
+                    <td>
+                        <strong class="player-name-clickable" data-playerid="${record.playerId}" data-statkey="${statKey}" style="${playerNameStyle}" title="${record.playerId}">
+                            ${truncatedName}
+                            ${(isDisqualified || isPlayerDisqualified) ? '' : ''}
+                        </strong>
+                    </td>
                     <td>${this.formatNumber(record[statKey] || 0)}</td>
                     <td><span class="match-type-badge ${matchTypeClass}">${matchTypeLabel}</span></td>
                     <td>${record.vehicle || 'N/A'}</td>
@@ -1837,6 +2030,8 @@ class PlayerRecords {
 
         const truncatedName = this.truncatePlayerName(playerId, 20);
         const allRecords = this.getAllRecordsForPlayer(playerId);
+        const isDisqualified = this.isPlayerDisqualified(playerId);
+        const removalReason = this.getRemovalReason(playerId);
 
         const trackedStats = ['damage_caused', 'destroyed', 'assists', 'XP', 'captures', 'damage_blocked', 'credits', 'intel', 'confirms', 'denies', 'plants', 'defuses', 'deaths', 'tech', 'matches', 'fastest_match'];
 
@@ -1855,7 +2050,9 @@ class PlayerRecords {
 
             if (summary.count > 0 || stat === 'matches') {
                 hasAnyStats = true;
-                const rankDisplay = rank > 0 ? `#${rank}` : 'N/A';
+
+                // If disqualified, show N/A for rank and average, but keep the stat value
+                const rankDisplay = isDisqualified ? 'N/A' : (rank > 0 ? `#${rank}` : 'N/A');
                 const proofUrl = summary.bestRecord?.proof || null;
                 let bestValue = summary.highest;
 
@@ -1864,24 +2061,47 @@ class PlayerRecords {
                     bestValue = allRecords.length;
                 }
 
-                statsHtml += `
-                    <div class="profile-stat-card">
-                        <div class="profile-stat-card-header">
-                            <span class="profile-stat-label">${label}</span>
-                            <span class="profile-stat-rank-badge">Rank ${rankDisplay}</span>
-                        </div>
-                        <div class="profile-stat-card-body">
-                            <div class="profile-stat-main">
-                                <span class="profile-stat-high">${this.formatNumber(bestValue)}</span>
-                                ${proofUrl ? `<button class="profile-stat-proof-btn" data-proof="${proofUrl}" title="View Proof"><i class="fas fa-image"></i></button>` : ''}
+                // For disqualified players, only show the stat value, no average or rank
+                if (isDisqualified) {
+                    statsHtml += `
+                        <div class="profile-stat-card" style="opacity:0.8;">
+                            <div class="profile-stat-card-header">
+                                <span class="profile-stat-label">${label}</span>
+                                <span class="profile-stat-rank-badge" style="color:#e74c3c;">DISQUALIFIED</span>
                             </div>
-                            <div class="profile-stat-details">
-                                <span class="profile-stat-avg">Avg: ${this.formatNumber(Math.round(summary.average))}</span>
-                                <span class="profile-stat-count">${summary.count} game${summary.count > 1 ? 's' : ''}</span>
+                            <div class="profile-stat-card-body">
+                                <div class="profile-stat-main">
+                                    <span class="profile-stat-high">${this.formatNumber(bestValue)}</span>
+                                    ${proofUrl ? `<button class="profile-stat-proof-btn" data-proof="${proofUrl}" title="View Proof"><i class="fas fa-image"></i></button>` : ''}
+                                </div>
+                                <div class="profile-stat-details">
+                                    <span class="profile-stat-avg" style="color:var(--text-secondary);">N/A</span>
+                                    <span class="profile-stat-count">${summary.count} game${summary.count > 1 ? 's' : ''}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                } else {
+                    // Normal display for non-disqualified players
+                    statsHtml += `
+                        <div class="profile-stat-card">
+                            <div class="profile-stat-card-header">
+                                <span class="profile-stat-label">${label}</span>
+                                <span class="profile-stat-rank-badge">Rank ${rankDisplay}</span>
+                            </div>
+                            <div class="profile-stat-card-body">
+                                <div class="profile-stat-main">
+                                    <span class="profile-stat-high">${this.formatNumber(bestValue)}</span>
+                                    ${proofUrl ? `<button class="profile-stat-proof-btn" data-proof="${proofUrl}" title="View Proof"><i class="fas fa-image"></i></button>` : ''}
+                                </div>
+                                <div class="profile-stat-details">
+                                    <span class="profile-stat-avg">Avg: ${this.formatNumber(Math.round(summary.average))}</span>
+                                    <span class="profile-stat-count">${summary.count} game${summary.count > 1 ? 's' : ''}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
             }
         }
 
@@ -1903,6 +2123,20 @@ class PlayerRecords {
             </div>
         `;
 
+        // Disqualification banner - use onclick with direct DOM reference
+        let disqualifyBanner = '';
+        if (isDisqualified) {
+            disqualifyBanner = `
+                <div style="background:rgba(231,76,60,0.15);border-radius:0.5rem;padding:0.75rem 1rem;margin-bottom:1rem;border-left:4px solid #e74c3c;display:flex;align-items:center;gap:0.75rem;cursor:pointer;" onclick="window.playerRecordsInstance.showDisqualificationModal('${playerId}')">
+                    <i class="fas fa-exclamation-triangle" style="color:#e74c3c;font-size:1.2rem;"></i>
+                    <span style="color:var(--text-primary);flex:1;">
+                        <strong>DISQUALIFIED</strong> - Click for details
+                    </span>
+                    <i class="fas fa-chevron-right" style="color:var(--text-secondary);"></i>
+                </div>
+            `;
+        }
+
         if (!hasAnyStats) {
             statsHtml = `<div class="profile-no-stats">No statistics available for this player.</div>`;
         }
@@ -1919,13 +2153,15 @@ class PlayerRecords {
                             <i class="fas fa-user-circle"></i>
                         </div>
                         <div class="profile-info">
-                            <h2 title="${playerId}">${truncatedName}</h2>
+                            <h2 title="${playerId}" style="${isDisqualified ? 'text-decoration:line-through;' : ''}">${truncatedName} ${isDisqualified ? '<i class="fas fa-exclamation-triangle" style="color:#e74c3c;font-size:1rem;" title="Disqualified"></i>' : ''}</h2>
                             <div class="profile-meta">
                                 <span><i class="fas fa-trophy" style="color: var(--accent-color, #ff8300);"></i> ${allRecords.length} entr${allRecords.length > 1 ? 'ies' : 'y'}</span>
                                 <span class="profile-rank-note"><i class="fas fa-info-circle"></i> Profile shows global ranks only</span>
                             </div>
                         </div>
                     </div>
+
+                    ${disqualifyBanner}
 
                     <div class="profile-stats-grid">
                         ${statsHtml}
@@ -1944,6 +2180,9 @@ class PlayerRecords {
         }
 
         document.body.insertAdjacentHTML('beforeend', html);
+
+        // Store reference to this instance for onclick handlers
+        window.playerRecordsInstance = this;
 
         document.querySelectorAll('#profileModal .profile-stat-proof-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
