@@ -100,6 +100,9 @@ async function fetchMapDataAndInitialize() {
         // Update map header (title, description, type badge)
         updateMapHeader(mapData);
 
+        // Update map introduction
+        updateMapIntroduction(mapData);
+
         // Populate map gallery images
         populateMapGallery(mapData.gallery);
 
@@ -142,6 +145,22 @@ function updateMapHeader(mapData) {
         typeBadge.textContent = mapType;
     } else {
         console.warn('Map type badge element not found');
+    }
+}
+
+// Function to update the map introduction
+function updateMapIntroduction(mapData) {
+    // Update the introduction text
+    const introParagraph = document.querySelector('#map-introduction').parentElement.querySelector('p.text-center');
+    if (introParagraph && mapData.introduction) {
+        introParagraph.textContent = mapData.introduction;
+    }
+
+    // Update the introduction image
+    const introImage = document.querySelector('.map-image:first-of-type img');
+    if (introImage && mapData.image) {
+        introImage.src = mapData.image;
+        introImage.alt = `${mapData.name} Overview`;
     }
 }
 
@@ -199,7 +218,7 @@ function populateMapGallery(gallery) {
 
         // Add error handling for broken images
         img.onerror = function() {
-            this.src = 'https://cdn5.heatlabs.net/placeholder/imagecomingsoon.webp';
+            this.src = 'https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/placeholder/imagecomingsoon.webp';
             this.alt = 'Image not available';
         };
 
@@ -373,6 +392,8 @@ function renderGamemodeSelector(mapData) {
     const firstKey = modeKeys[0];
     if (firstKey) {
         updateGamemodeDetails(gamemodes[firstKey], mapData.name);
+        // Update the gamemode content (overview, pro tip, image) for the first gamemode
+        updateGamemodeContent(firstKey, gamemodes[firstKey], mapData.name);
     }
 
     // Add click event listeners to the new buttons
@@ -392,6 +413,7 @@ function renderGamemodeSelector(mapData) {
             const modeKey = this.dataset.gamemode;
             if (modeKey && gamemodes[modeKey]) {
                 updateGamemodeDetails(gamemodes[modeKey], mapData.name);
+                updateGamemodeContent(modeKey, gamemodes[modeKey], mapData.name);
             }
         });
     });
@@ -446,6 +468,65 @@ function updateGamemodeDetails(modeData, mapName) {
     }
     if (winConditionDesc) {
         winConditionDesc.textContent = replacePlaceholders(modeData.win_condition_description) || 'Win condition details coming soon';
+    }
+}
+
+// Updated function to update gamemode content (overview, pro tip, and overview image)
+function updateGamemodeContent(modeKey, modeData, mapName) {
+    // Helper to replace placeholders
+    const replacePlaceholders = (text) => replaceMapNamePlaceholders(text, mapName || 'this map');
+
+    // Find the gamemode section for this mode
+    // We use the standard section since we're reusing the same DOM structure
+    const gamemodeSection = document.getElementById('standard');
+    if (!gamemodeSection) {
+        console.warn('Standard gamemode section not found');
+        return;
+    }
+
+    // Update the overview text - look for the paragraph with class 'text-center' inside the standard section
+    const overviewParagraph = gamemodeSection.querySelector('p.mb-4.text-center');
+    if (overviewParagraph && modeData.overview) {
+        overviewParagraph.textContent = replacePlaceholders(modeData.overview);
+    } else if (overviewParagraph) {
+        overviewParagraph.textContent = 'We\'re still working on a strategic summary for this map. An overview of key zones, terrain features, and battle flow will be available here shortly.';
+    }
+
+    // Update the pro tip text - look for the paragraph inside the tip-box
+    const tipBoxParagraph = gamemodeSection.querySelector('.tip-box p');
+    if (tipBoxParagraph && modeData.pro_tip) {
+        tipBoxParagraph.textContent = replacePlaceholders(modeData.pro_tip);
+    } else if (tipBoxParagraph) {
+        tipBoxParagraph.textContent = 'Tips for this map are currently unavailable. Check back later for useful strategies and recommendations.';
+    }
+
+    // Update the overview image - look for the img inside the map-image div within the standard section
+    const overviewImage = gamemodeSection.querySelector('.map-image img');
+    if (overviewImage && modeData.topDown) {
+        overviewImage.src = modeData.topDown;
+        overviewImage.alt = `${mapName || 'Map'} - ${modeData.mode_name || modeKey} Overview`;
+    } else if (overviewImage) {
+        // If no topDown image, use the main map image as fallback
+        const mapImage = document.querySelector('.map-image:first-of-type img');
+        if (mapImage) {
+            overviewImage.src = mapImage.src;
+            overviewImage.alt = `${mapName || 'Map'} Overview`;
+        }
+    }
+
+    // Update the section title (h2) if it exists
+    const sectionTitle = gamemodeSection.querySelector('h2');
+    if (sectionTitle && modeData.mode_name) {
+        // Only update if it's the default "Map Overview" text
+        if (sectionTitle.textContent === 'Map Overview' || sectionTitle.textContent === 'Loading map overview...') {
+            sectionTitle.textContent = `${modeData.mode_name} Overview`;
+        }
+    }
+
+    // Update the pro tip header if it exists
+    const tipHeader = gamemodeSection.querySelector('.tip-header h3');
+    if (tipHeader) {
+        // Keep it as "Pro Tip" but ensure it's visible
     }
 }
 
