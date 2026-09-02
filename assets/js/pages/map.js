@@ -97,6 +97,9 @@ async function fetchMapDataAndInitialize() {
 
         console.log('Found map data:', mapData.name);
 
+        // Update map type badge
+        updateMapTypeBadge(mapData);
+
         // Update sidebar quick facts
         updateQuickFacts(mapData);
 
@@ -109,6 +112,19 @@ async function fetchMapDataAndInitialize() {
     } catch (error) {
         console.error('Error loading map data:', error);
     }
+}
+
+// Update the map type badge in the header
+function updateMapTypeBadge(mapData) {
+    const typeBadge = document.querySelector('.map-type-badge');
+    if (!typeBadge) {
+        console.warn('Map type badge element not found');
+        return;
+    }
+
+    // Use the type from mapData, fallback to 'Unknown Type' if not available
+    const mapType = mapData.type || 'Unknown Type';
+    typeBadge.textContent = mapType;
 }
 
 // New function to fetch and display related guides
