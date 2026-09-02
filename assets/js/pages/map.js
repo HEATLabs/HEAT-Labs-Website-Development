@@ -97,8 +97,8 @@ async function fetchMapDataAndInitialize() {
 
         console.log('Found map data:', mapData.name);
 
-        // Update map type badge
-        updateMapTypeBadge(mapData);
+        // Update map header (title, description, type badge)
+        updateMapHeader(mapData);
 
         // Populate map gallery images
         populateMapGallery(mapData.gallery);
@@ -117,17 +117,32 @@ async function fetchMapDataAndInitialize() {
     }
 }
 
-// Function to update the map type badge in the header
-function updateMapTypeBadge(mapData) {
-    const typeBadge = document.querySelector('.map-type-badge');
-    if (!typeBadge) {
-        console.warn('Map type badge element not found');
-        return;
+// Function to update the map header (title, description, and type badge)
+function updateMapHeader(mapData) {
+    // Update the map title
+    const mapTitle = document.querySelector('.map-title');
+    if (mapTitle) {
+        mapTitle.textContent = mapData.name || 'Map';
+    } else {
+        console.warn('Map title element not found');
     }
 
-    // Use the type from mapData, fallback to 'Unknown Type' if not available
-    const mapType = mapData.type || 'Unknown Type';
-    typeBadge.textContent = mapType;
+    // Update the map description
+    const mapDescription = document.querySelector('.map-description');
+    if (mapDescription) {
+        mapDescription.textContent = mapData.description || 'Loading';
+    } else {
+        console.warn('Map description element not found');
+    }
+
+    // Update the map type badge
+    const typeBadge = document.querySelector('.map-type-badge');
+    if (typeBadge) {
+        const mapType = mapData.type || 'Unknown Type';
+        typeBadge.textContent = mapType;
+    } else {
+        console.warn('Map type badge element not found');
+    }
 }
 
 // Function to populate the map gallery sidebar
