@@ -100,6 +100,9 @@ async function fetchMapDataAndInitialize() {
         // Update map type badge
         updateMapTypeBadge(mapData);
 
+        // Populate map gallery images
+        populateMapGallery(mapData.gallery);
+
         // Update sidebar quick facts
         updateQuickFacts(mapData);
 
@@ -114,7 +117,7 @@ async function fetchMapDataAndInitialize() {
     }
 }
 
-// Update the map type badge in the header
+// Function to update the map type badge in the header
 function updateMapTypeBadge(mapData) {
     const typeBadge = document.querySelector('.map-type-badge');
     if (!typeBadge) {
@@ -125,6 +128,74 @@ function updateMapTypeBadge(mapData) {
     // Use the type from mapData, fallback to 'Unknown Type' if not available
     const mapType = mapData.type || 'Unknown Type';
     typeBadge.textContent = mapType;
+}
+
+// Function to populate the map gallery sidebar
+function populateMapGallery(gallery) {
+    const galleryContainer = document.getElementById('mapGalleryContainer');
+    if (!galleryContainer) {
+        console.warn('Gallery container not found');
+        return;
+    }
+
+    // Clear existing content
+    galleryContainer.innerHTML = '';
+
+    // Define the views to display with their labels
+    const views = [
+        { key: 'front', label: 'Front View' },
+        { key: 'rear', label: 'Rear View' },
+        { key: 'side', label: 'Side View' },
+        { key: 'top', label: 'Top View' }
+    ];
+
+    // Filter out views that have placeholder or missing images
+    const availableViews = views.filter(view => {
+        const imageUrl = gallery[view.key];
+        // Check if image exists and is not the placeholder
+        return imageUrl &&
+               imageUrl.trim() !== '' &&
+               !imageUrl.includes('imagecomingsoon.webp');
+    });
+
+    // If no real images are available, show placeholder message
+    if (availableViews.length === 0) {
+        galleryContainer.innerHTML = `
+            <div class="col-span-2 text-center py-4 text-gray-500">
+                <i class="fas fa-image fa-2x mb-2"></i>
+                <p>No gallery images available</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Create gallery items for each available view
+    availableViews.forEach(view => {
+        const imageUrl = gallery[view.key];
+        const thumbnail = document.createElement('a');
+        thumbnail.className = 'gallery-thumbnail';
+        thumbnail.href = imageUrl;
+        thumbnail.setAttribute('data-gallery-image', view.key);
+
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.alt = view.label;
+        img.loading = 'lazy';
+
+        // Add error handling for broken images
+        img.onerror = function() {
+            this.src = 'https://cdn5.heatlabs.net/placeholder/imagecomingsoon.webp';
+            this.alt = 'Image not available';
+        };
+
+        thumbnail.appendChild(img);
+        galleryContainer.appendChild(thumbnail);
+    });
+
+    // Re-initialize the image gallery to include new images
+    setTimeout(() => {
+        initializeImageGallery();
+    }, 100);
 }
 
 // New function to fetch and display related guides
@@ -551,16 +622,38 @@ function initializeImageGallery() {
     });
 
     // Add sidebar gallery images
+    document.querySelectorAll('#mapGalleryContainer .gallery-thumbnail').forEach(thumbnail => {
+        const img = thumbnail.querySelector('img');
+        if (img && img.src && !img.src.includes('imagecomingsoon.webp')) {
+            galleryImages.push({
+                src: thumbnail.href || img.src,
+                alt: img.alt,
+                caption: img.alt
+            });
+        }
+    });
+
+    // Also check for any other gallery images in the sidebar
     document.querySelectorAll('.sidebar-card .gallery-thumbnail img').forEach(img => {
-        galleryImages.push({
-            src: img.parentElement.href,
-            alt: img.alt,
-            caption: img.alt
-        });
+        const parentLink = img.closest('a');
+        if (parentLink && parentLink.href && !parentLink.href.includes('imagecomingsoon.webp')) {
+            // Check if this image is already in the gallery
+            const exists = galleryImages.some(g => g.src === parentLink.href);
+            if (!exists) {
+                galleryImages.push({
+                    src: parentLink.href,
+                    alt: img.alt,
+                    caption: img.alt
+                });
+            }
+        }
     });
 
     // If no images found, don't initialize the gallery
-    if (galleryImages.length === 0) return;
+    if (galleryImages.length === 0) {
+        console.log('No gallery images found to initialize');
+        return;
+    }
 
     let currentImageIndex = 0;
 
@@ -630,14 +723,24 @@ function initializeImageGallery() {
     createThumbnails();
 
     // Set up click handlers for all gallery images
-    document.querySelectorAll('.map-image img:not(.interactive-map-container img), .sidebar-card .gallery-thumbnail').forEach((element, index) => {
-        // Skip if inside interactive container
-        const parentContainer = element.closest('.interactive-map-container');
-        if (parentContainer) return;
+    document.querySelectorAll('.map-image img:not(.interactive-map-container img), #mapGalleryContainer .gallery-thumbnail, .sidebar-card .gallery-thumbnail').forEach((element, index) => {
+        // Store the index on the element
+        const actualIndex = galleryImages.findIndex(img => {
+            if (element.tagName === 'A' && element.href) {
+                return img.src === element.href;
+            }
+            if (element.tagName === 'IMG' && element.src) {
+                return img.src === element.src;
+            }
+            return false;
+        });
+
+        // If we found a matching image, use that index
+        const targetIndex = actualIndex !== -1 ? actualIndex : index % galleryImages.length;
 
         element.addEventListener('click', (e) => {
             e.preventDefault();
-            openGallery(index);
+            openGallery(targetIndex);
         });
     });
 
