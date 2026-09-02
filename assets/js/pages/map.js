@@ -513,21 +513,6 @@ function updateGamemodeContent(modeKey, modeData, mapName) {
             overviewImage.alt = `${mapName || 'Map'} Overview`;
         }
     }
-
-    // Update the section title (h2) if it exists
-    const sectionTitle = gamemodeSection.querySelector('h2');
-    if (sectionTitle && modeData.mode_name) {
-        // Only update if it's the default "Map Overview" text
-        if (sectionTitle.textContent === 'Map Overview' || sectionTitle.textContent === 'Loading map overview...') {
-            sectionTitle.textContent = `${modeData.mode_name} Overview`;
-        }
-    }
-
-    // Update the pro tip header if it exists
-    const tipHeader = gamemodeSection.querySelector('.tip-header h3');
-    if (tipHeader) {
-        // Keep it as "Pro Tip" but ensure it's visible
-    }
 }
 
 // Function to fetch view count from API
