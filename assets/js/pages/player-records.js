@@ -31,7 +31,9 @@ class PlayerRecords {
             statKey: 'damage_caused'
         };
         this.currentGlobalStatKey = 'damage_caused';
+        this.currentGlobalVehicleFilter = 'all';
         this.removalReasons = {};
+        this.vehicles = [];
 
         // PvE toggle state per tab (persisted in localStorage)
         this.pveToggleState = this.loadPveToggleState();
@@ -266,6 +268,40 @@ class PlayerRecords {
         }
     }
 
+    // Build unique vehicle list from records
+    buildVehicleList() {
+        const vehicleSet = new Set();
+        const allRecords = this.getAllFilteredRecords();
+        for (const record of allRecords) {
+            if (record.vehicle) {
+                const vehicles = record.vehicle.split(',').map(v => v.trim()).filter(v => v.length > 0);
+                for (const v of vehicles) {
+                    vehicleSet.add(v);
+                }
+            }
+        }
+        this.vehicles = Array.from(vehicleSet).sort((a, b) => a.localeCompare(b));
+    }
+
+    // Populate vehicle dropdown
+    populateVehicleDropdown() {
+        const select = document.getElementById('globalVehicleSelect');
+        if (!select) return;
+
+        // Clear existing options except "All Vehicles"
+        select.innerHTML = '<option value="all">All Vehicles</option>';
+
+        for (const vehicle of this.vehicles) {
+            const option = document.createElement('option');
+            option.value = vehicle;
+            option.textContent = vehicle;
+            select.appendChild(option);
+        }
+
+        // Set current value
+        select.value = this.currentGlobalVehicleFilter;
+    }
+
     // Render a single mode tab
     renderModeTab(mode) {
         const container = {
@@ -423,6 +459,8 @@ class PlayerRecords {
         this.setupEventListeners();
         await this.loadRecordData();
         this.processRecords();
+        this.buildVehicleList();
+        this.populateVehicleDropdown();
         this.updateAllPveToggleButtons();
         this.renderGlobalStats();
         this.renderGlobalCharts();
@@ -463,6 +501,15 @@ class PlayerRecords {
         if (globalStatSelect) {
             globalStatSelect.addEventListener('change', (e) => {
                 this.currentGlobalStatKey = e.target.value;
+                this.renderGlobalSingleTable(this.currentGlobalStatKey);
+            });
+        }
+
+        // Global vehicle dropdown change
+        const globalVehicleSelect = document.getElementById('globalVehicleSelect');
+        if (globalVehicleSelect) {
+            globalVehicleSelect.addEventListener('change', (e) => {
+                this.currentGlobalVehicleFilter = e.target.value;
                 this.renderGlobalSingleTable(this.currentGlobalStatKey);
             });
         }
@@ -651,8 +698,8 @@ class PlayerRecords {
         });
     }
 
-    // Get unique players with their best record for a stat
-    getUniqueTopRecords(statKey, limit = 10, mode = null) {
+    // Get unique players with their best record for a stat, optionally filtered by vehicle
+    getUniqueTopRecords(statKey, limit = 10, mode = null, vehicleFilter = null) {
         const allRecords = [];
 
         if (mode) {
@@ -676,8 +723,18 @@ class PlayerRecords {
             }
         }
 
+        // Apply vehicle filter if specified
+        let filteredByVehicle = allRecords;
+        if (vehicleFilter && vehicleFilter !== 'all') {
+            filteredByVehicle = allRecords.filter(record => {
+                if (!record.vehicle) return false;
+                const vehicles = record.vehicle.split(',').map(v => v.trim()).filter(v => v.length > 0);
+                return vehicles.includes(vehicleFilter);
+            });
+        }
+
         const playerBestMap = new Map();
-        for (const record of allRecords) {
+        for (const record of filteredByVehicle) {
             const playerId = record.playerId;
             if (!playerBestMap.has(playerId)) {
                 playerBestMap.set(playerId, record);
@@ -1621,7 +1678,10 @@ class PlayerRecords {
         const category = this.statCategories.find(c => c.key === statKey);
         const statLabel = category ? category.label : statKey;
 
-        const records = this.getUniqueTopRecords(statKey, 20);
+        // Get vehicle filter
+        const vehicleFilter = this.currentGlobalVehicleFilter;
+
+        const records = this.getUniqueTopRecords(statKey, 20, null, vehicleFilter);
 
         if (!records.length) {
             const allRecords = this.getAllFilteredRecords();
@@ -1632,7 +1692,8 @@ class PlayerRecords {
             if (!hasRecords) {
                 tbody.innerHTML = `<tr><td colspan="9" class="no-data">No ${statLabel} records found (PvE may be hidden)</td></tr>`;
             } else {
-                tbody.innerHTML = `<tr><td colspan="9" class="no-data">No records found for ${statLabel}</td></tr>`;
+                const filterMsg = vehicleFilter !== 'all' ? ` for vehicle "${vehicleFilter}"` : '';
+                tbody.innerHTML = `<tr><td colspan="9" class="no-data">No records found for ${statLabel}${filterMsg}</td></tr>`;
             }
             return;
         }
@@ -1752,12 +1813,6 @@ class PlayerRecords {
             }
         };
         document.addEventListener('keydown', closeHandler);
-    }
-
-    // OLD renderGlobalTables - replaced by renderGlobalSingleTable
-    renderGlobalTables() {
-        // This is now handled by renderGlobalSingleTable
-        // Kept for compatibility but not used
     }
 
     renderModeTabs() {
