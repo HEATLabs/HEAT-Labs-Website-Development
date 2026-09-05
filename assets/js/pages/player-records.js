@@ -831,10 +831,20 @@ class PlayerRecords {
             'plant-defuse': 'Plant & Defuse'
         };
 
+        const tabIdMap = {
+            'conquest': 'tabContentConquest',
+            'control': 'tabContentControl',
+            'hardpoint': 'tabContentHardpoint',
+            'kill-confirmed': 'tabContentKillConfirmed',
+            'plant-defuse': 'tabContentPlantDefuse'
+        };
+
         for (const [mode, timestamp] of Object.entries(this.lastUpdated)) {
             if (!timestamp) continue;
 
-            const tabContentId = `tabContent${mode.charAt(0).toUpperCase() + mode.slice(1).replace('-', '')}`;
+            const tabContentId = tabIdMap[mode];
+            if (!tabContentId) continue;
+
             const tabContent = document.getElementById(tabContentId);
             if (!tabContent) continue;
 
