@@ -64,6 +64,8 @@ class PlayerRecords {
             hardpointContent: document.getElementById('hardpointContent'),
             killConfirmedContent: document.getElementById('killConfirmedContent'),
             plantDefuseContent: document.getElementById('plantDefuseContent'),
+            playerSearchInput: document.getElementById('playerSearchInput'),
+            playerSearchResults: document.getElementById('playerSearchResults'),
         };
 
         // Stat category definitions for the dropdown
@@ -104,6 +106,7 @@ class PlayerRecords {
 
         // Store stat counter element references
         this.statCounterElements = {};
+        this.searchDebounceTimer = null;
 
         this.init();
     }
@@ -451,6 +454,178 @@ class PlayerRecords {
         });
     }
 
+    // --- Player Search Functionality ---
+
+    setupPlayerSearch() {
+        const input = this.elements.playerSearchInput;
+        const resultsContainer = this.elements.playerSearchResults;
+
+        if (!input || !resultsContainer) return;
+
+        // Close results when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!input.contains(e.target) && !resultsContainer.contains(e.target)) {
+                resultsContainer.classList.remove('active');
+            }
+        });
+
+        // Input event with debounce
+        input.addEventListener('input', () => {
+            clearTimeout(this.searchDebounceTimer);
+            const query = input.value.trim();
+
+            if (query.length < 1) {
+                resultsContainer.classList.remove('active');
+                resultsContainer.innerHTML = '';
+                return;
+            }
+
+            this.searchDebounceTimer = setTimeout(() => {
+                this.performPlayerSearch(query);
+            }, 200);
+        });
+
+        // Keyboard navigation
+        input.addEventListener('keydown', (e) => {
+            const items = resultsContainer.querySelectorAll('.player-search-item');
+            if (!items.length) return;
+
+            let currentIndex = Array.from(items).findIndex(el => el.classList.contains('active'));
+            let newIndex = currentIndex;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                newIndex = Math.min(currentIndex + 1, items.length - 1);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                newIndex = Math.max(currentIndex - 1, 0);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (currentIndex >= 0 && currentIndex < items.length) {
+                    items[currentIndex].click();
+                } else if (items.length > 0) {
+                    items[0].click();
+                }
+                return;
+            } else if (e.key === 'Escape') {
+                resultsContainer.classList.remove('active');
+                return;
+            }
+
+            if (currentIndex !== newIndex) {
+                items.forEach(el => el.classList.remove('active'));
+                items[newIndex].classList.add('active');
+                items[newIndex].scrollIntoView({ block: 'nearest' });
+            }
+        });
+
+        // Handle focus to show results if there's a query
+        input.addEventListener('focus', () => {
+            const query = input.value.trim();
+            if (query.length >= 1 && resultsContainer.querySelector('.player-search-item')) {
+                resultsContainer.classList.add('active');
+            }
+        });
+    }
+
+    performPlayerSearch(query) {
+        const resultsContainer = this.elements.playerSearchResults;
+        if (!resultsContainer) return;
+
+        const lowerQuery = query.toLowerCase();
+        const matchedPlayers = [];
+
+        // Search through all players
+        for (const [playerId, playerData] of this.players) {
+            if (playerId.toLowerCase().includes(lowerQuery)) {
+                // Count how many records this player has
+                const recordCount = playerData.records ? playerData.records.length : 0;
+                const isDisqualified = this.isPlayerDisqualified(playerId);
+                matchedPlayers.push({
+                    id: playerId,
+                    recordCount: recordCount,
+                    isDisqualified: isDisqualified
+                });
+            }
+        }
+
+        // Sort by relevance (exact match first, then starts with, then contains)
+        matchedPlayers.sort((a, b) => {
+            const aId = a.id.toLowerCase();
+            const bId = b.id.toLowerCase();
+            const aStartsWith = aId.startsWith(lowerQuery);
+            const bStartsWith = bId.startsWith(lowerQuery);
+            const aExact = aId === lowerQuery;
+            const bExact = bId === lowerQuery;
+
+            if (aExact && !bExact) return -1;
+            if (!aExact && bExact) return 1;
+            if (aStartsWith && !bStartsWith) return -1;
+            if (!aStartsWith && bStartsWith) return 1;
+            return aId.localeCompare(bId);
+        });
+
+        // Limit results to 20
+        const topMatches = matchedPlayers.slice(0, 20);
+
+        if (topMatches.length === 0) {
+            resultsContainer.innerHTML = `
+                <div class="player-search-no-results">
+                    <i class="fas fa-search"></i>
+                    <span>No players found matching "${query}"</span>
+                </div>
+            `;
+            resultsContainer.classList.add('active');
+            return;
+        }
+
+        let html = '';
+        for (const player of topMatches) {
+            const truncatedName = this.truncatePlayerName(player.id, 25);
+            const disqualifiedClass = player.isDisqualified ? 'disqualified' : '';
+            const disqualifiedIcon = player.isDisqualified ? '<i class="fas fa-exclamation-triangle" style="color:#e74c3c;font-size:0.7rem;" title="Disqualified"></i>' : '';
+
+            // Proper pluralization: "entries" for 0 or >1, "entry" for exactly 1
+            const entryLabel = player.recordCount === 1 ? 'entry' : 'entries';
+
+            html += `
+                <div class="player-search-item ${disqualifiedClass}" data-playerid="${player.id}">
+                    <div class="player-search-name">
+                        ${truncatedName} ${disqualifiedIcon}
+                    </div>
+                    <div class="player-search-meta">
+                        <span class="player-search-records">${player.recordCount} ${entryLabel}</span>
+                        ${player.isDisqualified ? '<span class="player-search-disqualified-badge">DISQUALIFIED</span>' : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        resultsContainer.innerHTML = html;
+        resultsContainer.classList.add('active');
+
+        // Add click listeners to results
+        resultsContainer.querySelectorAll('.player-search-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const playerId = item.dataset.playerid;
+                if (playerId) {
+                    // Clear search input and hide results
+                    this.elements.playerSearchInput.value = '';
+                    resultsContainer.classList.remove('active');
+                    resultsContainer.innerHTML = '';
+                    // Show the player profile
+                    this.showPlayerProfile(playerId, 'damage_caused');
+                }
+            });
+
+            // Hover effect
+            item.addEventListener('mouseenter', () => {
+                resultsContainer.querySelectorAll('.player-search-item').forEach(el => el.classList.remove('active'));
+                item.classList.add('active');
+            });
+        });
+    }
+
     async init() {
         this.setupEventListeners();
         await this.loadRecordData();
@@ -464,6 +639,7 @@ class PlayerRecords {
         this.renderModeTabs();
         this.renderLastUpdated();
         this.isDataLoaded = true;
+        this.setupPlayerSearch();
     }
 
     setupEventListeners() {
