@@ -776,7 +776,7 @@ class PlayerRecords {
 
                     for (const record of playerRecords) {
                         const tech = record.tech || 0;
-                        const matchType = tech < 40 ? 'pve' : 'pvp';
+                        const matchType = tech < 38 ? 'pve' : 'pvp';
                         // Check if this specific record is disqualified
                         const isDisqualified = record.disqualified === true;
 
