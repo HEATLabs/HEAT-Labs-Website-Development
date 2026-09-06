@@ -588,14 +588,20 @@ class PlayerRecords {
             // Proper pluralization: "entries" for 0 or >1, "entry" for exactly 1
             const entryLabel = player.recordCount === 1 ? 'entry' : 'entries';
 
+            // Build meta items in consistent order
+            let metaItems = '';
+            if (player.isDisqualified) {
+                metaItems += '<span class="player-search-disqualified-badge">DISQUALIFIED</span>';
+            }
+            metaItems += `<span class="player-search-records">${player.recordCount} ${entryLabel}</span>`;
+
             html += `
                 <div class="player-search-item ${disqualifiedClass}" data-playerid="${player.id}">
                     <div class="player-search-name">
                         ${truncatedName} ${disqualifiedIcon}
                     </div>
                     <div class="player-search-meta">
-                        <span class="player-search-records">${player.recordCount} ${entryLabel}</span>
-                        ${player.isDisqualified ? '<span class="player-search-disqualified-badge">DISQUALIFIED</span>' : ''}
+                        ${metaItems}
                     </div>
                 </div>
             `;
