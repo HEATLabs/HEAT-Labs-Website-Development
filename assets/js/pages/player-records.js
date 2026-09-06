@@ -40,10 +40,6 @@ class PlayerRecords {
 
         // DOM elements
         this.elements = {
-            loadingProgress: document.getElementById('loadingProgress'),
-            loadingProgressBar: document.getElementById('loadingProgressBar'),
-            loadingProgressLabel: document.getElementById('loadingProgressLabel'),
-            loadingProgressPercent: document.getElementById('loadingProgressPercent'),
             loadingState: document.getElementById('loadingState'),
             globalStats: document.getElementById('globalStats'),
             globalCharts: document.getElementById('globalCharts'),
@@ -555,10 +551,6 @@ class PlayerRecords {
     async loadRecordData() {
         try {
             this.showLoading('Loading record data...');
-            this.elements.loadingProgress.style.display = 'block';
-            this.elements.loadingProgressLabel.textContent = 'Loading records...';
-            this.elements.loadingProgressPercent.textContent = '0%';
-            this.elements.loadingProgressBar.style.width = '0%';
 
             const response = await fetch('https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Configs/refs/heads/main/player-records.json');
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -581,21 +573,10 @@ class PlayerRecords {
                 };
             }
 
-            this.elements.loadingProgressBar.style.width = '100%';
-            this.elements.loadingProgressPercent.textContent = '100%';
-            this.elements.loadingProgressLabel.textContent = 'Done!';
-
-            setTimeout(() => {
-                this.elements.loadingProgress.style.display = 'none';
-            }, 500);
-
             this.hideLoading();
-
-            console.log(`Loaded records:`, this.records);
 
         } catch (error) {
             console.error('Error loading record data:', error);
-            this.elements.loadingProgress.style.display = 'none';
             this.showError('Failed to load record data. Please refresh the page.');
         }
     }
