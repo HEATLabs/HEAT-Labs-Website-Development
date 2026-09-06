@@ -485,7 +485,7 @@ function updateGamemodeContent(modeKey, modeData, mapName) {
     }
 
     // Update the overview text - look for the paragraph with class 'text-center' inside the standard section
-    const overviewParagraph = gamemodeSection.querySelector('p.mb-4.text-center');
+    const overviewParagraph = gamemodeSection.querySelector('p.text-center');
     if (overviewParagraph && modeData.overview) {
         overviewParagraph.textContent = replacePlaceholders(modeData.overview);
     } else if (overviewParagraph) {
