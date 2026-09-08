@@ -1,4 +1,9 @@
+const OUTDATED_CONTENT_MODULE_ENABLED = false;
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Exit early if module is disabled
+    if (!OUTDATED_CONTENT_MODULE_ENABLED) return;
+
     // Get the last update date from meta tag
     const updateDateMeta = document.querySelector('meta[name="content-update-date"]');
 
