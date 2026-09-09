@@ -122,6 +122,7 @@ body.is-scrolling .meme-card:hover {
 	}
 }
 
+/* Image Styles */
 .meme-img {
 	width: 100%;
 	height: auto;
@@ -148,6 +149,103 @@ body.is-scrolling .meme-card:hover {
 
 .meme-card:hover .meme-img {
 	transform: scale(1.03);
+}
+
+/* Video Styles */
+.meme-video {
+	width: 100%;
+	height: auto;
+	display: block;
+	transition: transform 0.5s ease, opacity 0.3s ease;
+	opacity: 0;
+	min-height: 150px;
+	background-color: var(--bg-tertiary);
+	position: relative;
+	z-index: 2;
+	cursor: pointer;
+}
+
+.meme-video.loaded {
+	opacity: 1;
+}
+
+.meme-video::-webkit-media-controls {
+	display: none;
+}
+
+.meme-video::-webkit-media-controls-enclosure {
+	display: none;
+}
+
+.meme-card:hover .meme-video {
+	transform: scale(1.03);
+}
+
+/* Video Badge */
+.meme-video-badge {
+	position: absolute;
+	top: 0.75rem;
+	right: 0.75rem;
+	background-color: rgba(0, 0, 0, 0.75);
+	color: white;
+	padding: 0.4rem 0.7rem;
+	border-radius: 0.5rem;
+	font-size: 0.75rem;
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	z-index: 5;
+	pointer-events: none;
+	backdrop-filter: blur(4px);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.meme-video-badge i {
+	font-size: 0.7rem;
+}
+
+/* Video Controls Overlay */
+.meme-video-controls-overlay {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	padding: 1rem;
+	background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+	z-index: 4;
+	opacity: 0;
+	transition: opacity 0.3s ease;
+	pointer-events: none;
+}
+
+.meme-img-container:hover .meme-video-controls-overlay {
+	opacity: 1;
+}
+
+.meme-video-play-btn {
+	background: rgba(255, 255, 255, 0.2);
+	border: 2px solid rgba(255, 255, 255, 0.3);
+	color: white;
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	pointer-events: all;
+	backdrop-filter: blur(4px);
+}
+
+.meme-video-play-btn:hover {
+	background: rgba(255, 255, 255, 0.3);
+	transform: scale(1.1);
+}
+
+.meme-video-play-btn i {
+	font-size: 1.2rem;
+	margin-left: 2px;
 }
 
 /* Meme Info */
@@ -320,6 +418,13 @@ body.is-scrolling .meme-card:hover {
 		padding: 0.5rem 0.8rem;
 		font-size: 0.8rem;
 	}
+
+	.meme-video-badge {
+		top: 0.5rem;
+		right: 0.5rem;
+		padding: 0.3rem 0.6rem;
+		font-size: 0.65rem;
+	}
 }
 
 @media (max-width: 480px) {
@@ -339,6 +444,13 @@ body.is-scrolling .meme-card:hover {
 	.meme-copy-btn {
 		padding: 0.45rem 0.6rem;
 		font-size: 0.75rem;
+	}
+
+	.meme-video-badge {
+		top: 0.4rem;
+		right: 0.4rem;
+		padding: 0.25rem 0.5rem;
+		font-size: 0.6rem;
 	}
 }
 
@@ -382,10 +494,22 @@ body.is-scrolling .meme-card:hover {
 	transform: scale(0.9);
 	transition: transform 0.3s ease;
 	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+	display: flex;
+	flex-direction: column;
 }
 
 .meme-modal-overlay.active .meme-modal {
 	transform: scale(1);
+}
+
+/* Modal Content Wrapper */
+.meme-modal-content-wrapper {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: var(--bg-tertiary);
+	min-height: 200px;
+	width: 100%;
 }
 
 .meme-modal-img {
@@ -394,6 +518,63 @@ body.is-scrolling .meme-card:hover {
 	display: block;
 	object-fit: contain;
 	background-color: var(--bg-tertiary);
+}
+
+/* Modal Video Styles */
+.meme-modal-video {
+	max-width: 100%;
+	max-height: 70vh;
+	display: block;
+	background-color: var(--bg-tertiary);
+	width: 100%;
+	height: auto;
+}
+
+.meme-modal-video:focus {
+	outline: none;
+}
+
+/* Modal Video Controls */
+.meme-modal-video::-webkit-media-controls {
+	display: flex;
+}
+
+.meme-modal-video::-webkit-media-controls-enclosure {
+	display: flex;
+}
+
+/* Modal Error Message for Videos */
+.meme-modal-error {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 3rem 2rem;
+	color: var(--text-secondary);
+	text-align: center;
+	gap: 1rem;
+	min-height: 200px;
+}
+
+.meme-modal-error i {
+	font-size: 3rem;
+	color: var(--error-color);
+}
+
+.meme-modal-error p {
+	font-size: 1.1rem;
+	color: var(--text-primary);
+}
+
+.meme-modal-error a {
+	color: var(--accent-color);
+	text-decoration: underline;
+	font-weight: 500;
+	transition: color 0.2s ease;
+}
+
+.meme-modal-error a:hover {
+	color: var(--accent-color-hover);
 }
 
 /* Modal Info */
@@ -406,6 +587,7 @@ body.is-scrolling .meme-card:hover {
 	justify-content: space-between;
 	gap: 1.5rem;
 	flex-wrap: wrap;
+	flex-shrink: 0;
 }
 
 .meme-modal-info-left {
@@ -545,6 +727,11 @@ body.modal-open {
 
 /* Responsive Modal Adjustments */
 @media (max-width: 768px) {
+	.meme-modal {
+		max-width: 95%;
+		max-height: 95vh;
+	}
+
 	.meme-modal-info {
 		padding: 1.25rem;
 		flex-direction: column;
@@ -566,9 +753,23 @@ body.modal-open {
 		justify-content: center;
 		width: 100%;
 	}
+
+	.meme-modal-close {
+		top: 0.75rem;
+		right: 0.75rem;
+		width: 34px;
+		height: 34px;
+		font-size: 1rem;
+	}
 }
 
 @media (max-width: 480px) {
+	.meme-modal {
+		max-width: 98%;
+		max-height: 98vh;
+		border-radius: 0.75rem;
+	}
+
 	.meme-modal-info {
 		padding: 1rem;
 	}
@@ -581,4 +782,36 @@ body.modal-open {
 		padding: 0.5rem 1rem;
 		font-size: 0.85rem;
 	}
+
+	.meme-modal-close {
+		top: 0.5rem;
+		right: 0.5rem;
+		width: 30px;
+		height: 30px;
+		font-size: 0.9rem;
+	}
+
+	.meme-modal-overlay {
+		padding: 0.5rem;
+	}
+}
+
+/* Dark theme specific video adjustments */
+.dark-theme .meme-video-badge {
+	background-color: rgba(0, 0, 0, 0.85);
+	border-color: rgba(255, 255, 255, 0.15);
+}
+
+.dark-theme .meme-modal {
+	border-color: var(--accent-color);
+}
+
+/* Light theme specific video adjustments */
+.light-theme .meme-video-badge {
+	background-color: rgba(0, 0, 0, 0.7);
+	border-color: rgba(255, 255, 255, 0.2);
+}
+
+.light-theme .meme-modal {
+	border-color: var(--accent-color);
 }

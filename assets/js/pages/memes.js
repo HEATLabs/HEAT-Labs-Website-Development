@@ -10,8 +10,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // State
     let memesData = [];
     let isLoading = false;
-    let imagesLoaded = 0;
-    let totalImages = 0;
+
+    // Video file extensions to check
+    const VIDEO_EXTENSIONS = ['.mp4', '.mov', '.webm', '.avi', '.mkv'];
 
     // Initialize
     initMemesGallery();
@@ -33,6 +34,57 @@ document.addEventListener('DOMContentLoaded', function() {
                     renderMemes();
                 }
             }, 250);
+        });
+    }
+
+    // Check if a file is a video based on extension
+    function isVideoFile(path) {
+        if (!path) return false;
+        const lowerPath = path.toLowerCase();
+        return VIDEO_EXTENSIONS.some(ext => lowerPath.endsWith(ext));
+    }
+
+    // Generate thumbnail from video
+    function generateVideoThumbnail(video) {
+        return new Promise((resolve) => {
+            // Seek to the beginning (or 0.1 seconds for some videos that have black first frame)
+            video.currentTime = 0.1;
+
+            video.addEventListener('seeked', function onSeeked() {
+                video.removeEventListener('seeked', onSeeked);
+
+                try {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    // Set canvas size to match video aspect ratio
+                    const aspectRatio = video.videoWidth / video.videoHeight;
+                    const maxWidth = 400;
+                    const width = Math.min(video.videoWidth, maxWidth);
+                    const height = width / aspectRatio;
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    // Draw video frame on canvas
+                    ctx.drawImage(video, 0, 0, width, height);
+
+                    // Convert to data URL
+                    const posterDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    resolve(posterDataUrl);
+                } catch (error) {
+                    console.error('Error generating thumbnail:', error);
+                    resolve(null);
+                }
+            });
+
+            // If video doesn't seek properly, try loading metadata
+            if (video.readyState < 2) {
+                video.addEventListener('loadedmetadata', function onLoaded() {
+                    video.removeEventListener('loadedmetadata', onLoaded);
+                    video.currentTime = 0.1;
+                });
+            }
         });
     }
 
@@ -119,7 +171,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Show copy notification
     function showCopyNotification(message) {
-        // Check if notification already exists
         let notification = document.querySelector('.copy-notification');
         if (!notification) {
             notification = document.createElement('div');
@@ -151,25 +202,114 @@ document.addEventListener('DOMContentLoaded', function() {
         return button;
     }
 
-    // Create meme card HTML
-    function createMemeCard(meme) {
-        const card = document.createElement('div');
-        card.className = 'meme-card';
-        card.setAttribute('data-name', meme.name.toLowerCase());
-        card.setAttribute('data-author', meme.author.toLowerCase());
-        card.setAttribute('data-index', meme.path);
+    // Create video element for video memes with thumbnail
+    function createVideoElement(meme, card) {
+        const video = document.createElement('video');
+        video.className = 'meme-video';
+        video.src = meme.path;
+        video.alt = meme.name;
+        video.playsInline = true;
+        video.muted = true;
+        video.loop = false;
+        video.preload = 'metadata';
 
-        // Create image container with placeholder
-        const imgContainer = document.createElement('div');
-        imgContainer.className = 'meme-img-container';
+        // Add a placeholder background while thumbnail loads
+        video.style.backgroundColor = 'var(--bg-tertiary)';
 
+        // Store the video reference for thumbnail generation
+        let thumbnailGenerated = false;
+
+        // Generate and set thumbnail when metadata is loaded
+        video.addEventListener('loadedmetadata', async function onMetadata() {
+            video.removeEventListener('loadedmetadata', onMetadata);
+
+            // Only generate thumbnail once and not for small/empty videos
+            if (!thumbnailGenerated && video.videoWidth > 0 && video.videoHeight > 0) {
+                try {
+                    // Use the video itself to generate thumbnail
+                    const posterDataUrl = await generateVideoThumbnail(video);
+                    if (posterDataUrl) {
+                        // Set poster attribute
+                        video.setAttribute('poster', posterDataUrl);
+                        video.classList.add('has-poster');
+                        thumbnailGenerated = true;
+                    }
+                } catch (error) {
+                    console.error('Failed to generate thumbnail for video:', meme.name, error);
+                }
+            }
+        });
+
+        // Fallback: if metadata already loaded
+        if (video.readyState >= 1 && video.videoWidth > 0) {
+            // Trigger manually if metadata already loaded
+            generateVideoThumbnail(video).then(posterDataUrl => {
+                if (posterDataUrl && !thumbnailGenerated) {
+                    video.setAttribute('poster', posterDataUrl);
+                    video.classList.add('has-poster');
+                    thumbnailGenerated = true;
+                }
+            }).catch(() => {});
+        }
+
+        // Add click handler to open modal when video is clicked
+        video.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Only open modal if not clicking on controls
+            if (e.target === video) {
+                openMemeModal(meme);
+            }
+        });
+
+        // Auto-play when visible
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    if (video.paused) {
+                        setTimeout(() => {
+                            if (entry.isIntersecting && video.paused) {
+                                video.play().catch(() => {});
+                            }
+                        }, 300);
+                    }
+                } else {
+                    if (!video.paused) {
+                        video.pause();
+                    }
+                }
+            });
+        }, {
+            rootMargin: '50px 0px',
+            threshold: 0.1
+        });
+
+        observer.observe(video);
+        video._observer = observer;
+
+        // Handle video errors
+        video.onerror = function() {
+            this.style.display = 'none';
+            const fallbackImg = document.createElement('img');
+            fallbackImg.className = 'meme-img';
+            fallbackImg.src = 'https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/placeholder/imagefailedtoload.webp';
+            fallbackImg.alt = meme.name;
+            fallbackImg.loading = 'lazy';
+            fallbackImg.decoding = 'async';
+            fallbackImg.classList.add('loaded');
+            this.parentNode.replaceChild(fallbackImg, this);
+        };
+
+        return video;
+    }
+
+    // Create image element for image memes
+    function createImageElement(meme) {
         const img = document.createElement('img');
         img.className = 'meme-img';
         img.alt = meme.name;
         img.loading = 'lazy';
         img.decoding = 'async';
 
-        // Set low-quality placeholder or transparent pixel
         img.src = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 1 1\'%3E%3C/svg%3E';
         img.dataset.src = meme.path;
 
@@ -180,10 +320,39 @@ document.addEventListener('DOMContentLoaded', function() {
 
         img.onload = function() {
             this.classList.add('loaded');
-            card.style.height = 'auto';
         };
 
-        imgContainer.appendChild(img);
+        return img;
+    }
+
+    // Create meme card HTML
+    function createMemeCard(meme) {
+        const card = document.createElement('div');
+        card.className = 'meme-card';
+        card.setAttribute('data-name', meme.name.toLowerCase());
+        card.setAttribute('data-author', meme.author.toLowerCase());
+        card.setAttribute('data-index', meme.path);
+
+        // Create content container
+        const contentContainer = document.createElement('div');
+        contentContainer.className = 'meme-img-container';
+
+        // Determine if it's a video or image
+        const isVideo = isVideoFile(meme.path);
+
+        let mediaElement;
+        if (isVideo) {
+            mediaElement = createVideoElement(meme, card);
+            // Add video indicator badge
+            const videoBadge = document.createElement('div');
+            videoBadge.className = 'meme-video-badge';
+            videoBadge.innerHTML = '<i class="fas fa-play"></i> Video';
+            contentContainer.appendChild(videoBadge);
+        } else {
+            mediaElement = createImageElement(meme);
+        }
+
+        contentContainer.appendChild(mediaElement);
 
         // Create info section
         const infoDiv = document.createElement('div');
@@ -200,13 +369,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const copyBtn = createCopyButton(meme.path);
         infoDiv.appendChild(copyBtn);
 
-        card.appendChild(imgContainer);
+        card.appendChild(contentContainer);
         card.appendChild(infoDiv);
 
-        // Add click event for modal preview
+        // Add click event for modal preview on the card itself
         card.addEventListener('click', (e) => {
-            // Don't open modal if clicking the copy button
             if (e.target.closest('.meme-copy-btn')) return;
+            if (e.target.closest('.meme-video')) return;
+            if (e.target.closest('.meme-video-badge')) return;
             openMemeModal(meme);
         });
 
@@ -257,8 +427,9 @@ document.addEventListener('DOMContentLoaded', function() {
         initLazyLoading();
     }
 
-    // Initialize lazy loading for images
+    // Initialize lazy loading for images and videos
     function initLazyLoading() {
+        // For images with data-src (lazy loading)
         const imageObserver = new IntersectionObserver((entries, observer) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -275,9 +446,27 @@ document.addEventListener('DOMContentLoaded', function() {
             threshold: 0.01
         });
 
-        // Observe all images with data-src
         document.querySelectorAll('.meme-img[data-src]').forEach(img => {
             imageObserver.observe(img);
+        });
+
+        // For videos - ensure they load metadata when visible
+        const videoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const video = entry.target;
+                if (entry.isIntersecting) {
+                    if (video.readyState === 0) {
+                        video.load();
+                    }
+                }
+            });
+        }, {
+            rootMargin: '100px 0px',
+            threshold: 0.01
+        });
+
+        document.querySelectorAll('.meme-video').forEach(video => {
+            videoObserver.observe(video);
         });
     }
 
@@ -307,6 +496,57 @@ document.addEventListener('DOMContentLoaded', function() {
         }, {
             passive: true
         });
+
+        // Pause all videos when tab is hidden
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                document.querySelectorAll('.meme-video').forEach(video => {
+                    if (!video.paused) {
+                        video.pause();
+                    }
+                });
+            }
+        });
+    }
+
+    // Create modal video element
+    function createModalVideo(meme) {
+        const video = document.createElement('video');
+        video.className = 'meme-modal-video';
+        video.src = meme.path;
+        video.controls = true;
+        video.playsInline = true;
+        video.preload = 'metadata';
+
+        // Try to generate poster for modal too
+        video.addEventListener('loadedmetadata', async function onMetadata() {
+            video.removeEventListener('loadedmetadata', onMetadata);
+            if (video.videoWidth > 0 && video.videoHeight > 0) {
+                try {
+                    const posterDataUrl = await generateVideoThumbnail(video);
+                    if (posterDataUrl) {
+                        video.setAttribute('poster', posterDataUrl);
+                    }
+                } catch (error) {
+                    console.error('Failed to generate thumbnail for modal:', error);
+                }
+            }
+        });
+
+        // Handle video errors
+        video.onerror = function() {
+            this.style.display = 'none';
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'meme-modal-error';
+            errorMsg.innerHTML = `
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Unable to play this video</p>
+                <a href="${meme.path}" target="_blank" rel="noopener noreferrer">Open in new tab</a>
+            `;
+            this.parentNode.appendChild(errorMsg);
+        };
+
+        return video;
     }
 
     // Open meme modal for preview
@@ -321,11 +561,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     <button class="meme-modal-close">
                         <i class="fas fa-times"></i>
                     </button>
-                    <img class="meme-modal-img" alt="${meme.name}">
+                    <div class="meme-modal-content-wrapper"></div>
                     <div class="meme-modal-info">
                         <div class="meme-modal-info-left">
-                            <h3>${meme.name}</h3>
-                            <div class="meme-modal-author">By ${meme.author}</div>
+                            <h3></h3>
+                            <div class="meme-modal-author"></div>
                         </div>
                         <button class="meme-modal-copy-btn">
                             <i class="fas fa-copy"></i> Copy Meme
@@ -348,18 +588,59 @@ document.addEventListener('DOMContentLoaded', function() {
             const modalCopyBtn = modalOverlay.querySelector('.meme-modal-copy-btn');
             modalCopyBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const img = modalOverlay.querySelector('.meme-modal-img');
+                const wrapper = modalOverlay.querySelector('.meme-modal-content-wrapper');
+                const img = wrapper.querySelector('img');
+                const video = wrapper.querySelector('video');
                 if (img) {
                     copyToClipboard(img.src);
+                } else if (video) {
+                    copyToClipboard(video.src);
+                }
+            });
+
+            // Keyboard controls for video
+            document.addEventListener('keydown', (e) => {
+                if (!modalOverlay.classList.contains('active')) return;
+                const video = modalOverlay.querySelector('.meme-modal-video');
+                if (!video) return;
+                if (e.key === ' ' || e.key === 'Space') {
+                    e.preventDefault();
+                    if (video.paused) {
+                        video.play();
+                    } else {
+                        video.pause();
+                    }
                 }
             });
         }
 
-        // Set modal content
-        const modalImg = modalOverlay.querySelector('.meme-modal-img');
-        modalImg.src = meme.path;
-        modalImg.alt = meme.name;
+        // Get the content wrapper
+        const wrapper = modalOverlay.querySelector('.meme-modal-content-wrapper');
+        wrapper.innerHTML = '';
 
+        // Determine if it's a video or image
+        const isVideo = isVideoFile(meme.path);
+
+        let mediaElement;
+        if (isVideo) {
+            mediaElement = createModalVideo(meme);
+            wrapper.appendChild(mediaElement);
+
+            // Auto-play modal video when opened
+            setTimeout(() => {
+                mediaElement.play().catch(() => {
+                    // Autoplay was prevented - user can click play
+                });
+            }, 100);
+        } else {
+            const img = document.createElement('img');
+            img.className = 'meme-modal-img';
+            img.src = meme.path;
+            img.alt = meme.name;
+            wrapper.appendChild(img);
+        }
+
+        // Set modal info
         const modalTitle = modalOverlay.querySelector('.meme-modal-info h3');
         modalTitle.textContent = meme.name;
 
@@ -375,6 +656,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function closeMemeModal() {
         const modalOverlay = document.querySelector('.meme-modal-overlay');
         if (modalOverlay) {
+            // Pause any video in the modal
+            const video = modalOverlay.querySelector('.meme-modal-video');
+            if (video && !video.paused) {
+                video.pause();
+            }
+
             modalOverlay.classList.remove('active');
             document.body.style.overflow = '';
 
