@@ -177,10 +177,10 @@ function populateMapGallery(gallery) {
 
     // Define the views to display with their labels
     const views = [
-        { key: 'front', label: 'Front View' },
-        { key: 'rear', label: 'Rear View' },
-        { key: 'side', label: 'Side View' },
-        { key: 'top', label: 'Top View' }
+        { key: 'image_1', label: 'Image 1' },
+        { key: 'image_2', label: 'Image 2' },
+        { key: 'image_3', label: 'Image 3' },
+        { key: 'image_4', label: 'Image 4' }
     ];
 
     // Filter out views that have placeholder or missing images

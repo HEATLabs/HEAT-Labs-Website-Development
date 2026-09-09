@@ -512,10 +512,10 @@ function populateTankGallery(gallery) {
 
     // Define the views to display with their labels
     const views = [
-        { key: 'front', label: 'Front View' },
-        { key: 'rear', label: 'Rear View' },
-        { key: 'side', label: 'Side View' },
-        { key: 'top', label: 'Top View' }
+        { key: 'image_1', label: 'Front View' },
+        { key: 'image_2', label: 'Rear View' },
+        { key: 'image_3', label: 'Side View' },
+        { key: 'image_4', label: 'Top View' }
     ];
 
     // Filter out views that have placeholder or missing images
