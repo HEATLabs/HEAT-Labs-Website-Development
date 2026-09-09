@@ -44,50 +44,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return VIDEO_EXTENSIONS.some(ext => lowerPath.endsWith(ext));
     }
 
-    // Generate thumbnail from video
-    function generateVideoThumbnail(video) {
-        return new Promise((resolve) => {
-            // Seek to the beginning (or 0.1 seconds for some videos that have black first frame)
-            video.currentTime = 0.1;
-
-            video.addEventListener('seeked', function onSeeked() {
-                video.removeEventListener('seeked', onSeeked);
-
-                try {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-
-                    // Set canvas size to match video aspect ratio
-                    const aspectRatio = video.videoWidth / video.videoHeight;
-                    const maxWidth = 400;
-                    const width = Math.min(video.videoWidth, maxWidth);
-                    const height = width / aspectRatio;
-
-                    canvas.width = width;
-                    canvas.height = height;
-
-                    // Draw video frame on canvas
-                    ctx.drawImage(video, 0, 0, width, height);
-
-                    // Convert to data URL
-                    const posterDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                    resolve(posterDataUrl);
-                } catch (error) {
-                    console.error('Error generating thumbnail:', error);
-                    resolve(null);
-                }
-            });
-
-            // If video doesn't seek properly, try loading metadata
-            if (video.readyState < 2) {
-                video.addEventListener('loadedmetadata', function onLoaded() {
-                    video.removeEventListener('loadedmetadata', onLoaded);
-                    video.currentTime = 0.1;
-                });
-            }
-        });
-    }
-
     // Load memes from JSON
     async function loadMemes() {
         if (isLoading) return;
@@ -202,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return button;
     }
 
-    // Create video element for video memes with thumbnail
+    // Create video element for video memes with loop and no controls
     function createVideoElement(meme, card) {
         const video = document.createElement('video');
         video.className = 'meme-video';
@@ -210,68 +166,23 @@ document.addEventListener('DOMContentLoaded', function() {
         video.alt = meme.name;
         video.playsInline = true;
         video.muted = true;
-        video.loop = false;
+        video.loop = true;
         video.preload = 'metadata';
+        video.disablePictureInPicture = true;
+        video.controls = false;
 
-        // Add a placeholder background while thumbnail loads
+        // Set background while loading
         video.style.backgroundColor = 'var(--bg-tertiary)';
-
-        // Store the video reference for thumbnail generation
-        let thumbnailGenerated = false;
-
-        // Generate and set thumbnail when metadata is loaded
-        video.addEventListener('loadedmetadata', async function onMetadata() {
-            video.removeEventListener('loadedmetadata', onMetadata);
-
-            // Only generate thumbnail once and not for small/empty videos
-            if (!thumbnailGenerated && video.videoWidth > 0 && video.videoHeight > 0) {
-                try {
-                    // Use the video itself to generate thumbnail
-                    const posterDataUrl = await generateVideoThumbnail(video);
-                    if (posterDataUrl) {
-                        // Set poster attribute
-                        video.setAttribute('poster', posterDataUrl);
-                        video.classList.add('has-poster');
-                        thumbnailGenerated = true;
-                    }
-                } catch (error) {
-                    console.error('Failed to generate thumbnail for video:', meme.name, error);
-                }
-            }
-        });
-
-        // Fallback: if metadata already loaded
-        if (video.readyState >= 1 && video.videoWidth > 0) {
-            // Trigger manually if metadata already loaded
-            generateVideoThumbnail(video).then(posterDataUrl => {
-                if (posterDataUrl && !thumbnailGenerated) {
-                    video.setAttribute('poster', posterDataUrl);
-                    video.classList.add('has-poster');
-                    thumbnailGenerated = true;
-                }
-            }).catch(() => {});
-        }
-
-        // Add click handler to open modal when video is clicked
-        video.addEventListener('click', (e) => {
-            e.stopPropagation();
-            // Only open modal if not clicking on controls
-            if (e.target === video) {
-                openMemeModal(meme);
-            }
-        });
 
         // Auto-play when visible
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
-                    if (video.paused) {
-                        setTimeout(() => {
-                            if (entry.isIntersecting && video.paused) {
-                                video.play().catch(() => {});
-                            }
-                        }, 300);
-                    }
+                    setTimeout(() => {
+                        if (entry.isIntersecting && video.paused) {
+                            video.play().catch(() => {});
+                        }
+                    }, 300);
                 } else {
                     if (!video.paused) {
                         video.pause();
@@ -285,6 +196,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         observer.observe(video);
         video._observer = observer;
+
+        // Add click handler to open modal when video is clicked
+        video.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openMemeModal(meme);
+        });
 
         // Handle video errors
         video.onerror = function() {
@@ -517,21 +434,6 @@ document.addEventListener('DOMContentLoaded', function() {
         video.controls = true;
         video.playsInline = true;
         video.preload = 'metadata';
-
-        // Try to generate poster for modal too
-        video.addEventListener('loadedmetadata', async function onMetadata() {
-            video.removeEventListener('loadedmetadata', onMetadata);
-            if (video.videoWidth > 0 && video.videoHeight > 0) {
-                try {
-                    const posterDataUrl = await generateVideoThumbnail(video);
-                    if (posterDataUrl) {
-                        video.setAttribute('poster', posterDataUrl);
-                    }
-                } catch (error) {
-                    console.error('Failed to generate thumbnail for modal:', error);
-                }
-            }
-        });
 
         // Handle video errors
         video.onerror = function() {

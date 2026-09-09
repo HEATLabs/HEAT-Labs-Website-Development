@@ -71,7 +71,6 @@ body.is-scrolling .meme-card:hover {
 		opacity: 0;
 		transform: translateY(20px);
 	}
-
 	to {
 		opacity: 1;
 		transform: translateY(0);
@@ -116,7 +115,6 @@ body.is-scrolling .meme-card:hover {
 	0% {
 		background-position: -200% 0;
 	}
-
 	100% {
 		background-position: 200% 0;
 	}
@@ -155,26 +153,49 @@ body.is-scrolling .meme-card:hover {
 .meme-video {
 	width: 100%;
 	height: auto;
-	display: block;
+	display: block !important; /* Force display */
 	transition: transform 0.5s ease, opacity 0.3s ease;
-	opacity: 0;
+	opacity: 1; /* Always visible */
 	min-height: 150px;
 	background-color: var(--bg-tertiary);
 	position: relative;
 	z-index: 2;
 	cursor: pointer;
+	object-fit: cover;
 }
 
 .meme-video.loaded {
 	opacity: 1;
 }
 
+/* Hide default video controls */
 .meme-video::-webkit-media-controls {
-	display: none;
+	display: none !important;
 }
 
 .meme-video::-webkit-media-controls-enclosure {
-	display: none;
+	display: none !important;
+}
+
+.meme-video::-webkit-media-controls-panel {
+	display: none !important;
+}
+
+.meme-video::-webkit-media-controls-play-button {
+	display: none !important;
+}
+
+.meme-video::-webkit-media-controls-start-playback-button {
+	display: none !important;
+}
+
+/* Firefox */
+.meme-video::-moz-media-controls {
+	display: none !important;
+}
+
+.meme-video::-moz-media-controls-panel {
+	display: none !important;
 }
 
 .meme-card:hover .meme-video {
@@ -202,50 +223,6 @@ body.is-scrolling .meme-card:hover {
 
 .meme-video-badge i {
 	font-size: 0.7rem;
-}
-
-/* Video Controls Overlay */
-.meme-video-controls-overlay {
-	position: absolute;
-	bottom: 0;
-	left: 0;
-	right: 0;
-	padding: 1rem;
-	background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
-	z-index: 4;
-	opacity: 0;
-	transition: opacity 0.3s ease;
-	pointer-events: none;
-}
-
-.meme-img-container:hover .meme-video-controls-overlay {
-	opacity: 1;
-}
-
-.meme-video-play-btn {
-	background: rgba(255, 255, 255, 0.2);
-	border: 2px solid rgba(255, 255, 255, 0.3);
-	color: white;
-	width: 48px;
-	height: 48px;
-	border-radius: 50%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	cursor: pointer;
-	transition: all 0.3s ease;
-	pointer-events: all;
-	backdrop-filter: blur(4px);
-}
-
-.meme-video-play-btn:hover {
-	background: rgba(255, 255, 255, 0.3);
-	transform: scale(1.1);
-}
-
-.meme-video-play-btn i {
-	font-size: 1.2rem;
-	margin-left: 2px;
 }
 
 /* Meme Info */
@@ -390,7 +367,6 @@ body.is-scrolling .meme-card:hover {
 	.memes-grid {
 		gap: 1.25rem;
 	}
-
 	.meme-column {
 		gap: 1.25rem;
 	}
@@ -401,24 +377,19 @@ body.is-scrolling .meme-card:hover {
 		gap: 1rem;
 		padding: 0 0.75rem;
 	}
-
 	.meme-column {
 		gap: 1rem;
 	}
-
 	.meme-info {
 		padding: 1rem;
 	}
-
 	.meme-info h3 {
 		font-size: 1rem;
 	}
-
 	.meme-copy-btn {
 		padding: 0.5rem 0.8rem;
 		font-size: 0.8rem;
 	}
-
 	.meme-video-badge {
 		top: 0.5rem;
 		right: 0.5rem;
@@ -432,20 +403,16 @@ body.is-scrolling .meme-card:hover {
 		gap: 0.75rem;
 		padding: 0 0.5rem;
 	}
-
 	.meme-column {
 		gap: 0.75rem;
 	}
-
 	.meme-info {
 		padding: 0.875rem;
 	}
-
 	.meme-copy-btn {
 		padding: 0.45rem 0.6rem;
 		font-size: 0.75rem;
 	}
-
 	.meme-video-badge {
 		top: 0.4rem;
 		right: 0.4rem;
@@ -536,11 +503,11 @@ body.is-scrolling .meme-card:hover {
 
 /* Modal Video Controls */
 .meme-modal-video::-webkit-media-controls {
-	display: flex;
+	display: flex !important;
 }
 
 .meme-modal-video::-webkit-media-controls-enclosure {
-	display: flex;
+	display: flex !important;
 }
 
 /* Modal Error Message for Videos */
@@ -705,7 +672,6 @@ body.is-scrolling .meme-card:hover {
 	0% {
 		background-position: -200% 0;
 	}
-
 	100% {
 		background-position: 200% 0;
 	}
@@ -731,29 +697,24 @@ body.modal-open {
 		max-width: 95%;
 		max-height: 95vh;
 	}
-
 	.meme-modal-info {
 		padding: 1.25rem;
 		flex-direction: column;
 		align-items: stretch;
 		gap: 1rem;
 	}
-
 	.meme-modal-info-left {
 		text-align: center;
 	}
-
 	.meme-modal-author {
 		justify-content: center;
 	}
-
 	.meme-modal-copy-btn {
 		padding: 0.6rem 1.2rem;
 		font-size: 0.9rem;
 		justify-content: center;
 		width: 100%;
 	}
-
 	.meme-modal-close {
 		top: 0.75rem;
 		right: 0.75rem;
@@ -769,20 +730,16 @@ body.modal-open {
 		max-height: 98vh;
 		border-radius: 0.75rem;
 	}
-
 	.meme-modal-info {
 		padding: 1rem;
 	}
-
 	.meme-modal-info-left h3 {
 		font-size: 1.1rem;
 	}
-
 	.meme-modal-copy-btn {
 		padding: 0.5rem 1rem;
 		font-size: 0.85rem;
 	}
-
 	.meme-modal-close {
 		top: 0.5rem;
 		right: 0.5rem;
@@ -790,7 +747,6 @@ body.modal-open {
 		height: 30px;
 		font-size: 0.9rem;
 	}
-
 	.meme-modal-overlay {
 		padding: 0.5rem;
 	}
