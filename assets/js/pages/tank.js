@@ -438,29 +438,73 @@ async function fetchAndPopulateVideos(tankSlug) {
 
 function populateVideos(section, videos) {
     // Find the video grid container
-    const videoGrid = section.querySelector('.grid:has(.video-card)');
-    if (!videoGrid) {
+    const existingGrid = section.querySelector('.grid');
+    if (!existingGrid) {
         console.warn('Video grid container not found');
         return;
     }
 
     // Find the CTA container
-    const ctaGrid = section.querySelector('.grid:has(.video-card .video-info.text-center)');
+    const ctaCard = section.querySelector('.video-card .video-info.text-center');
+    const ctaCardElement = ctaCard ? ctaCard.closest('.video-card') : null;
 
-    // Determine grid layout based on number of videos
-    let gridClasses = 'grid grid-cols-1 gap-8 my-8';
-    if (videos.length >= 2) {
-        gridClasses = 'grid grid-cols-1 md:grid-cols-2 gap-8 my-8';
+    // If no videos, just ensure the CTA is shown alone
+    if (!videos || videos.length === 0) {
+        // Reset grid to single column and keep only the CTA
+        existingGrid.className = 'grid grid-cols-1 md:grid-cols-1 gap-8 my-8';
+
+        // Remove any video cards that aren't the CTA
+        existingGrid.querySelectorAll('.video-card').forEach(card => {
+            if (card !== ctaCardElement) {
+                card.remove();
+            }
+        });
+
+        // Make sure CTA exists
+        if (!existingGrid.querySelector('.video-card .video-info.text-center')) {
+            const newCtaGrid = document.createElement('div');
+            newCtaGrid.className = 'grid grid-cols-1 md:grid-cols-1 gap-8 my-8';
+            newCtaGrid.innerHTML = `
+                <div class="video-card">
+                    <div class="video-info text-center">
+                        <h4>Want to help improve this page?</h4>
+                        <p class="video-description">Share videos from your favorite creators that showcase this tank, or send in your own! If you're a content creator and have featured this tank in your content, reach out to us, we'd love to highlight your work here!</p>
+                    </div>
+                </div>
+            `;
+            section.appendChild(newCtaGrid);
+        }
+        return;
     }
 
-    // Replace the existing grid with new one
-    const newGrid = document.createElement('div');
-    newGrid.className = gridClasses;
+    // Determine grid layout based on number of videos
+    let gridClasses = 'grid gap-8';
+    let videoGridWrapper;
+
+    if (videos.length === 1) {
+        // Single large video
+        gridClasses += ' grid-cols-1 md:grid-cols-1';
+    } else if (videos.length === 2) {
+        // Two videos side by side
+        gridClasses += ' grid-cols-1 md:grid-cols-2';
+    } else {
+        // 3 or more videos: 2-column grid
+        gridClasses += ' grid-cols-1 md:grid-cols-2';
+    }
+
+    // Create a wrapper for the videos
+    videoGridWrapper = document.createElement('div');
+    videoGridWrapper.className = gridClasses;
 
     // Create video cards
-    videos.forEach(video => {
+    videos.forEach((video, index) => {
         const videoCard = document.createElement('div');
         videoCard.className = 'video-card';
+
+        // For 3 videos, make the first video span both columns (large format)
+        if (videos.length === 3 && index === 0) {
+            videoCard.classList.add('md:col-span-2');
+        }
 
         // Extract video ID from YouTube URL
         let videoId = '';
@@ -491,28 +535,37 @@ function populateVideos(section, videos) {
                 <p class="video-date" style="font-size: 0.8rem; color: var(--text-secondary);">${video.date || ''}</p>
             </div>
         `;
-        newGrid.appendChild(videoCard);
+        videoGridWrapper.appendChild(videoCard);
     });
 
-    // Replace the old grid with the new one
-    videoGrid.parentNode.replaceChild(newGrid, videoGrid);
+    // Replace the old grid content with the new video grid, but preserve the CTA
+    // First, remove all video cards from the existing grid except the CTA
+    existingGrid.querySelectorAll('.video-card').forEach(card => {
+        if (card !== ctaCardElement) {
+            card.remove();
+        }
+    });
 
-    // Ensure the CTA is still present
-    const ctaGridElement = section.querySelector('.grid:has(.video-card .video-info.text-center)');
-    if (!ctaGridElement) {
-        // If CTA doesn't exist, create it
-        const newCtaGrid = document.createElement('div');
-        newCtaGrid.className = 'grid grid-cols-1 md:grid-cols-1 gap-8 my-8';
-        newCtaGrid.innerHTML = `
-            <div class="video-card">
+    // Insert the new video grid before the CTA if CTA exists, otherwise just append
+    if (ctaCardElement && existingGrid.contains(ctaCardElement)) {
+        existingGrid.insertBefore(videoGridWrapper, ctaCardElement);
+    } else {
+        existingGrid.appendChild(videoGridWrapper);
+
+        // Re-add CTA if it was lost
+        if (!existingGrid.querySelector('.video-card .video-info.text-center')) {
+            const newCtaGrid = document.createElement('div');
+            newCtaGrid.className = 'video-card';
+            newCtaGrid.innerHTML = `
                 <div class="video-info text-center">
                     <h4>Want to help improve this page?</h4>
                     <p class="video-description">Share videos from your favorite creators that showcase this tank, or send in your own! If you're a content creator and have featured this tank in your content, reach out to us, we'd love to highlight your work here!</p>
                 </div>
-            </div>
-        `;
-        section.appendChild(newCtaGrid);
+            `;
+            existingGrid.appendChild(newCtaGrid);
+        }
     }
+    existingGrid.className = 'grid grid-cols-1 gap-8 my-8';
 }
 
 // Function to fetch tank data based on ID
