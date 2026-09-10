@@ -4,7 +4,7 @@
 	top: 0;
 	left: 0;
 	width: var(--sidebar-collapsed-width, 4rem);
-	height: 100vh;
+	height: 200vh;
 	background-color: var(--bg-quaternary);
 	z-index: 999;
 	transition: all var(--transition-speed) ease;
