@@ -321,6 +321,7 @@
 	flex: 1 1 0%;
 	min-width: 0;
 	text-align: center;
+	line-height: 1;
 }
 
 .tank-tab-btn + .tank-tab-btn {
@@ -330,6 +331,12 @@
 .tank-tab-btn i {
 	font-size: 0.9rem;
 	flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1em;
+    height: 1em;
+    line-height: 1;
 }
 
 .tank-tab-btn span {
