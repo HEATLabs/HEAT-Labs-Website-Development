@@ -11,6 +11,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const tankIdMeta = document.querySelector('meta[name="tank-id"]');
     const tankId = tankIdMeta ? tankIdMeta.content : null;
 
+    // Initialize tabs
+    initializeTankTabs();
+
     // Fetch and display view count
     fetchViewCount().then(views => {
         displayViewCounter(views);
@@ -54,7 +57,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window.location.hash) {
         const initialGamemode = window.location.hash.substring(1);
         const initialButton = document.querySelector(`.gamemode-btn[data-gamemode="${initialGamemode}"]`);
-
         if (initialButton) {
             initialButton.click();
         }
@@ -69,6 +71,88 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize comparison button
     initializeComparisonButton();
 });
+
+// ===== TABS FUNCTIONALITY =====
+function initializeTankTabs() {
+    const tabButtons = document.querySelectorAll('.tank-tab-btn');
+    const tabPanels = document.querySelectorAll('.tank-tab-panel');
+
+    if (!tabButtons.length || !tabPanels.length) {
+        console.warn('Tank tabs not found');
+        return;
+    }
+
+    // Check for hash on page load to set initial tab
+    const hash = window.location.hash.substring(1);
+    const validTabs = Array.from(tabButtons).map(btn => btn.dataset.tab);
+
+    if (hash && validTabs.includes(hash)) {
+        // Activate the tab from hash
+        activateTab(hash, tabButtons, tabPanels);
+    }
+
+    // Set up click handlers for tab buttons
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const tabId = this.dataset.tab;
+            activateTab(tabId, tabButtons, tabPanels);
+
+            // Update URL hash without scrolling
+            history.replaceState(null, null, `#${tabId}`);
+
+            // Re-init charts when performance tab is shown
+            if (tabId === 'tab-performance') {
+                setTimeout(() => {
+                    if (typeof initializeCharts === 'function') {
+                        initializeCharts();
+                    }
+                }, 100);
+            }
+
+            // Re-init gallery when gallery tab is shown
+            if (tabId === 'tab-summary') {
+                setTimeout(() => {
+                    initializeImageGallery();
+                }, 100);
+            }
+        });
+    });
+
+    // Listen for hash changes
+    window.addEventListener('hashchange', function() {
+        const newHash = window.location.hash.substring(1);
+        if (newHash && validTabs.includes(newHash)) {
+            activateTab(newHash, tabButtons, tabPanels);
+        }
+    });
+}
+
+function activateTab(tabId, tabButtons, tabPanels) {
+    // Remove active class from all buttons
+    tabButtons.forEach(btn => btn.classList.remove('active'));
+
+    // Add active class to the target button
+    const targetButton = document.querySelector(`.tank-tab-btn[data-tab="${tabId}"]`);
+    if (targetButton) {
+        targetButton.classList.add('active');
+
+        // Scroll the tab into view (for mobile horizontal scroll)
+        targetButton.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+            inline: 'center'
+        });
+    }
+
+    // Hide all panels
+    tabPanels.forEach(panel => panel.classList.remove('active'));
+
+    // Show the target panel
+    const targetPanel = document.getElementById(tabId);
+    if (targetPanel) {
+        targetPanel.classList.add('active');
+    }
+}
 
 async function fetchViewCount() {
     try {
@@ -303,7 +387,7 @@ function getCreditBadge(credits) {
 }
 
 async function fetchAndPopulateVideos(tankSlug) {
-    const videoShowcaseSection = document.querySelector('.mb-12:has(#video-showcase)');
+    const videoShowcaseSection = document.querySelector('.tank-tab-panel#tab-videos');
     if (!videoShowcaseSection) {
         console.warn('Video showcase section not found');
         return;
@@ -1594,7 +1678,7 @@ function populateBuilds(builds) {
                         <i class="fas fa-puzzle-piece"></i>
                         <span>Modules</span>
                     </div>
-                    <div class="build-items">
+                    <div class="build-items modules-items">
                         ${build.modules.map(module => `
                             <div class="build-item">
                                 <img src="${module.moduleIcon && module.moduleIcon.trim() !== '' ? module.moduleIcon : 'https://cdn7.heatlabs.net/upgrades/upgrade-placeholder.webp'}" alt="${module.moduleName}">

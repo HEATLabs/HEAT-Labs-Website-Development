@@ -72,6 +72,8 @@
 
 html {
 	scroll-behavior: smooth;
+	font-size: 13px;
+	zoom: 0.95;
 }
 
 :root {
