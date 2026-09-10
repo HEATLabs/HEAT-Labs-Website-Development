@@ -408,13 +408,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 <i class="fas fa-exchange-alt mr-2"></i>Compare
             </button>`;
 
+        // Determine the best image source with fallback chain: card -> image -> placeholder
+        const placeholderImage = 'https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/placeholder/imagefailedtoload.webp';
+        const primaryImage = tank.card || tank.image || placeholderImage;
+
+        // Store fallback sources on the element for the onerror handler
+        // We'll use a data attribute to track which fallback to use next
+        const fallbackImage = tank.image && tank.image !== primaryImage ? tank.image : placeholderImage;
+
         card.innerHTML = `
             <div class="tank-img-container" data-url="${detailUrl}" data-is-bot="${isBot}">
                 <div class="tank-views-counter">
                     <i class="fas fa-eye"></i>
                     <span class="views-count">0</span>
                 </div>
-                <img src="${tank.image}" alt="${tank.name} Preview" class="tank-img" onerror="this.src='https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/placeholder/imagefailedtoload.webp'">
+                <img src="${primaryImage}" alt="${tank.name} Preview" class="tank-img"
+                     data-fallback="${fallbackImage}"
+                     data-placeholder="${placeholderImage}"
+                     onerror="if(this.dataset.fallback && this.src !== this.dataset.fallback){this.src=this.dataset.fallback;}else{this.src=this.dataset.placeholder;this.onerror=null;}">
                 ${tankClassHTML}
                 <div class="tank-credits-badge">
                     <i class="fas ${creditsIcon}"></i>
