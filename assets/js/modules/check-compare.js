@@ -323,10 +323,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Add tank headers
         validTanks.forEach(tank => {
+            const placeholderImage = 'https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/placeholder/imagefailedtoload.webp';
+            const primaryImage = tank.compare || tank.image || placeholderImage;
+            const fallbackImage = tank.image && tank.image !== primaryImage ? tank.image : placeholderImage;
+
             tableHTML += `
                 <th>
                     <div class="tank-header">
-                        <img src="${tank.image}" alt="${tank.name}" onerror="this.src='https://raw.githubusercontent.com/HEATLabs/HEAT-Labs-Images/refs/heads/main/placeholder/imagefailedtoload.webp'">
+                        <img src="${primaryImage}" alt="${tank.name}"
+                             data-fallback="${fallbackImage}"
+                             data-placeholder="${placeholderImage}"
+                             onerror="if(this.dataset.fallback && this.src !== this.dataset.fallback){this.src=this.dataset.fallback;}else{this.src=this.dataset.placeholder;this.onerror=null;}">
                         <div class="tank-name">${tank.name}</div>
                         <div class="tank-meta">
                             <span><i class="fas fa-flag"></i> ${tank.nation}</span>
