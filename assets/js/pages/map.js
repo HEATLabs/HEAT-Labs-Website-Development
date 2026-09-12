@@ -53,9 +53,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Initialize interactive map zoom for map overview images
-    initializeInteractiveMapZoom();
-
     // Initialize any interactive elements specific to map pages
     initializeMapPageElements();
 
@@ -114,6 +111,11 @@ async function fetchMapDataAndInitialize() {
 
         // Fetch and display related guides
         await fetchAndDisplayRelatedGuides(slug);
+
+        // Initialize interactive map zoom
+        setTimeout(() => {
+            initializeInteractiveMapZoom();
+        }, 150);
 
     } catch (error) {
         console.error('Error loading map data:', error);
@@ -513,6 +515,23 @@ function updateGamemodeContent(modeKey, modeData, mapName) {
             overviewImage.alt = `${mapName || 'Map'} Overview`;
         }
     }
+
+    // Re-initialize interactive zoom for the updated image
+    const existingContainer = gamemodeSection.querySelector('.interactive-map-container');
+    if (existingContainer) {
+        // Move the map-image back out of the container
+        const mapImageDiv = existingContainer.querySelector('.map-image');
+        if (mapImageDiv) {
+            existingContainer.parentNode.insertBefore(mapImageDiv, existingContainer);
+        }
+        // Remove the old container
+        existingContainer.remove();
+    }
+
+    // Initialize interactive zoom for the new image
+    setTimeout(() => {
+        initializeInteractiveMapZoom();
+    }, 100);
 }
 
 // Function to fetch view count from API
@@ -909,6 +928,11 @@ function initializeInteractiveMapZoom() {
         // Find the map-image div within this section
         const mapImageDiv = section.querySelector('.map-image');
         if (!mapImageDiv) return;
+
+        // Skip if this map-image is already inside an interactive container
+        if (mapImageDiv.closest('.interactive-map-container')) {
+            return;
+        }
 
         // Find the img inside
         const img = mapImageDiv.querySelector('img');
