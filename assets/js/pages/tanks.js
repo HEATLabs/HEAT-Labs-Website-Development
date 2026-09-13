@@ -9,6 +9,22 @@ document.addEventListener('DOMContentLoaded', function() {
     // Store agents data globally
     let agentsData = [];
 
+    // Central icon maps so card + filter buttons share the same sources
+    const NATION_ICON_MAP = {
+        'USSR': 'https://cdn7.heatlabs.net/nations/ussr.webp',
+        'USA': 'https://cdn7.heatlabs.net/nations/usa.webp',
+        'China': 'https://cdn7.heatlabs.net/nations/china.webp',
+        'Germany': 'https://cdn7.heatlabs.net/nations/germany.webp',
+        'UK': 'https://cdn7.heatlabs.net/nations/uk.webp',
+        'France': 'https://cdn7.heatlabs.net/nations/france.webp'
+    };
+
+    const TYPE_ICON_MAP = {
+        'Assault': 'assault_big',
+        'Defender': 'defender_big',
+        'Marksman': 'marksman_big'
+    };
+
     document.addEventListener('click', function(event) {
         const sidebar = document.querySelector('.comparison-sidebar');
         const trigger = document.querySelector('.comparison-trigger');
@@ -436,8 +452,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <h3>${featuredStar}${tank.name}</h3>
                 <div class="tank-meta">
                     <div class="tank-meta-row">
-                        <span><i class="fas fa-flag"></i> ${tank.nation}</span>
-                        <span><i class="fas fa-layer-group"></i> ${tank.type}</span>
+                        <span class="tank-meta-nation" data-nation="${tank.nation}"><i class="fas fa-flag"></i> ${tank.nation}</span>
+                        <span class="tank-meta-type" data-type="${tank.type}"><i class="fas fa-layer-group"></i> ${tank.type}</span>
                     </div>
                     <div class="tank-meta-row tank-meta-agent">
                         ${agentDisplay}
@@ -567,6 +583,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Update sidebar after tanks are loaded
         updateComparisonSidebar();
+
+        // Swap in card icons
+        updateCardNationIcons();
+        updateCardTypeIcons();
 
         // Apply default filter
         filterTanks();
@@ -841,6 +861,14 @@ document.addEventListener('DOMContentLoaded', function() {
         return document.documentElement.classList.contains('light-theme');
     }
 
+    // Build the type icon URL for the current theme
+    function getTypeIconUrl(type) {
+        const base = TYPE_ICON_MAP[type];
+        if (!base) return null;
+        const suffix = isLightTheme() ? '_light' : '';
+        return `https://cdn7.heatlabs.net/roles/${base}${suffix}.webp`;
+    }
+
     // Reset a type filter button back to its original Font Awesome icon
     function resetTypeFilterButton(button) {
         const originalIconHTML = button.getAttribute('data-original-icon');
@@ -854,25 +882,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // If the <i> is missing, restore it
         if (!button.querySelector('i')) {
-            // Insert the original icon HTML at the start of the button
             button.insertAdjacentHTML('afterbegin', originalIconHTML + ' ');
         }
     }
 
     // Update TYPE filter buttons with custom icons and fallback
     function updateTypeFilterIcons() {
-        const isLight = isLightTheme();
-        const suffix = isLight ? '_light' : '';
-
-        const typeIconMap = {
-            'Assault': `https://cdn7.heatlabs.net/roles/assault_big${suffix}.webp`,
-            'Defender': `https://cdn7.heatlabs.net/roles/defender_big${suffix}.webp`,
-            'Marksman': `https://cdn7.heatlabs.net/roles/marksman_big${suffix}.webp`
-        };
-
         document.querySelectorAll('.type-filter').forEach(button => {
             const type = button.getAttribute('data-type');
-            const iconUrl = typeIconMap[type];
+            const iconUrl = getTypeIconUrl(type);
             if (!iconUrl) return; // Leave Unknown and others unchanged
 
             // On first run, cache the original icon markup so we can restore it later
@@ -932,18 +950,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Update NATION filter buttons with flag icons and FA fallback
     function updateNationFilterIcons() {
-        const nationIconMap = {
-            'USSR': 'https://cdn7.heatlabs.net/nations/ussr.webp',
-            'USA': 'https://cdn7.heatlabs.net/nations/usa.webp',
-            'China': 'https://cdn7.heatlabs.net/nations/china.webp',
-            'Germany': 'https://cdn7.heatlabs.net/nations/germany.webp',
-            'UK': 'https://cdn7.heatlabs.net/nations/uk.webp',
-            'France': 'https://cdn7.heatlabs.net/nations/france.webp'
-        };
-
         document.querySelectorAll('.nation-filter').forEach(button => {
             const nation = button.getAttribute('data-nation');
-            const iconUrl = nationIconMap[nation];
+            const iconUrl = NATION_ICON_MAP[nation];
             if (!iconUrl) return; // Leave any un-mapped nations unchanged
 
             // On first run, cache the original icon markup so we can restore it later
@@ -986,7 +995,127 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Watch for theme changes and update icons accordingly
+    // ---- TANK CARD META ICONS ----
+
+    // Reset a card nation span back to its original Font Awesome icon
+    function resetCardNationIcon(span) {
+        const originalIconHTML = span.getAttribute('data-original-icon');
+        if (!originalIconHTML) return;
+
+        const existingImg = span.querySelector('img.card-nation-icon');
+        if (existingImg) {
+            existingImg.remove();
+        }
+
+        if (!span.querySelector('i')) {
+            span.insertAdjacentHTML('afterbegin', originalIconHTML + ' ');
+        }
+    }
+
+    // Reset a card type span back to its original Font Awesome icon
+    function resetCardTypeIcon(span) {
+        const originalIconHTML = span.getAttribute('data-original-icon');
+        if (!originalIconHTML) return;
+
+        const existingImg = span.querySelector('img.card-type-icon');
+        if (existingImg) {
+            existingImg.remove();
+        }
+
+        if (!span.querySelector('i')) {
+            span.insertAdjacentHTML('afterbegin', originalIconHTML + ' ');
+        }
+    }
+
+    // Update nation flag icons inside each tank card
+    function updateCardNationIcons() {
+        document.querySelectorAll('.tank-card .tank-meta-nation').forEach(span => {
+            const nation = span.getAttribute('data-nation');
+            const iconUrl = NATION_ICON_MAP[nation];
+            if (!iconUrl) return;
+
+            // Cache the original icon markup on first run
+            if (!span.hasAttribute('data-original-icon')) {
+                const iconElement = span.querySelector('i');
+                if (iconElement) {
+                    span.setAttribute('data-original-icon', iconElement.outerHTML);
+                }
+            }
+
+            // Reset before attempting the swap
+            resetCardNationIcon(span);
+
+            const iconElement = span.querySelector('i');
+            if (!iconElement) return;
+
+            const img = document.createElement('img');
+            img.src = iconUrl;
+            img.alt = nation;
+            img.className = 'card-nation-icon';
+            // 4:3 flags — constrain height, keep the ratio
+            img.style.height = '12px';
+            img.style.width = 'auto';
+            img.style.marginRight = '5px';
+            img.style.verticalAlign = 'middle';
+            img.style.transform = 'translateY(-1px)';
+
+            img.onload = function() {
+                const currentIcon = span.querySelector('i');
+                if (currentIcon && currentIcon.parentNode) {
+                    currentIcon.parentNode.replaceChild(img, currentIcon);
+                }
+            };
+
+            img.onerror = function() {
+                // Keep the Font Awesome fallback
+            };
+        });
+    }
+
+    // Update type icons inside each tank card
+    function updateCardTypeIcons() {
+        document.querySelectorAll('.tank-card .tank-meta-type').forEach(span => {
+            const type = span.getAttribute('data-type');
+            const iconUrl = getTypeIconUrl(type);
+            if (!iconUrl) return;
+
+            // Cache the original icon markup on first run
+            if (!span.hasAttribute('data-original-icon')) {
+                const iconElement = span.querySelector('i');
+                if (iconElement) {
+                    span.setAttribute('data-original-icon', iconElement.outerHTML);
+                }
+            }
+
+            // Reset before attempting the swap
+            resetCardTypeIcon(span);
+
+            const iconElement = span.querySelector('i');
+            if (!iconElement) return;
+
+            const img = document.createElement('img');
+            img.src = iconUrl;
+            img.alt = type;
+            img.className = 'card-type-icon';
+            img.style.width = '14px';
+            img.style.height = '14px';
+            img.style.marginRight = '5px';
+            img.style.verticalAlign = 'middle';
+
+            img.onload = function() {
+                const currentIcon = span.querySelector('i');
+                if (currentIcon && currentIcon.parentNode) {
+                    currentIcon.parentNode.replaceChild(img, currentIcon);
+                }
+            };
+
+            img.onerror = function() {
+                // Keep the Font Awesome fallback
+            };
+        });
+    }
+
+    // Watch for theme changes and update all icons accordingly
     let themeObserver = null;
     function watchThemeChanges() {
         if (themeObserver) {
@@ -996,9 +1125,11 @@ document.addEventListener('DOMContentLoaded', function() {
         themeObserver = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation) {
                 if (mutation.attributeName === 'class') {
-                    // Theme class changed, re-run icon updates
+                    // Theme class changed, re-run every icon update
                     updateTypeFilterIcons();
                     updateNationFilterIcons();
+                    updateCardNationIcons();
+                    updateCardTypeIcons();
                 }
             });
         });
@@ -1014,10 +1145,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initComparisonSidebar();
     updateComparisonModal();
 
-    // Update the TYPE filter icons after the DOM is ready
+    // Update filter button icons
     updateTypeFilterIcons();
-
-    // Update the NATION filter flag icons
     updateNationFilterIcons();
 
     // Watch for theme changes to swap icons
