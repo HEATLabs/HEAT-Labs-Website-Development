@@ -915,6 +915,77 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Reset a nation filter button back to its original Font Awesome icon
+    function resetNationFilterButton(button) {
+        const originalIconHTML = button.getAttribute('data-original-icon');
+        if (!originalIconHTML) return;
+
+        const existingImg = button.querySelector('img.nation-filter-icon');
+        if (existingImg) {
+            existingImg.remove();
+        }
+
+        if (!button.querySelector('i')) {
+            button.insertAdjacentHTML('afterbegin', originalIconHTML + ' ');
+        }
+    }
+
+    // Update NATION filter buttons with flag icons and FA fallback
+    function updateNationFilterIcons() {
+        const nationIconMap = {
+            'USSR': 'https://cdn7.heatlabs.net/nations/ussr.webp',
+            'USA': 'https://cdn7.heatlabs.net/nations/usa.webp',
+            'China': 'https://cdn7.heatlabs.net/nations/china.webp',
+            'Germany': 'https://cdn7.heatlabs.net/nations/germany.webp',
+            'UK': 'https://cdn7.heatlabs.net/nations/uk.webp',
+            'France': 'https://cdn7.heatlabs.net/nations/france.webp'
+        };
+
+        document.querySelectorAll('.nation-filter').forEach(button => {
+            const nation = button.getAttribute('data-nation');
+            const iconUrl = nationIconMap[nation];
+            if (!iconUrl) return; // Leave any un-mapped nations unchanged
+
+            // On first run, cache the original icon markup so we can restore it later
+            if (!button.hasAttribute('data-original-icon')) {
+                const iconElement = button.querySelector('i');
+                if (iconElement) {
+                    button.setAttribute('data-original-icon', iconElement.outerHTML);
+                }
+            }
+
+            // Always reset back to the original FA icon before attempting the swap
+            resetNationFilterButton(button);
+
+            // Re-query the <i> after reset
+            const iconElement = button.querySelector('i');
+            if (!iconElement) return;
+
+            // Create an image element
+            const img = document.createElement('img');
+            img.src = iconUrl;
+            img.alt = nation;
+            img.className = 'nation-filter-icon';
+            img.style.height = '15px';
+            img.style.width = 'auto';
+            img.style.marginRight = '8px';
+            img.style.verticalAlign = 'middle';
+
+            // On successful load, replace the <i> with the image
+            img.onload = function() {
+                const currentIcon = button.querySelector('i');
+                if (currentIcon && currentIcon.parentNode) {
+                    currentIcon.parentNode.replaceChild(img, currentIcon);
+                }
+            };
+
+            // On error, leave the original <i> in place
+            img.onerror = function() {
+                // Do nothing; keep the Font Awesome icon
+            };
+        });
+    }
+
     // Watch for theme changes and update icons accordingly
     let themeObserver = null;
     function watchThemeChanges() {
@@ -925,8 +996,9 @@ document.addEventListener('DOMContentLoaded', function() {
         themeObserver = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation) {
                 if (mutation.attributeName === 'class') {
-                    // Theme class changed, re-run icon update
+                    // Theme class changed, re-run icon updates
                     updateTypeFilterIcons();
+                    updateNationFilterIcons();
                 }
             });
         });
@@ -944,6 +1016,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Update the TYPE filter icons after the DOM is ready
     updateTypeFilterIcons();
+
+    // Update the NATION filter flag icons
+    updateNationFilterIcons();
 
     // Watch for theme changes to swap icons
     watchThemeChanges();
