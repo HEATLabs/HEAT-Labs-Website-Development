@@ -836,10 +836,117 @@ document.addEventListener('DOMContentLoaded', function() {
         updateComparisonSidebar();
     }
 
+    // Check if the current theme is light
+    function isLightTheme() {
+        return document.documentElement.classList.contains('light-theme');
+    }
+
+    // Reset a type filter button back to its original Font Awesome icon
+    function resetTypeFilterButton(button) {
+        const originalIconHTML = button.getAttribute('data-original-icon');
+        if (!originalIconHTML) return;
+
+        // Remove any existing img
+        const existingImg = button.querySelector('img.type-filter-icon');
+        if (existingImg) {
+            existingImg.remove();
+        }
+
+        // If the <i> is missing, restore it
+        if (!button.querySelector('i')) {
+            // Insert the original icon HTML at the start of the button
+            button.insertAdjacentHTML('afterbegin', originalIconHTML + ' ');
+        }
+    }
+
+    // Update TYPE filter buttons with custom icons and fallback
+    function updateTypeFilterIcons() {
+        const isLight = isLightTheme();
+        const suffix = isLight ? '_light' : '';
+
+        const typeIconMap = {
+            'Assault': `https://cdn7.heatlabs.net/roles/assault_big${suffix}.webp`,
+            'Defender': `https://cdn7.heatlabs.net/roles/defender_big${suffix}.webp`,
+            'Marksman': `https://cdn7.heatlabs.net/roles/marksman_big${suffix}.webp`
+        };
+
+        document.querySelectorAll('.type-filter').forEach(button => {
+            const type = button.getAttribute('data-type');
+            const iconUrl = typeIconMap[type];
+            if (!iconUrl) return; // Leave Unknown and others unchanged
+
+            // On first run, cache the original icon markup so we can restore it later
+            if (!button.hasAttribute('data-original-icon')) {
+                const iconElement = button.querySelector('i');
+                if (iconElement) {
+                    button.setAttribute('data-original-icon', iconElement.outerHTML);
+                }
+            }
+
+            // Always reset back to the original FA icon before attempting the swap
+            resetTypeFilterButton(button);
+
+            // Re-query the <i> after reset
+            const iconElement = button.querySelector('i');
+            if (!iconElement) return;
+
+            // Create an image element
+            const img = document.createElement('img');
+            img.src = iconUrl;
+            img.alt = type;
+            img.className = 'type-filter-icon';
+            img.style.width = '20px';
+            img.style.height = '20px';
+            img.style.marginRight = '8px';
+            img.style.verticalAlign = 'middle';
+
+            // On successful load, replace the <i> with the image
+            img.onload = function() {
+                const currentIcon = button.querySelector('i');
+                if (currentIcon && currentIcon.parentNode) {
+                    currentIcon.parentNode.replaceChild(img, currentIcon);
+                }
+            };
+
+            // On error, leave the original <i> in place
+            img.onerror = function() {
+                // Do nothing; keep the Font Awesome icon
+            };
+        });
+    }
+
+    // Watch for theme changes and update icons accordingly
+    let themeObserver = null;
+    function watchThemeChanges() {
+        if (themeObserver) {
+            themeObserver.disconnect();
+        }
+
+        themeObserver = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.attributeName === 'class') {
+                    // Theme class changed, re-run icon update
+                    updateTypeFilterIcons();
+                }
+            });
+        });
+
+        themeObserver.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+    }
+
     // Initialize the page
     renderTankCards();
     initComparisonSidebar();
     updateComparisonModal();
+
+    // Update the TYPE filter icons after the DOM is ready
+    updateTypeFilterIcons();
+
+    // Watch for theme changes to swap icons
+    watchThemeChanges();
 
     // Event delegation for compare buttons
     document.addEventListener('click', function(e) {
