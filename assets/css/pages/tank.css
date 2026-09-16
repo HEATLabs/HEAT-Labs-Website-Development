@@ -2758,7 +2758,7 @@ p {
 }
 
 .loadout-slot i {
-	font-size: 1.5rem;
+	font-size: 2rem;
 	color: var(--text-secondary);
 	opacity: 0.6;
 	transition: color 0.2s ease, opacity 0.2s ease;
@@ -2852,7 +2852,7 @@ p {
 	}
 
 	.loadout-slot i {
-		font-size: 1.2rem;
+		font-size: 2rem;
 	}
 
 	.loadout-slot-tooltip {
