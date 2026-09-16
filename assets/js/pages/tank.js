@@ -583,8 +583,15 @@ async function fetchTankData(tankId) {
             return;
         }
 
+        // Store current tank data for later use
+        currentTankId = tank.id;
+        currentTankType = tank.type;
+
         // Update page elements with tank data
         updateTankPageElements(tank);
+
+        // Populate the loadout picker
+        populateLoadoutPicker(tank.slots);
 
         // Populate gallery images
         populateTankGallery(tank.gallery);
@@ -634,6 +641,95 @@ async function fetchTankData(tankId) {
     } catch (error) {
         console.error('Error fetching tank data:', error);
     }
+}
+
+// Equipment & Modules
+function populateLoadoutPicker(slots) {
+    const pickerContainer = document.getElementById('loadoutPickerContainer');
+    if (!pickerContainer) {
+        console.warn('Loadout picker container not found');
+        return;
+    }
+
+    // Default slots if none provided
+    const defaultSlots = {
+        equipments: ['Primary Equipment', 'Secondary Equipment'],
+        modules: [
+            'Ability Module',
+            'Ability Module',
+            'Firepower Module',
+            'Mobility Module',
+            'Recon Module',
+            'Utility Module'
+        ]
+    };
+
+    const tankSlots = slots || defaultSlots;
+
+    // Build equipment slots (first 2)
+    const equipments = tankSlots.equipments || defaultSlots.equipments;
+
+    // Build module slots (next 6)
+    let modules = tankSlots.modules || defaultSlots.modules;
+
+    // Ensure we always have exactly 6 module slots
+    if (modules.length < 6) {
+        const padding = ['Utility Module', 'Recon Module', 'Mobility Module', 'Firepower Module', 'Ability Module', 'Toughness Module'];
+        while (modules.length < 6) {
+            modules.push(padding[modules.length % padding.length]);
+        }
+    } else if (modules.length > 6) {
+        modules = modules.slice(0, 6);
+    }
+
+    // Build the HTML
+    let slotsHTML = '';
+
+    // Equipment slots with equipment icon
+    equipments.forEach((slotName, index) => {
+        const isUnknown = !slotName || slotName.toLowerCase() === 'unknown slot' || slotName.toLowerCase() === 'unknown';
+        const displayName = isUnknown ? 'Unknown Equipment' : slotName;
+        slotsHTML += `
+            <div class="loadout-slot equipment-slot" data-slot-type="equipment" data-slot-index="${index}">
+                <i class="fas fa-toolbox"></i>
+                <div class="loadout-slot-tooltip">
+                    <span class="slot-type-label">Equipment ${index + 1}</span>
+                    <span class="slot-name-label">${displayName}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    // Divider between equipment and modules
+    slotsHTML += `<div class="loadout-slot-divider"></div>`;
+
+    // Module slots with module icon
+    modules.forEach((slotName, index) => {
+        const isUnknown = !slotName || slotName.toLowerCase() === 'unknown slot' || slotName.toLowerCase() === 'unknown';
+        const displayName = isUnknown ? 'Unknown Module' : slotName;
+
+        // Choose icon based on module type
+        let iconClass = 'fa-puzzle-piece';
+        const lowerName = displayName.toLowerCase();
+        if (lowerName.includes('ability')) iconClass = 'fa-bolt';
+        else if (lowerName.includes('firepower')) iconClass = 'fa-fire';
+        else if (lowerName.includes('mobility')) iconClass = 'fa-tachometer-alt';
+        else if (lowerName.includes('recon')) iconClass = 'fa-eye';
+        else if (lowerName.includes('utility')) iconClass = 'fa-cogs';
+        else if (lowerName.includes('toughness')) iconClass = 'fa-shield-alt';
+
+        slotsHTML += `
+            <div class="loadout-slot module-slot" data-slot-type="module" data-slot-index="${index}">
+                <i class="fas ${iconClass}"></i>
+                <div class="loadout-slot-tooltip">
+                    <span class="slot-type-label">Module ${index + 1}</span>
+                    <span class="slot-name-label">${displayName}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    pickerContainer.innerHTML = slotsHTML;
 }
 
 // Populate the tank gallery with images
