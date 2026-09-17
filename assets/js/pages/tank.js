@@ -703,24 +703,32 @@ function populateLoadoutPicker(slots) {
     // Divider between equipment and modules
     slotsHTML += `<div class="loadout-slot-divider"></div>`;
 
-    // Module slots with module icon
+    // Module slots with SVG icons
     modules.forEach((slotName, index) => {
         const isUnknown = !slotName || slotName.toLowerCase() === 'unknown slot' || slotName.toLowerCase() === 'unknown';
         const displayName = isUnknown ? 'Unknown Module' : slotName;
 
-        // Choose icon based on module type
-        let iconClass = 'fa-puzzle-piece';
+        // Determine which SVG icon to use based on module type
+        let iconUrl = 'https://cdn7.heatlabs.net/slots/utility.svg'; // default fallback
         const lowerName = displayName.toLowerCase();
-        if (lowerName.includes('ability')) iconClass = 'fa-bolt';
-        else if (lowerName.includes('firepower')) iconClass = 'fa-fire';
-        else if (lowerName.includes('mobility')) iconClass = 'fa-tachometer-alt';
-        else if (lowerName.includes('recon')) iconClass = 'fa-eye';
-        else if (lowerName.includes('utility')) iconClass = 'fa-cogs';
-        else if (lowerName.includes('toughness')) iconClass = 'fa-shield-alt';
+
+        if (lowerName.includes('ability')) {
+            iconUrl = 'https://cdn7.heatlabs.net/slots/ability.svg';
+        } else if (lowerName.includes('firepower')) {
+            iconUrl = 'https://cdn7.heatlabs.net/slots/firepower.svg';
+        } else if (lowerName.includes('mobility')) {
+            iconUrl = 'https://cdn7.heatlabs.net/slots/mobility.svg';
+        } else if (lowerName.includes('recon')) {
+            iconUrl = 'https://cdn7.heatlabs.net/slots/recon.svg';
+        } else if (lowerName.includes('toughness')) {
+            iconUrl = 'https://cdn7.heatlabs.net/slots/toughness.svg';
+        } else if (lowerName.includes('utility')) {
+            iconUrl = 'https://cdn7.heatlabs.net/slots/utility.svg';
+        }
 
         slotsHTML += `
             <div class="loadout-slot module-slot" data-slot-type="module" data-slot-index="${index}">
-                <i class="fas ${iconClass}"></i>
+                <img src="${iconUrl}" alt="${displayName}" class="loadout-slot-icon">
                 <div class="loadout-slot-tooltip">
                     <span class="slot-type-label">Module ${index + 1}</span>
                     <span class="slot-name-label">${displayName}</span>

@@ -2757,16 +2757,19 @@ p {
 	z-index: 20;
 }
 
+.loadout-slot-icon {
+    width: 35px;
+    height: 35px;
+    object-fit: contain;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    opacity: 0.6;
+}
+
 .loadout-slot i {
 	font-size: 2rem;
 	color: var(--text-secondary);
-	opacity: 0.6;
+	opacity: 0.7;
 	transition: color 0.2s ease, opacity 0.2s ease;
-}
-
-.loadout-slot:hover i {
-	color: var(--accent-color);
-	opacity: 1;
 }
 
 .loadout-slot-tooltip {
@@ -2879,7 +2882,7 @@ p {
 	}
 
 	.loadout-slot i {
-		font-size: 1rem;
+		font-size: 2rem;
 	}
 }
 
