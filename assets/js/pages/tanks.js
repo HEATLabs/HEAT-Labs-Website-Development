@@ -22,7 +22,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const TYPE_ICON_MAP = {
         'Assault': 'assault_big',
         'Defender': 'defender_big',
-        'Marksman': 'marksman_big'
+        'Marksman': 'marksman_big',
+        'Hybrid': 'hybrid_big'
     };
 
     document.addEventListener('click', function(event) {
