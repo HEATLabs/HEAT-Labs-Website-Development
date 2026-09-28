@@ -943,8 +943,8 @@ class PlayerRecords {
         });
     }
 
-    // Get unique players with their best record for a stat, optionally filtered by vehicle
-    getUniqueTopRecords(statKey, limit = 10, mode = null, vehicleFilter = null) {
+    // Get unique players with their best record for a stat, optionally filtered by vehicle and/or agent
+    getUniqueTopRecords(statKey, limit = 10, mode = null, vehicleFilter = null, agentFilter = null) {
         const allRecords = [];
 
         if (mode) {
@@ -968,10 +968,16 @@ class PlayerRecords {
             }
         }
 
+        // Apply agent filter if specified (BEFORE vehicle filter)
+        let filteredByAgent = allRecords;
+        if (agentFilter && agentFilter !== 'all') {
+            filteredByAgent = allRecords.filter(record => record.agent === agentFilter);
+        }
+
         // Apply vehicle filter if specified
-        let filteredByVehicle = allRecords;
+        let filteredByVehicle = filteredByAgent;
         if (vehicleFilter && vehicleFilter !== 'all') {
-            filteredByVehicle = allRecords.filter(record => {
+            filteredByVehicle = filteredByAgent.filter(record => {
                 if (!record.vehicle) return false;
                 const vehicles = record.vehicle.split(',').map(v => v.trim()).filter(v => v.length > 0);
                 return vehicles.includes(vehicleFilter);
@@ -1908,7 +1914,7 @@ class PlayerRecords {
         return [damage, kills, assists, xp, captures, confirms, denies, plants, defuses];
     }
 
-    // RENDER SINGLE GLOBAL TABLE WITH DROPDOWN
+    // RENDER SINGLE GLOBAL TABLE WITH DROPDOWNS
     renderGlobalSingleTable(statKey) {
         const tbody = this.elements.globalSingleTableBody;
         if (!tbody) return;
@@ -1927,17 +1933,9 @@ class PlayerRecords {
         const vehicleFilter = this.currentGlobalVehicleFilter;
         const agentFilter = this.currentGlobalAgentFilter;
 
-        let records = this.getUniqueTopRecords(statKey, 20, null, vehicleFilter);
-
-        // Apply agent filter
-        if (agentFilter && agentFilter !== 'all') {
-            records = records.filter(record => record.agent === agentFilter);
-            // Re-rank
-            records = records.map((record, index) => ({
-                ...record,
-                rank: index + 1
-            }));
-        }
+        // Fetch records with BOTH filters applied up-front, so we get the true
+        // top 20 unique players within the selected agent/vehicle combination.
+        const records = this.getUniqueTopRecords(statKey, 20, null, vehicleFilter, agentFilter);
 
         if (!records.length) {
             const allRecords = this.getAllFilteredRecords();
