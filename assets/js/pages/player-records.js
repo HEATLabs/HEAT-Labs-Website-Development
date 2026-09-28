@@ -32,8 +32,11 @@ class PlayerRecords {
         };
         this.currentGlobalStatKey = 'damage_caused';
         this.currentGlobalVehicleFilter = 'all';
+        this.currentGlobalAgentFilter = 'all';
         this.removalReasons = {};
         this.vehicles = [];
+        this.agents = [];
+        this.agentVehicleMap = {};
 
         // PvE toggle state per tab (persisted in localStorage)
         this.pveToggleState = this.loadPveToggleState();
@@ -282,19 +285,82 @@ class PlayerRecords {
         this.vehicles = Array.from(vehicleSet).sort((a, b) => a.localeCompare(b));
     }
 
-    // Populate vehicle dropdown
+    // Build unique agent list and agent->vehicles mapping from records
+    buildAgentList() {
+        const agentSet = new Set();
+        this.agentVehicleMap = {};
+        const allRecords = this.getAllFilteredRecords();
+        for (const record of allRecords) {
+            if (record.agent) {
+                const agent = record.agent.trim();
+                if (!agent) continue;
+                agentSet.add(agent);
+                if (!this.agentVehicleMap[agent]) {
+                    this.agentVehicleMap[agent] = new Set();
+                }
+                if (record.vehicle) {
+                    const vehicles = record.vehicle.split(',').map(v => v.trim()).filter(v => v.length > 0);
+                    for (const v of vehicles) {
+                        this.agentVehicleMap[agent].add(v);
+                    }
+                }
+            }
+        }
+        this.agents = Array.from(agentSet).sort((a, b) => a.localeCompare(b));
+        // Convert Sets to sorted arrays
+        for (const agent of this.agents) {
+            this.agentVehicleMap[agent] = Array.from(this.agentVehicleMap[agent]).sort((a, b) => a.localeCompare(b));
+        }
+    }
+
+    // Populate agent dropdown
+    populateAgentDropdown() {
+        const select = document.getElementById('globalAgentSelect');
+        if (!select) return;
+
+        // Clear existing options except "All Agents"
+        select.innerHTML = '<option value="all">All Agents</option>';
+
+        for (const agent of this.agents) {
+            const option = document.createElement('option');
+            option.value = agent;
+            option.textContent = agent;
+            select.appendChild(option);
+        }
+
+        // Set current value
+        select.value = this.currentGlobalAgentFilter;
+    }
+
+    // Populate vehicle dropdown, optionally filtered by agent
     populateVehicleDropdown() {
         const select = document.getElementById('globalVehicleSelect');
         if (!select) return;
 
+        const agentFilter = this.currentGlobalAgentFilter;
+
+        // Determine which vehicles to show
+        let vehiclesToShow = this.vehicles;
+        if (agentFilter && agentFilter !== 'all') {
+            const agentVehicles = this.agentVehicleMap[agentFilter] || [];
+            // Intersect agent vehicles with all vehicles (preserves global vehicle list order)
+            const agentVehicleSet = new Set(agentVehicles);
+            vehiclesToShow = this.vehicles.filter(v => agentVehicleSet.has(v));
+        }
+
         // Clear existing options except "All Vehicles"
         select.innerHTML = '<option value="all">All Vehicles</option>';
 
-        for (const vehicle of this.vehicles) {
+        for (const vehicle of vehiclesToShow) {
             const option = document.createElement('option');
             option.value = vehicle;
             option.textContent = vehicle;
             select.appendChild(option);
+        }
+
+        // If current vehicle filter is no longer valid for this agent, reset to 'all'
+        if (this.currentGlobalVehicleFilter !== 'all' && !vehiclesToShow.includes(this.currentGlobalVehicleFilter)) {
+            this.currentGlobalVehicleFilter = 'all';
         }
 
         // Set current value
@@ -637,6 +703,8 @@ class PlayerRecords {
         await this.loadRecordData();
         this.processRecords();
         this.buildVehicleList();
+        this.buildAgentList();
+        this.populateAgentDropdown();
         this.populateVehicleDropdown();
         this.updateAllPveToggleButtons();
         this.renderGlobalStats();
@@ -679,6 +747,20 @@ class PlayerRecords {
         if (globalStatSelect) {
             globalStatSelect.addEventListener('change', (e) => {
                 this.currentGlobalStatKey = e.target.value;
+                this.renderGlobalSingleTable(this.currentGlobalStatKey);
+            });
+        }
+
+        // Global agent dropdown change
+        const globalAgentSelect = document.getElementById('globalAgentSelect');
+        if (globalAgentSelect) {
+            globalAgentSelect.addEventListener('change', (e) => {
+                this.currentGlobalAgentFilter = e.target.value;
+                // Reset vehicle filter to 'all' when agent changes
+                this.currentGlobalVehicleFilter = 'all';
+                // Repopulate vehicle dropdown based on selected agent
+                this.populateVehicleDropdown();
+                // Re-render the table
                 this.renderGlobalSingleTable(this.currentGlobalStatKey);
             });
         }
@@ -1841,10 +1923,21 @@ class PlayerRecords {
         const category = this.statCategories.find(c => c.key === statKey);
         const statLabel = category ? category.label : statKey;
 
-        // Get vehicle filter
+        // Get vehicle and agent filters
         const vehicleFilter = this.currentGlobalVehicleFilter;
+        const agentFilter = this.currentGlobalAgentFilter;
 
-        const records = this.getUniqueTopRecords(statKey, 20, null, vehicleFilter);
+        let records = this.getUniqueTopRecords(statKey, 20, null, vehicleFilter);
+
+        // Apply agent filter
+        if (agentFilter && agentFilter !== 'all') {
+            records = records.filter(record => record.agent === agentFilter);
+            // Re-rank
+            records = records.map((record, index) => ({
+                ...record,
+                rank: index + 1
+            }));
+        }
 
         if (!records.length) {
             const allRecords = this.getAllFilteredRecords();
@@ -1855,7 +1948,9 @@ class PlayerRecords {
             if (!hasRecords) {
                 tbody.innerHTML = `<tr><td colspan="9" class="no-data">No ${statLabel} records found (PvE may be hidden)</td></tr>`;
             } else {
-                const filterMsg = vehicleFilter !== 'all' ? ` for vehicle "${vehicleFilter}"` : '';
+                let filterMsg = '';
+                if (vehicleFilter !== 'all') filterMsg += ` for vehicle "${vehicleFilter}"`;
+                if (agentFilter !== 'all') filterMsg += ` for agent "${agentFilter}"`;
                 tbody.innerHTML = `<tr><td colspan="9" class="no-data">No records found for ${statLabel}${filterMsg}</td></tr>`;
             }
             return;
