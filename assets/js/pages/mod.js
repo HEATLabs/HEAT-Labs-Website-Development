@@ -706,6 +706,8 @@ function updateDownloadButtons(modDetails) {
                 iconClass = 'fa-brands fa-android';
             } else if (osLower.includes('ios') || osLower.includes('iphone')) {
                 iconClass = 'fa-brands fa-apple';
+            } else if (osLower.includes('discord')) {
+                iconClass = 'fa-brands fa-discord';
             }
 
             downloadBtn.innerHTML = `
