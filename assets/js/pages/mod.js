@@ -347,75 +347,113 @@ function parseModDetails(mdContent) {
     }
 
     // Extract overview
-    const overviewDescMatch = mdContent.match(/overview:[\s\S]*?description:\s*(.+?)(?=\n\s*\w+:|$)/i);
-    if (overviewDescMatch && overviewDescMatch[1]) {
-        details.overviewDescription = overviewDescMatch[1].trim();
-    }
+    details.overview = {
+        enabled: false,
+        description: '',
+        layout: 'none',
+        images: []
+    };
 
-    const layoutMatch = mdContent.match(/overview:[\s\S]*?layout:\s*([^\n]+)/i);
-    if (layoutMatch && layoutMatch[1]) {
-        details.overviewLayout = layoutMatch[1].trim();
-    }
+    const overviewSectionMatch = mdContent.match(/overview:[\s\S]*?(?=\n\w+:|$)/i);
+    if (overviewSectionMatch) {
+        const overviewSection = overviewSectionMatch[0];
 
-    details.overviewImages = [];
-    const itemsMatch = mdContent.match(/overview:[\s\S]*?items:([\s\S]*?)(?=\n\s*\w+:|$)/i);
-    if (itemsMatch && itemsMatch[1]) {
-        const imageRegex = /-\s*([^\n]+)/gi;
-        let imageMatch;
-        while ((imageMatch = imageRegex.exec(itemsMatch[1])) !== null) {
-            const imagePath = imageMatch[1].trim();
-            if (imagePath) {
-                details.overviewImages.push(imagePath);
+        const overviewEnabledMatch = overviewSection.match(/enabled:\s*(true|false)/i);
+        if (overviewEnabledMatch) {
+            details.overview.enabled = overviewEnabledMatch[1].toLowerCase() === 'true';
+        }
+
+        const overviewDescMatch = overviewSection.match(/description:\s*(.+?)(?=\n\s*\w+:|$)/i);
+        if (overviewDescMatch && overviewDescMatch[1]) {
+            details.overview.description = overviewDescMatch[1].trim();
+        }
+
+        const layoutMatch = overviewSection.match(/layout:\s*([^\n]+)/i);
+        if (layoutMatch && layoutMatch[1]) {
+            details.overview.layout = layoutMatch[1].trim();
+        }
+
+        const itemsMatch = overviewSection.match(/items:([\s\S]*?)(?=\n\s*\w+:|$)/i);
+        if (itemsMatch && itemsMatch[1]) {
+            const imageRegex = /-\s*([^\n]+)/gi;
+            let imageMatch;
+            while ((imageMatch = imageRegex.exec(itemsMatch[1])) !== null) {
+                const imagePath = imageMatch[1].trim();
+                if (imagePath) {
+                    details.overview.images.push(imagePath);
+                }
             }
         }
     }
 
+    // Keep backward-compatible flat properties
+    details.overviewDescription = details.overview.description;
+    details.overviewLayout = details.overview.layout;
+    details.overviewImages = details.overview.images;
+
     // Extract installation steps
-    details.installationSteps = [];
+    details.installation = {
+        enabled: false,
+        description: '',
+        steps: []
+    };
+
     const installationSectionMatch = mdContent.match(/installation:[\s\S]*?(?=\n\w+:|$)/i);
     if (installationSectionMatch) {
         const installationSection = installationSectionMatch[0];
+
+        const installEnabledMatch = installationSection.match(/enabled:\s*(true|false)/i);
+        if (installEnabledMatch) {
+            details.installation.enabled = installEnabledMatch[1].toLowerCase() === 'true';
+        }
+
+        const installDescMatch = installationSection.match(/description:\s*(.+?)(?=\n\s*\w+:|$)/i);
+        if (installDescMatch && installDescMatch[1]) {
+            details.installation.description = installDescMatch[1].trim();
+        }
+
         const stepsMatch = installationSection.match(/steps:([\s\S]*?)(?=\n\w+:|$)/i);
-        if (stepsMatch) {
+        if (stepsMatch && stepsMatch[1]) {
             const stepsContent = stepsMatch[1];
-            const stepRegex = /-\s*name:\s*Step\s*#(\d+)\s*description:\s*([^\n]+)(?:\n|$)/gi;
-            let stepMatch;
-            let foundSteps = false;
-            while ((stepMatch = stepRegex.exec(stepsContent)) !== null) {
-                details.installationSteps.push({
-                    name: `Step #${stepMatch[1]}`,
-                    description: stepMatch[2].trim()
-                });
-                foundSteps = true;
-            }
-            if (!foundSteps) {
-                const lines = stepsContent.split('\n');
-                let currentStep = null;
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
-                    if (line.includes('- name: Step #') || line.includes('- name: Step')) {
-                        if (currentStep) details.installationSteps.push(currentStep);
-                        const stepNumMatch = line.match(/Step\s*#(\d+)/i) || line.match(/Step\s*(\d+)/i);
-                        const stepNumber = stepNumMatch ? stepNumMatch[1] : String(details.installationSteps.length + 1);
-                        currentStep = { name: `Step #${stepNumber}`, description: '' };
-                    } else if (line.includes('description:') && currentStep) {
-                        const descMatch = line.match(/description:\s*(.+)/i);
-                        if (descMatch && descMatch[1]) {
-                            currentStep.description = descMatch[1].trim();
-                        }
-                    } else if (currentStep && !line.startsWith('-') && !line.includes(':')) {
-                        if (currentStep.description) {
-                            currentStep.description += ' ' + line;
-                        } else {
-                            currentStep.description = line;
-                        }
+            const lines = stepsContent.split('\n');
+            let currentStep = null;
+
+            for (let i = 0; i < lines.length; i++) {
+                const rawLine = lines[i];
+                const line = rawLine.trim();
+                if (!line) continue;
+
+                // New step entry: "- name: ..."
+                if (/^-\s*name:\s*/i.test(line)) {
+                    if (currentStep) details.installation.steps.push(currentStep);
+                    const nameMatch = line.match(/^-\s*name:\s*(.+)$/i);
+                    currentStep = {
+                        name: nameMatch ? nameMatch[1].trim() : `Step #${details.installation.steps.length + 1}`,
+                        description: ''
+                    };
+                }
+                // Description line (either inline on same line or on its own line)
+                else if (/^description:\s*/i.test(line) && currentStep) {
+                    const descMatch = line.match(/^description:\s*(.+)$/i);
+                    if (descMatch && descMatch[1]) {
+                        currentStep.description = currentStep.description
+                            ? currentStep.description + ' ' + descMatch[1].trim()
+                            : descMatch[1].trim();
                     }
                 }
-                if (currentStep) details.installationSteps.push(currentStep);
+                // Continuation of description (indented text without a key)
+                else if (currentStep && !line.startsWith('-') && !/^\w+:/i.test(line)) {
+                    currentStep.description = currentStep.description
+                        ? currentStep.description + ' ' + line
+                        : line;
+                }
             }
+            if (currentStep) details.installation.steps.push(currentStep);
         }
     }
+
+    // Keep backward-compatible flat property
+    details.installationSteps = details.installation.steps;
 
     // Extract video showcase
     details.videoShowcase = {
@@ -525,54 +563,72 @@ function updateModPageElements(mod, modVersion, modDetails) {
     // Update overview section
     const overviewSection = document.getElementById('standard');
     if (overviewSection && modDetails) {
-        const overviewParagraph = overviewSection.querySelector('.text-center');
-        if (overviewParagraph && modDetails.overviewDescription) {
-            overviewParagraph.textContent = modDetails.overviewDescription;
-        }
-        const layout = modDetails.overviewLayout || 'none';
-        const images = modDetails.overviewImages || [];
-        const existingGrids = overviewSection.querySelectorAll('.grid');
-        existingGrids.forEach(grid => grid.remove());
-        if (layout !== 'none' && images.length > 0) {
-            let layoutHTML = '';
-            switch (layout) {
-                case 'single':
-                    if (images.length >= 1) {
-                        layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6"><div><img src="${images[0]}" alt="Mod Overview" class="rounded-lg"></div></div>`;
-                    }
-                    break;
-                case 'two':
-                    if (images.length >= 2) {
-                        layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6"><div><img src="${images[0]}" alt="Mod Overview" class="rounded-lg"></div><div><img src="${images[1]}" alt="Mod Overview" class="rounded-lg"></div></div>`;
-                    } else if (images.length === 1) {
-                        layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6"><div><img src="${images[0]}" alt="Mod Overview" class="rounded-lg"></div></div>`;
-                    }
-                    break;
-                case 'heroPlusTwo':
-                    if (images.length >= 3) {
-                        layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6"><div><img src="${images[0]}" alt="Mod Overview" class="rounded-lg"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6"><div><img src="${images[1]}" alt="Mod Overview" class="rounded-lg"></div><div><img src="${images[2]}" alt="Mod Overview" class="rounded-lg"></div></div>`;
-                    } else if (images.length === 2) {
-                        layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6"><div><img src="${images[0]}" alt="Mod Overview" class="rounded-lg"></div></div><div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6"><div><img src="${images[1]}" alt="Mod Overview" class="rounded-lg"></div></div>`;
-                    } else if (images.length === 1) {
-                        layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6"><div><img src="${images[0]}" alt="Mod Overview" class="rounded-lg"></div></div>`;
-                    }
-                    break;
-                case 'grid':
-                    const gridImages = images.slice(0, 4);
-                    const gridItems = gridImages.map(img => `<div><img src="${img}" alt="Mod Overview" class="rounded-lg"></div>`).join('');
-                    layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">${gridItems}</div>`;
-                    break;
+        const overviewEnabled = modDetails.overview?.enabled ?? false;
+
+        if (!overviewEnabled) {
+            // Hide the entire gamemode-content wrapper (contains heading + paragraph)
+            const gamemodeContent = overviewSection.closest('.gamemode-content');
+            if (gamemodeContent) {
+                gamemodeContent.style.display = 'none';
+            } else {
+                overviewSection.style.display = 'none';
             }
-            if (layoutHTML) {
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = layoutHTML;
-                const gridElements = tempDiv.children;
-                if (overviewParagraph) {
-                    for (let i = 0; i < gridElements.length; i++) {
-                        overviewParagraph.after(gridElements[i]);
+        } else {
+            // Make sure it's visible
+            const gamemodeContent = overviewSection.closest('.gamemode-content');
+            if (gamemodeContent) gamemodeContent.style.display = '';
+            overviewSection.style.display = '';
+
+            const overviewParagraph = overviewSection.querySelector('.text-center');
+            if (overviewParagraph && modDetails.overview.description) {
+                overviewParagraph.textContent = modDetails.overview.description;
+            }
+
+            const layout = modDetails.overview.layout || 'none';
+            const images = modDetails.overview.images || [];
+
+            // Remove previously injected grids
+            overviewSection.querySelectorAll('.grid').forEach(grid => grid.remove());
+
+            if (layout !== 'none' && images.length > 0) {
+                let layoutHTML = '';
+                switch (layout) {
+                    case 'single':
+                        if (images.length >= 1) {
+                            layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6"><div><img src="${images[0]}" alt="Mod Overview" class="rounded-lg"></div></div>`;
+                        }
+                        break;
+                    case 'two':
+                        if (images.length >= 2) {
+                            layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6"><div><img src="${images[0]}" alt="Mod Overview" class="rounded-lg"></div><div><img src="${images[1]}" alt="Mod Overview" class="rounded-lg"></div></div>`;
+                        } else if (images.length === 1) {
+                            layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6"><div><img src="${images[0]}" alt="Mod Overview" class="rounded-lg"></div></div>`;
+                        }
+                        break;
+                    case 'heroPlusTwo':
+                        if (images.length >= 3) {
+                            layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6"><div><img src="${images[0]}" alt="Mod Overview" class="rounded-lg"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6"><div><img src="${images[1]}" alt="Mod Overview" class="rounded-lg"></div><div><img src="${images[2]}" alt="Mod Overview" class="rounded-lg"></div></div>`;
+                        } else if (images.length === 2) {
+                            layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6"><div><img src="${images[0]}" alt="Mod Overview" class="rounded-lg"></div></div><div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6"><div><img src="${images[1]}" alt="Mod Overview" class="rounded-lg"></div></div>`;
+                        } else if (images.length === 1) {
+                            layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-1 gap-4 my-6"><div><img src="${images[0]}" alt="Mod Overview" class="rounded-lg"></div></div>`;
+                        }
+                        break;
+                    case 'grid':
+                        const gridImages = images.slice(0, 4);
+                        const gridItems = gridImages.map(img => `<div><img src="${img}" alt="Mod Overview" class="rounded-lg"></div>`).join('');
+                        layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">${gridItems}</div>`;
+                        break;
+                }
+                if (layoutHTML) {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = layoutHTML;
+                    const gridElements = Array.from(tempDiv.children);
+                    if (overviewParagraph) {
+                        gridElements.forEach(el => overviewParagraph.after(el));
+                    } else {
+                        overviewSection.append(tempDiv);
                     }
-                } else {
-                    overviewSection.append(tempDiv);
                 }
             }
         }
@@ -581,7 +637,7 @@ function updateModPageElements(mod, modVersion, modDetails) {
     // Update video showcase
     updateVideoShowcase(modDetails);
 
-    // Update download buttons - NEW: Use downloads section from MD
+    // Update download buttons
     updateDownloadButtons(modDetails);
 
     // Update sidebar Quick Facts
@@ -621,37 +677,58 @@ function updateModPageElements(mod, modVersion, modDetails) {
 
     // Update installation steps
     const faqContainer = document.querySelector('.faq-container');
-    if (faqContainer && modDetails && modDetails.installationSteps && modDetails.installationSteps.length > 0) {
-        faqContainer.innerHTML = '';
-        modDetails.installationSteps.forEach((step, index) => {
-            const faqItem = document.createElement('div');
-            faqItem.className = `faq-item ${index === 0 ? 'active' : ''}`;
-            const faqQuestion = document.createElement('div');
-            faqQuestion.className = 'faq-question';
-            faqQuestion.innerHTML = `<h4>${step.name}</h4><i class="fas fa-chevron-down"></i>`;
-            const faqAnswer = document.createElement('div');
-            faqAnswer.className = `faq-answer ${index === 0 ? 'active' : ''}`;
-            faqAnswer.innerHTML = `<p>${step.description}</p>`;
-            faqItem.appendChild(faqQuestion);
-            faqItem.appendChild(faqAnswer);
-            faqContainer.appendChild(faqItem);
-        });
-        const newFaqItems = faqContainer.querySelectorAll('.faq-item');
-        newFaqItems.forEach(item => {
-            const question = item.querySelector('.faq-question');
-            question.addEventListener('click', () => {
-                newFaqItems.forEach(otherItem => {
-                    if (otherItem !== item) {
-                        otherItem.classList.remove('active');
-                        const answer = otherItem.querySelector('.faq-answer');
-                        if (answer) answer.classList.remove('active');
-                    }
+    const installationHeading = document.querySelector('#faq');
+    const installationParent = installationHeading ? installationHeading.closest('.mt-16') : null;
+
+    if (installationParent) {
+        const installEnabled = modDetails?.installation?.enabled ?? false;
+
+        if (!installEnabled) {
+            installationParent.style.display = 'none';
+        } else {
+            installationParent.style.display = '';
+
+            const steps = modDetails.installation.steps || [];
+
+            if (faqContainer && steps.length > 0) {
+                faqContainer.innerHTML = '';
+
+                steps.forEach((step, index) => {
+                    const faqItem = document.createElement('div');
+                    faqItem.className = `faq-item ${index === 0 ? 'active' : ''}`;
+
+                    const faqQuestion = document.createElement('div');
+                    faqQuestion.className = 'faq-question';
+                    faqQuestion.innerHTML = `<h4>${step.name}</h4><i class="fas fa-chevron-down"></i>`;
+
+                    const faqAnswer = document.createElement('div');
+                    faqAnswer.className = `faq-answer ${index === 0 ? 'active' : ''}`;
+                    faqAnswer.innerHTML = `<p>${step.description}</p>`;
+
+                    faqItem.appendChild(faqQuestion);
+                    faqItem.appendChild(faqAnswer);
+                    faqContainer.appendChild(faqItem);
                 });
-                item.classList.toggle('active');
-                const answer = item.querySelector('.faq-answer');
-                if (answer) answer.classList.toggle('active');
-            });
-        });
+
+                // Re-bind click handlers
+                const newFaqItems = faqContainer.querySelectorAll('.faq-item');
+                newFaqItems.forEach(item => {
+                    const question = item.querySelector('.faq-question');
+                    question.addEventListener('click', () => {
+                        newFaqItems.forEach(otherItem => {
+                            if (otherItem !== item) {
+                                otherItem.classList.remove('active');
+                                const answer = otherItem.querySelector('.faq-answer');
+                                if (answer) answer.classList.remove('active');
+                            }
+                        });
+                        item.classList.toggle('active');
+                        const answer = item.querySelector('.faq-answer');
+                        if (answer) answer.classList.toggle('active');
+                    });
+                });
+            }
+        }
     }
 
     updateRelatedMods(mod, modDetails);
