@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Platform short names for display
     const platformShortNames = {
+        'Discord': 'Dis',
         'Windows': 'Win',
         'MacOS': 'Mac',
         'Linux': 'Lin'
