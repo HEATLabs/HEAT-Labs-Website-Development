@@ -657,7 +657,7 @@ function updateModPageElements(mod, modVersion, modDetails) {
     updateRelatedMods(mod, modDetails);
 }
 
-// NEW: Function to update download buttons using the downloads section
+// Function to update download buttons using the downloads section
 function updateDownloadButtons(modDetails) {
     const quickActionsContainer = document.querySelector('.quick-actions');
     if (!quickActionsContainer) return;
@@ -710,9 +710,17 @@ function updateDownloadButtons(modDetails) {
                 iconClass = 'fa-brands fa-discord';
             }
 
+            // Use "Install on Discord" for Discord links, otherwise "Download for [OS]"
+            let buttonText;
+            if (osLower.includes('discord')) {
+                buttonText = `Install on Discord`;
+            } else {
+                buttonText = `Download for ${osName}`;
+            }
+
             downloadBtn.innerHTML = `
                 <i class="${iconClass}"></i>
-                <span>Download for ${osName}</span>
+                <span>${buttonText}</span>
             `;
 
             quickActionsContainer.appendChild(downloadBtn);
