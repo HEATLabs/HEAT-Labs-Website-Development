@@ -50,13 +50,13 @@ document.addEventListener('DOMContentLoaded', function() {
             let isMultiline = false;
 
             for (let line of lines) {
-                line = line.trim();
-                if (line === '') continue;
+                const trimmed = line.trim();
+                if (trimmed === '') continue;
 
-                // Check if it's a key: value line
-                const keyValueMatch = line.match(/^([a-zA-Z0-9_-]+):\s*(.*)$/);
+                // Check if it's a top-level key: value line
+                const keyValueMatch = trimmed.match(/^([a-zA-Z0-9_-]+):\s*(.*)$/);
 
-                if (keyValueMatch) {
+                if (keyValueMatch && !line.startsWith(' ') && !line.startsWith('\t') && !trimmed.startsWith('-')) {
                     // If we were building a multiline value, save it
                     if (currentKey && isMultiline) {
                         data[currentKey] = currentValue.join('\n').trim();
@@ -116,11 +116,57 @@ document.addEventListener('DOMContentLoaded', function() {
                 data[currentKey] = currentValue.join('\n').trim();
             }
 
+            // Extract platforms directly from the raw downloads multiline string
+            data.platforms = extractPlatformsFromRawDownloads(data.downloads);
+
             return data;
         } catch (error) {
             console.error('Error parsing frontmatter:', error);
             return null;
         }
+    }
+
+    // Extract just the os: values from the raw downloads multiline string
+    function extractPlatformsFromRawDownloads(downloadsText) {
+        if (!downloadsText || typeof downloadsText !== 'string') {
+            return [];
+        }
+
+        const platforms = [];
+        const lines = downloadsText.split('\n');
+
+        // Only start collecting os values once we've entered the links section
+        let inLinksSection = false;
+
+        for (const line of lines) {
+            const trimmed = line.trim();
+
+            // Detect the start of the links: section
+            if (/^links:\s*$/.test(trimmed)) {
+                inLinksSection = true;
+                continue;
+            }
+
+            // If we hit another top-level key (no leading dash/indent), leave links section
+            if (inLinksSection && /^[a-zA-Z0-9_-]+:\s*/.test(trimmed)) {
+                inLinksSection = false;
+            }
+
+            if (!inLinksSection) continue;
+
+            // Match "os: Something" lines (with or without leading dash)
+            const osMatch = trimmed.match(/^-?\s*os:\s*(.+)$/);
+            if (osMatch) {
+                const os = osMatch[1].trim();
+                // Skip placeholders and dedupe
+                if (os && os !== 'URL' && !platforms.includes(os)) {
+                    platforms.push(os);
+                }
+            }
+        }
+
+        console.log('Extracted platforms from raw downloads:', platforms);
+        return platforms;
     }
 
     // Fetch mod details from markdown file
@@ -148,19 +194,6 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error loading mod details:', error);
             return null;
         }
-    }
-
-    // Get platform support from downloads
-    function getPlatformsFromDownloads(downloads) {
-        if (!downloads || !downloads.links || !Array.isArray(downloads.links)) {
-            return [];
-        }
-        const platforms = downloads.links
-            .filter(link => link.os && link.os !== 'URL' && link.os.trim() !== '')
-            .map(link => link.os);
-
-        console.log('Extracted platforms:', platforms);
-        return platforms;
     }
 
     // Fetch mod data from JSON file
@@ -193,14 +226,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         console.warn(`No category found in details for ${mod.name}, using default: Gameplay`);
                     }
 
-                    // Store platform info
-                    if (details.downloads) {
-                        mod.platforms = getPlatformsFromDownloads(details.downloads);
+                    // Use platforms extracted from details
+                    if (details.platforms && details.platforms.length > 0) {
+                        mod.platforms = details.platforms;
                         console.log(`Platforms for ${mod.name}:`, mod.platforms);
                     } else {
                         // Default platform if none found
                         mod.platforms = ['Windows'];
-                        console.warn(`No downloads found in details for ${mod.name}, using default: Windows`);
+                        console.warn(`No platforms found in details for ${mod.name}, using default: Windows`);
                     }
                 } else {
                     // No details found, use defaults
