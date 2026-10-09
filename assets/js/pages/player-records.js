@@ -228,6 +228,10 @@ class PlayerRecords {
             this.isPveIncluded('global') :
             this.isPveIncluded(mode);
         return allRecords.filter(record => {
+            // Plant & Defuse mode always treat as PvP, never filter out
+            if (mode === 'plant-defuse') {
+                return true;
+            }
             if (includePve) return true;
             return record.matchType !== 'pve';
         });
@@ -864,7 +868,13 @@ class PlayerRecords {
 
                     for (const record of playerRecords) {
                         const tech = record.tech || 0;
-                        const matchType = tech < 39 ? 'pve' : 'pvp';
+                        // Force PvP for Plant & Defuse mode
+                        let matchType;
+                        if (mode === 'plant-defuse') {
+                            matchType = 'pvp';
+                        } else {
+                            matchType = tech < 39 ? 'pve' : 'pvp';
+                        }
                         // Check if this specific record is disqualified
                         const isDisqualified = record.disqualified === true;
 
