@@ -2105,6 +2105,13 @@ function updateTankPageElements(tank) {
             tankTitle.textContent = tank.name;
         }
     }
+
+    // Update the tank image in the Core Details tab
+    const tankImageContainer = document.querySelector('.tank-image img');
+    if (tankImageContainer && tank.main) {
+        tankImageContainer.src = tank.main;
+        tankImageContainer.alt = `${tank.name} Tank Image`;
+    }
 }
 
 function initializeAgentModals() {
