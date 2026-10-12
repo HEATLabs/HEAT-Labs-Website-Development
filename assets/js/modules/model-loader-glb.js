@@ -238,7 +238,12 @@ class ModelLoader {
             try {
                 const tank = tanksData.find(t => t.id.toString() === id.toString());
                 if (tank) {
-                    this.modelPath = tank.model;
+                    // Only SD for now
+                    if (tank.modelSD) {
+                        this.modelPath = tank.modelSD;
+                    } else {
+                        console.warn('No modelSD for tank ID:', id, '- using default model path');
+                    }
                 }
             } catch (error){
                 console.error('Error in find ID: ',error);
