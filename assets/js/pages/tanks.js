@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'Assault': 'assault_big',
         'Defender': 'defender_big',
         'Marksman': 'marksman_big',
+        'Support': 'support_big',
         'Hybrid': 'hybrid_big'
     };
 
