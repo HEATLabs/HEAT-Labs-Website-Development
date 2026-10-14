@@ -584,23 +584,82 @@
                 <!-- STATS TAB -->
                 <div class="tank-tab-panel" id="tab-stats">
                   <h2 id="tank-stats">Tank Statistics</h2>
-                    <!-- Equipment & Modules Picker -->
-                    <div class="loadout-picker">
-                      <div class="loadout-picker-header">
-                        <div class="loadout-picker-header-left">
-                          <i class="fas fa-sliders-h"></i>
-                          <h3>Equipment & Modules</h3>
+                  <!-- Equipment & Modules Picker -->
+                  <div class="loadout-picker">
+                    <div class="loadout-picker-header">
+                      <div class="loadout-picker-header-left">
+                        <i class="fas fa-sliders-h"></i>
+                        <h3>Equipment & Modules</h3>
+                      </div>
+                      <div>
+                        <span class="payload-score">0/100</span>
+                      </div>
+                    </div>
+                    <div class="loadout-picker-content">
+                      <div class="loadout-picker-slots" id="loadoutPickerContainer">
+                        <!-- Slots will be dynamically inserted here by JavaScript -->
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Core Statistics Box -->
+                  <div class="core-stats-box">
+                    <div class="core-stats-header">
+                      <div class="core-stats-header-left">
+                        <i class="fas fa-chart-simple"></i>
+                        <h3>Core Statistics</h3>
+                      </div>
+                    </div>
+                    <div class="core-stats-content">
+                      <div class="core-stat-row" data-stat="lethality">
+                        <div class="core-stat-label">
+                          <i class="fas fa-crosshairs"></i>
+                          <span>Lethality</span>
                         </div>
-                        <div>
-                          <span class="payload-score">0/100</span>
+                        <div class="core-stat-bar-wrapper">
+                          <div class="core-stat-bar">
+                            <div class="core-stat-fill" style="width: 0%"></div>
+                          </div>
+                          <span class="core-stat-value">0</span>
                         </div>
                       </div>
-                      <div class="loadout-picker-content">
-                        <div class="loadout-picker-slots" id="loadoutPickerContainer">
-                          <!-- Slots will be dynamically inserted here by JavaScript -->
+                      <div class="core-stat-row" data-stat="mobility">
+                        <div class="core-stat-label">
+                          <i class="fas fa-tachometer-alt"></i>
+                          <span>Mobility</span>
+                        </div>
+                        <div class="core-stat-bar-wrapper">
+                          <div class="core-stat-bar">
+                            <div class="core-stat-fill" style="width: 0%"></div>
+                          </div>
+                          <span class="core-stat-value">0</span>
+                        </div>
+                      </div>
+                      <div class="core-stat-row" data-stat="survivability">
+                        <div class="core-stat-label">
+                          <i class="fas fa-shield-alt"></i>
+                          <span>Survivability</span>
+                        </div>
+                        <div class="core-stat-bar-wrapper">
+                          <div class="core-stat-bar">
+                            <div class="core-stat-fill" style="width: 0%"></div>
+                          </div>
+                          <span class="core-stat-value">0</span>
+                        </div>
+                      </div>
+                      <div class="core-stat-row" data-stat="utility">
+                        <div class="core-stat-label">
+                          <i class="fas fa-cogs"></i>
+                          <span>Utility</span>
+                        </div>
+                        <div class="core-stat-bar-wrapper">
+                          <div class="core-stat-bar">
+                            <div class="core-stat-fill" style="width: 0%"></div>
+                          </div>
+                          <span class="core-stat-value">0</span>
                         </div>
                       </div>
                     </div>
+                  </div>
                   <div class="stats-grid">
                     <!-- Firepower -->
                     <div class="stats-category">

@@ -593,6 +593,14 @@ async function fetchTankData(tankId) {
         // Populate the loadout picker
         populateLoadoutPicker(tank.slots);
 
+        // Populate core statistics
+        populateCoreStatistics(tank.statistics || {
+            lethality: 0,
+            mobility: 0,
+            survivability: 0,
+            utility: 0
+        });
+
         // Populate gallery images
         populateTankGallery(tank.gallery);
 
@@ -738,6 +746,70 @@ function populateLoadoutPicker(slots) {
     });
 
     pickerContainer.innerHTML = slotsHTML;
+}
+
+// CORE STATISTICS
+function populateCoreStatistics(statistics) {
+    const coreStatsBox = document.querySelector('.core-stats-box');
+    if (!coreStatsBox) {
+        console.warn('Core statistics box not found');
+        return;
+    }
+
+    // Default values if statistics is not provided
+    const defaultStats = {
+        lethality: 0,
+        mobility: 0,
+        survivability: 0,
+        utility: 0
+    };
+
+    const stats = statistics || defaultStats;
+
+    // Map of stat keys to their display names (for logging/fallback)
+    const statKeys = ['lethality', 'mobility', 'survivability', 'utility'];
+
+    statKeys.forEach(key => {
+        const row = coreStatsBox.querySelector(`.core-stat-row[data-stat="${key}"]`);
+        if (!row) return;
+
+        const fillElement = row.querySelector('.core-stat-fill');
+        const valueElement = row.querySelector('.core-stat-value');
+
+        if (!fillElement || !valueElement) return;
+
+        // Get the value, clamp between 0 and 100
+        let value = parseFloat(stats[key]);
+        if (isNaN(value)) value = 0;
+        value = Math.max(0, Math.min(100, value));
+
+        // Update the fill width
+        fillElement.style.width = `${value}%`;
+
+        // Update the numeric value
+        valueElement.textContent = Math.round(value);
+
+        // Set the color level based on the value
+        fillElement.setAttribute('data-level', getCoreStatLevel(value));
+
+        // Add animation class (remove first to restart animation if needed)
+        fillElement.classList.remove('animate');
+        // Trigger reflow to restart animation
+        void fillElement.offsetWidth;
+        fillElement.classList.add('animate');
+    });
+}
+
+function getCoreStatLevel(value) {
+    if (value >= 80) return 'very-high';
+    if (value >= 60) return 'high';
+    if (value >= 40) return 'medium';
+    if (value >= 20) return 'low';
+    return 'very-low';
+}
+
+function updateCoreStatistics(statistics) {
+    populateCoreStatistics(statistics);
 }
 
 // Populate the tank gallery with images
