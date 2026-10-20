@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', function() {
         favorites: JSON.parse(localStorage.getItem('soundboardFavorites')) || [],
         filters: {
             category: [],
-            source: [],
             type: []
         },
         searchTerm: '',
@@ -35,7 +34,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const playRandom = document.getElementById('playRandom');
     const activeFilters = document.getElementById('activeFilters');
     const categoryFilters = document.getElementById('categoryFilters');
-    const sourceFilters = document.getElementById('sourceFilters');
     const typeFilters = document.getElementById('typeFilters');
     const paginationControls = document.getElementById('paginationControls');
     const prevPage = document.getElementById('prevPage');
@@ -340,18 +338,6 @@ document.addEventListener('DOMContentLoaded', function() {
             categoryFilters.appendChild(button);
         });
 
-        // Source filters
-        const sources = getUniqueValues(sounds, 'soundSource');
-        sourceFilters.innerHTML = '';
-        sources.forEach(source => {
-            const button = document.createElement('button');
-            button.className = 'filter-btn';
-            button.setAttribute('data-source', source);
-            button.innerHTML = `<i class="fas fa-database"></i> ${source}`;
-            button.addEventListener('click', () => toggleFilter('source', source, button));
-            sourceFilters.appendChild(button);
-        });
-
         // Type filters
         const types = getUniqueValues(sounds, 'soundType');
         typeFilters.innerHTML = '';
@@ -398,12 +384,6 @@ document.addEventListener('DOMContentLoaded', function() {
             );
         }
 
-        if (soundboardState.filters.source.length > 0) {
-            availableSounds = availableSounds.filter(sound =>
-                soundboardState.filters.source.includes(sound.soundSource)
-            );
-        }
-
         if (soundboardState.filters.type.length > 0) {
             availableSounds = availableSounds.filter(sound =>
                 soundboardState.filters.type.includes(sound.soundType)
@@ -427,12 +407,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Get available values for each filter type
         const availableCategories = [...new Set(availableSounds.map(sound => sound.category).filter(Boolean))];
-        const availableSources = [...new Set(availableSounds.map(sound => sound.soundSource).filter(Boolean))];
         const availableTypes = [...new Set(availableSounds.map(sound => sound.soundType).filter(Boolean))];
 
         return {
             categories: availableCategories,
-            sources: availableSources,
             types: availableTypes
         };
     }
@@ -447,28 +425,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const category = button.getAttribute('data-category');
             const isActive = soundboardState.filters.category.includes(category);
             const isAvailable = availableFilters.categories.includes(category);
-
-            if (isActive) {
-                button.classList.add('active');
-                button.disabled = false;
-            } else {
-                button.classList.remove('active');
-                button.disabled = !isAvailable;
-
-                if (!isAvailable) {
-                    button.title = 'No sounds available with current filters';
-                } else {
-                    button.title = '';
-                }
-            }
-        });
-
-        // Update source filter buttons
-        const sourceButtons = document.querySelectorAll('.filter-btn[data-source]');
-        sourceButtons.forEach(button => {
-            const source = button.getAttribute('data-source');
-            const isActive = soundboardState.filters.source.includes(source);
-            const isAvailable = availableFilters.sources.includes(source);
 
             if (isActive) {
                 button.classList.add('active');
@@ -550,12 +506,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add category filters
         soundboardState.filters.category.forEach(category => {
             const pill = createFilterPill(category, 'category');
-            activeFilters.appendChild(pill);
-        });
-
-        // Add source filters
-        soundboardState.filters.source.forEach(source => {
-            const pill = createFilterPill(source, 'source');
             activeFilters.appendChild(pill);
         });
 
@@ -654,13 +604,6 @@ document.addEventListener('DOMContentLoaded', function() {
             );
         }
 
-        // Apply source filter
-        if (soundboardState.filters.source.length > 0) {
-            filtered = filtered.filter(sound =>
-                soundboardState.filters.source.includes(sound.soundSource)
-            );
-        }
-
         // Apply type filter
         if (soundboardState.filters.type.length > 0) {
             filtered = filtered.filter(sound =>
@@ -756,7 +699,6 @@ document.addEventListener('DOMContentLoaded', function() {
         card.className = 'sound-card';
         card.setAttribute('data-sound-id', sound.soundID);
         card.setAttribute('data-category', sound.category);
-        card.setAttribute('data-source', sound.soundSource);
         card.setAttribute('data-type', sound.soundType);
 
         card.innerHTML = `
