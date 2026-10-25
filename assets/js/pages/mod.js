@@ -165,8 +165,11 @@ async function fetchModData(modId, modSlug) {
 function parseModDetails(mdContent) {
     const details = {};
 
-    // Remove the old download field - we now use downloads section
-    // download field is intentionally skipped
+    // Parse page-image from frontmatter
+    const pageImageMatch = mdContent.match(/^page-image:\s*([^\n]+)/m);
+    if (pageImageMatch && pageImageMatch[1]) {
+        details.pageImage = pageImageMatch[1].trim();
+    }
 
     const categoryMatch = mdContent.match(/category:\s*([^#\n]+)/i);
     if (categoryMatch && categoryMatch[1]) {
@@ -202,7 +205,7 @@ function parseModDetails(mdContent) {
         const downloadsSection = downloadsMatch[0];
         details.downloads.enabled = true;
 
-        const layoutMatch = downloadsSection.match(/layout:\s*([^\n]+)/i);
+        const layoutMatch = downloadsSection.match(/layout:\s*([^\n#]+)/i);
         if (layoutMatch && layoutMatch[1]) {
             details.downloads.layout = layoutMatch[1].trim();
         }
@@ -251,6 +254,33 @@ function parseModDetails(mdContent) {
                     details.downloads.links.push({ os: currentOs, url: currentUrl });
                 }
             }
+        }
+    }
+
+    // Extract license section
+    details.license = {
+        enabled: false,
+        name: '',
+        url: ''
+    };
+
+    const licenseSectionMatch = mdContent.match(/license:[\s\S]*?(?=\n\w+:|$)/i);
+    if (licenseSectionMatch) {
+        const licenseSection = licenseSectionMatch[0];
+
+        const licenseEnabledMatch = licenseSection.match(/enabled:\s*(true|false)/i);
+        if (licenseEnabledMatch) {
+            details.license.enabled = licenseEnabledMatch[1].toLowerCase() === 'true';
+        }
+
+        const licenseNameMatch = licenseSection.match(/name:\s*([^\n#]+)/i);
+        if (licenseNameMatch && licenseNameMatch[1]) {
+            details.license.name = licenseNameMatch[1].trim();
+        }
+
+        const licenseUrlMatch = licenseSection.match(/url:\s*([^\n#]+)/i);
+        if (licenseUrlMatch && licenseUrlMatch[1]) {
+            details.license.url = licenseUrlMatch[1].trim();
         }
     }
 
@@ -368,7 +398,7 @@ function parseModDetails(mdContent) {
             details.overview.description = overviewDescMatch[1].trim();
         }
 
-        const layoutMatch = overviewSection.match(/layout:\s*([^\n]+)/i);
+        const layoutMatch = overviewSection.match(/layout:\s*([^\n#]+)/i);
         if (layoutMatch && layoutMatch[1]) {
             details.overview.layout = layoutMatch[1].trim();
         }
@@ -455,6 +485,64 @@ function parseModDetails(mdContent) {
     // Keep backward-compatible flat property
     details.installationSteps = details.installation.steps;
 
+    // Extract troubleshooting steps
+    details.troubleshooting = {
+        enabled: false,
+        description: '',
+        steps: []
+    };
+
+    const troubleshootingSectionMatch = mdContent.match(/troubleshooting:[\s\S]*?(?=\n\w+:|$)/i);
+    if (troubleshootingSectionMatch) {
+        const troubleshootingSection = troubleshootingSectionMatch[0];
+
+        const troublesEnabledMatch = troubleshootingSection.match(/enabled:\s*(true|false)/i);
+        if (troublesEnabledMatch) {
+            details.troubleshooting.enabled = troublesEnabledMatch[1].toLowerCase() === 'true';
+        }
+
+        const troublesDescMatch = troubleshootingSection.match(/description:\s*(.+?)(?=\n\s*\w+:|$)/i);
+        if (troublesDescMatch && troublesDescMatch[1]) {
+            details.troubleshooting.description = troublesDescMatch[1].trim();
+        }
+
+        const troublesStepsMatch = troubleshootingSection.match(/steps:([\s\S]*?)(?=\n\w+:|$)/i);
+        if (troublesStepsMatch && troublesStepsMatch[1]) {
+            const stepsContent = troublesStepsMatch[1];
+            const lines = stepsContent.split('\n');
+            let currentStep = null;
+
+            for (let i = 0; i < lines.length; i++) {
+                const rawLine = lines[i];
+                const line = rawLine.trim();
+                if (!line) continue;
+
+                if (/^-\s*name:\s*/i.test(line)) {
+                    if (currentStep) details.troubleshooting.steps.push(currentStep);
+                    const nameMatch = line.match(/^-\s*name:\s*(.+)$/i);
+                    currentStep = {
+                        name: nameMatch ? nameMatch[1].trim() : `Step #${details.troubleshooting.steps.length + 1}`,
+                        description: ''
+                    };
+                }
+                else if (/^description:\s*/i.test(line) && currentStep) {
+                    const descMatch = line.match(/^description:\s*(.+)$/i);
+                    if (descMatch && descMatch[1]) {
+                        currentStep.description = currentStep.description
+                            ? currentStep.description + ' ' + descMatch[1].trim()
+                            : descMatch[1].trim();
+                    }
+                }
+                else if (currentStep && !line.startsWith('-') && !/^\w+:/i.test(line)) {
+                    currentStep.description = currentStep.description
+                        ? currentStep.description + ' ' + line
+                        : line;
+                }
+            }
+            if (currentStep) details.troubleshooting.steps.push(currentStep);
+        }
+    }
+
     // Extract video showcase
     details.videoShowcase = {
         enabled: false,
@@ -467,7 +555,7 @@ function parseModDetails(mdContent) {
         details.videoShowcase.enabled = videoEnabledMatch[1].toLowerCase() === 'true';
     }
 
-    const videoLayoutMatch = mdContent.match(/videoShowcase:[\s\S]*?layout:\s*([^\n]+)/i);
+    const videoLayoutMatch = mdContent.match(/videoShowcase:[\s\S]*?layout:\s*([^\n#]+)/i);
     if (videoLayoutMatch) {
         details.videoShowcase.layout = videoLayoutMatch[1].trim();
     }
@@ -552,9 +640,14 @@ function updateModPageElements(mod, modVersion, modDetails) {
 
     // Update mod image
     const modImage = document.querySelector('.mod-image img');
-    if (modImage && mod.image) {
-        modImage.src = mod.image;
-        modImage.alt = mod.name;
+    if (modImage) {
+        if (modDetails && modDetails.pageImage) {
+            modImage.src = modDetails.pageImage;
+            modImage.alt = mod.name;
+        } else if (mod.image) {
+            modImage.src = mod.image;
+            modImage.alt = mod.name;
+        }
     }
 
     // Update feature cards
@@ -617,7 +710,7 @@ function updateModPageElements(mod, modVersion, modDetails) {
                     case 'grid':
                         const gridImages = images.slice(0, 4);
                         const gridItems = gridImages.map(img => `<div><img src="${img}" alt="Mod Overview" class="rounded-lg"></div>`).join('');
-                        layoutHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">${gridItems}</div>`;
+                        layoutHTML = `<div class="grid grid-cols-2 md:grid-cols-2 gap-4 my-6">${gridItems}</div>`;
                         break;
                 }
                 if (layoutHTML) {
@@ -625,7 +718,8 @@ function updateModPageElements(mod, modVersion, modDetails) {
                     tempDiv.innerHTML = layoutHTML;
                     const gridElements = Array.from(tempDiv.children);
                     if (overviewParagraph) {
-                        gridElements.forEach(el => overviewParagraph.after(el));
+                        // Insert in reverse order so the final DOM order matches gridElements order
+                        gridElements.slice().reverse().forEach(el => overviewParagraph.after(el));
                     } else {
                         overviewSection.append(tempDiv);
                     }
@@ -672,66 +766,205 @@ function updateModPageElements(mod, modVersion, modDetails) {
         }
     });
 
+    // Update License
+    updateLicenseSection(modDetails);
+
     // Update Support & Feedback
     updateSupportSection(modDetails);
 
     // Update installation steps
-    const faqContainer = document.querySelector('.faq-container');
+    updateInstallationSection(modDetails);
+
+    // Update troubleshooting steps
+    updateTroubleshootingSection(modDetails);
+
+    updateRelatedMods(mod, modDetails);
+
+    // Re-initialize the gallery after content has been dynamically injected
+    // so that overview images are clickable and open in the gallery modal
+    initializeImageGallery();
+}
+
+// Function to update the License section
+function updateLicenseSection(modDetails) {
+    const sidebarCards = document.querySelectorAll('.sidebar-card');
+    let licenseCard = null;
+    sidebarCards.forEach(card => {
+        const heading = card.querySelector('h3');
+        if (heading && heading.textContent === 'License') {
+            licenseCard = card;
+        }
+    });
+    if (!licenseCard) return;
+
+    const licenseEnabled = modDetails?.license?.enabled ?? false;
+
+    if (!licenseEnabled) {
+        licenseCard.style.display = 'none';
+        return;
+    }
+
+    licenseCard.style.display = '';
+
+    const licenseContent = licenseCard.querySelector('.support-content p');
+    if (licenseContent) {
+        licenseContent.textContent = modDetails.license.name || 'License information not available.';
+    }
+
+    const licenseButtonsContainer = licenseCard.querySelector('.support-buttons');
+    if (licenseButtonsContainer) {
+        licenseButtonsContainer.innerHTML = '';
+        if (modDetails.license.url && modDetails.license.url !== 'URL' && modDetails.license.url !== '') {
+            const licenseBtn = document.createElement('a');
+            licenseBtn.href = modDetails.license.url;
+            licenseBtn.className = 'support-btn';
+            licenseBtn.target = '_blank';
+            licenseBtn.rel = 'noopener noreferrer';
+            licenseBtn.innerHTML = `<span>Read License</span>`;
+            licenseButtonsContainer.appendChild(licenseBtn);
+        }
+    }
+}
+
+// Function to update the installation section
+function updateInstallationSection(modDetails) {
     const installationHeading = document.querySelector('#faq');
     const installationParent = installationHeading ? installationHeading.closest('.mt-16') : null;
 
-    if (installationParent) {
-        const installEnabled = modDetails?.installation?.enabled ?? false;
+    if (!installationParent) return;
 
-        if (!installEnabled) {
-            installationParent.style.display = 'none';
-        } else {
-            installationParent.style.display = '';
+    const installEnabled = modDetails?.installation?.enabled ?? false;
 
-            const steps = modDetails.installation.steps || [];
-
-            if (faqContainer && steps.length > 0) {
-                faqContainer.innerHTML = '';
-
-                steps.forEach((step, index) => {
-                    const faqItem = document.createElement('div');
-                    faqItem.className = `faq-item ${index === 0 ? 'active' : ''}`;
-
-                    const faqQuestion = document.createElement('div');
-                    faqQuestion.className = 'faq-question';
-                    faqQuestion.innerHTML = `<h4>${step.name}</h4><i class="fas fa-chevron-down"></i>`;
-
-                    const faqAnswer = document.createElement('div');
-                    faqAnswer.className = `faq-answer ${index === 0 ? 'active' : ''}`;
-                    faqAnswer.innerHTML = `<p>${step.description}</p>`;
-
-                    faqItem.appendChild(faqQuestion);
-                    faqItem.appendChild(faqAnswer);
-                    faqContainer.appendChild(faqItem);
-                });
-
-                // Re-bind click handlers
-                const newFaqItems = faqContainer.querySelectorAll('.faq-item');
-                newFaqItems.forEach(item => {
-                    const question = item.querySelector('.faq-question');
-                    question.addEventListener('click', () => {
-                        newFaqItems.forEach(otherItem => {
-                            if (otherItem !== item) {
-                                otherItem.classList.remove('active');
-                                const answer = otherItem.querySelector('.faq-answer');
-                                if (answer) answer.classList.remove('active');
-                            }
-                        });
-                        item.classList.toggle('active');
-                        const answer = item.querySelector('.faq-answer');
-                        if (answer) answer.classList.toggle('active');
-                    });
-                });
-            }
-        }
+    if (!installEnabled) {
+        installationParent.style.display = 'none';
+        return;
     }
 
-    updateRelatedMods(mod, modDetails);
+    installationParent.style.display = '';
+
+    // Update description text
+    const descParagraph = installationParent.querySelector('.text-center');
+    if (descParagraph && modDetails.installation.description) {
+        descParagraph.textContent = modDetails.installation.description;
+    }
+
+    // Update steps
+    const faqContainer = installationParent.querySelector('.faq-container');
+    const steps = modDetails.installation.steps || [];
+
+    if (!faqContainer) return;
+
+    faqContainer.innerHTML = '';
+
+    if (steps.length === 0) {
+        return;
+    }
+
+    steps.forEach((step, index) => {
+        const faqItem = document.createElement('div');
+        faqItem.className = `faq-item ${index === 0 ? 'active' : ''}`;
+
+        const faqQuestion = document.createElement('div');
+        faqQuestion.className = 'faq-question';
+        faqQuestion.innerHTML = `<h4>${step.name}</h4><i class="fas fa-chevron-down"></i>`;
+
+        const faqAnswer = document.createElement('div');
+        faqAnswer.className = `faq-answer ${index === 0 ? 'active' : ''}`;
+        faqAnswer.innerHTML = `<p>${step.description}</p>`;
+
+        faqItem.appendChild(faqQuestion);
+        faqItem.appendChild(faqAnswer);
+        faqContainer.appendChild(faqItem);
+    });
+
+    // Re-bind click handlers
+    const newFaqItems = faqContainer.querySelectorAll('.faq-item');
+    newFaqItems.forEach(item => {
+        const question = item.querySelector('.faq-question');
+        question.addEventListener('click', () => {
+            newFaqItems.forEach(otherItem => {
+                if (otherItem !== item) {
+                    otherItem.classList.remove('active');
+                    const answer = otherItem.querySelector('.faq-answer');
+                    if (answer) answer.classList.remove('active');
+                }
+            });
+            item.classList.toggle('active');
+            const answer = item.querySelector('.faq-answer');
+            if (answer) answer.classList.toggle('active');
+        });
+    });
+}
+
+// Function to update the troubleshooting section
+function updateTroubleshootingSection(modDetails) {
+    const troubleshootingHeading = document.querySelector('#troubleshoot');
+    if (!troubleshootingHeading) return;
+
+    const troubleshootingParent = troubleshootingHeading.closest('.mt-16');
+    if (!troubleshootingParent) return;
+
+    const troublesEnabled = modDetails?.troubleshooting?.enabled ?? false;
+
+    if (!troublesEnabled) {
+        troubleshootingParent.style.display = 'none';
+        return;
+    }
+
+    troubleshootingParent.style.display = '';
+
+    // Update description text
+    const descParagraph = troubleshootingParent.querySelector('.text-center');
+    if (descParagraph && modDetails.troubleshooting.description) {
+        descParagraph.textContent = modDetails.troubleshooting.description;
+    }
+
+    // Update steps
+    const faqContainer = troubleshootingParent.querySelector('.faq-container');
+    const steps = modDetails.troubleshooting.steps || [];
+
+    if (!faqContainer) return;
+
+    faqContainer.innerHTML = '';
+
+    if (steps.length === 0) {
+        return;
+    }
+
+    steps.forEach((step, index) => {
+        const faqItem = document.createElement('div');
+        faqItem.className = `faq-item ${index === 0 ? 'active' : ''}`;
+
+        const faqQuestion = document.createElement('div');
+        faqQuestion.className = 'faq-question';
+        faqQuestion.innerHTML = `<h4>${step.name}</h4><i class="fas fa-chevron-down"></i>`;
+
+        const faqAnswer = document.createElement('div');
+        faqAnswer.className = `faq-answer ${index === 0 ? 'active' : ''}`;
+        faqAnswer.innerHTML = `<p>${step.description}</p>`;
+
+        faqItem.appendChild(faqQuestion);
+        faqItem.appendChild(faqAnswer);
+        faqContainer.appendChild(faqItem);
+    });
+
+    // Re-bind click handlers
+    const newFaqItems = faqContainer.querySelectorAll('.faq-item');
+    newFaqItems.forEach(item => {
+        const question = item.querySelector('.faq-question');
+        question.addEventListener('click', () => {
+            newFaqItems.forEach(otherItem => {
+                if (otherItem !== item) {
+                    otherItem.classList.remove('active');
+                    const answer = otherItem.querySelector('.faq-answer');
+                    if (answer) answer.classList.remove('active');
+                }
+            });
+            item.classList.toggle('active');
+            const answer = item.querySelector('.faq-answer');
+            if (answer) answer.classList.toggle('active');
+        });
+    });
 }
 
 // Function to update download buttons using the downloads section
@@ -825,7 +1058,6 @@ function updateDownloadButtons(modDetails) {
 
 // Function to update feature cards with force visibility
 function updateFeatureCards(modDetails) {
-    console.log('updateFeatureCards called', modDetails);
 
     // Find the mod introduction section
     const modIntroSection = document.querySelector('#mod-introduction');
@@ -849,7 +1081,6 @@ function updateFeatureCards(modDetails) {
     let existingGrid = parentContainer.querySelector('.grid.gap-6.my-8.text-center');
 
     if (!existingGrid) {
-        console.log('Creating new grid element');
         existingGrid = document.createElement('div');
         existingGrid.className = 'grid gap-6 my-8 text-center';
         const modImage = parentContainer.querySelector('.mod-image');
@@ -862,7 +1093,6 @@ function updateFeatureCards(modDetails) {
 
     // If no features, hide and return
     if (!modDetails || !modDetails.features || !modDetails.features.enabled || modDetails.features.cards.length === 0) {
-        console.log('Features disabled or no cards, hiding grid');
         existingGrid.style.display = 'none';
         return;
     }
@@ -878,8 +1108,6 @@ function updateFeatureCards(modDetails) {
     const cards = modDetails.features.cards;
     const cardCount = cards.length;
 
-    console.log(`Rendering ${cardCount} feature cards`);
-
     // Set grid columns
     let gridCols = 'grid-cols-1 md:grid-cols-1';
     if (cardCount === 2) gridCols = 'grid-cols-1 md:grid-cols-2';
@@ -894,8 +1122,6 @@ function updateFeatureCards(modDetails) {
                        iconText.trim() !== '#' &&
                        !iconText.includes('fontawesome-icon-placeholder') &&
                        !iconText.includes('Use fontawesome icons only');
-
-        console.log('Card icon:', iconText, 'Has icon:', hasIcon);
 
         let iconWrapperHTML = '';
         if (hasIcon) {
@@ -917,7 +1143,6 @@ function updateFeatureCards(modDetails) {
     existingGrid.style.display = 'grid';
     existingGrid.innerHTML = cardsHTML;
 
-    console.log('Feature cards rendered successfully');
 }
 
 // Function to update the Support & Feedback section
@@ -1133,6 +1358,9 @@ function initializeModPageElements() {
     }
 }
 
+// Track elements that already have gallery click handlers bound,
+const galleryBoundElements = new WeakSet();
+
 function initializeImageGallery() {
     const galleryModal = document.getElementById('galleryModal');
     const galleryMainImage = document.getElementById('galleryMainImage');
@@ -1142,28 +1370,48 @@ function initializeImageGallery() {
     const galleryPrevBtn = document.getElementById('galleryPrevBtn');
     const galleryNextBtn = document.getElementById('galleryNextBtn');
 
-    const galleryImages = [];
-    document.querySelectorAll('.mod-image img').forEach(img => {
-        galleryImages.push({
-            src: img.src,
-            alt: img.alt,
-            caption: img.nextElementSibling?.textContent || ''
-        });
-    });
-    document.querySelectorAll('.sidebar-card .gallery-thumbnail img').forEach(img => {
-        galleryImages.push({
-            src: img.parentElement.href,
-            alt: img.alt,
-            caption: img.alt
-        });
-    });
-    if (galleryImages.length === 0) return;
+    if (!galleryModal || !galleryMainImage || !galleryThumbnailsContainer) return;
 
+    let galleryImages = [];
     let currentImageIndex = 0;
 
+    // Rebuild the gallery image list.
+    function buildGalleryImages() {
+        galleryImages = [];
+        // Top hero image(s) inside .mod-image
+        document.querySelectorAll('.mod-image img').forEach(img => {
+            galleryImages.push({
+                src: img.src,
+                alt: img.alt,
+                caption: img.nextElementSibling?.textContent || ''
+            });
+        });
+        // Overview grid images (inside #standard / .gamemode-section)
+        document.querySelectorAll('#standard img, .gamemode-section img').forEach(img => {
+            // Avoid double-counting if an image somehow matches both selectors
+            if (img.closest('.mod-image')) return;
+            galleryImages.push({
+                src: img.src,
+                alt: img.alt,
+                caption: img.nextElementSibling?.textContent || ''
+            });
+        });
+        // Sidebar gallery thumbnails
+        document.querySelectorAll('.sidebar-card .gallery-thumbnail img').forEach(img => {
+            galleryImages.push({
+                src: img.parentElement.href,
+                alt: img.alt,
+                caption: img.alt
+            });
+        });
+    }
+
     function openGallery(index) {
+        buildGalleryImages();
+        if (galleryImages.length === 0) return;
         if (index < 0 || index >= galleryImages.length) return;
         currentImageIndex = index;
+        createThumbnails();
         updateGalleryImage();
         galleryModal.classList.add('active');
         document.body.style.overflow = 'hidden';
@@ -1171,6 +1419,7 @@ function initializeImageGallery() {
 
     function updateGalleryImage() {
         const currentImage = galleryImages[currentImageIndex];
+        if (!currentImage) return;
         galleryMainImage.src = currentImage.src;
         galleryMainImage.alt = currentImage.alt;
         galleryImageCaption.textContent = currentImage.caption;
@@ -1207,20 +1456,67 @@ function initializeImageGallery() {
         });
     }
 
-    createThumbnails();
-
-    document.querySelectorAll('.mod-image img, .sidebar-card .gallery-thumbnail').forEach((element, index) => {
+    // Bind click handlers to all clickable gallery images.
+    function bindClickableImage(element, isThumbnail) {
+        if (galleryBoundElements.has(element)) return;
+        galleryBoundElements.add(element);
         element.addEventListener('click', (e) => {
             e.preventDefault();
+            buildGalleryImages();
+            let index = -1;
+            if (isThumbnail) {
+                // Sidebar thumbnails are appended after all other images
+                const allThumbs = Array.from(document.querySelectorAll('.sidebar-card .gallery-thumbnail'));
+                const thumbIndex = allThumbs.indexOf(element);
+                if (thumbIndex !== -1) {
+                    const nonThumbCount = galleryImages.length - allThumbs.length;
+                    index = nonThumbCount + thumbIndex;
+                }
+            } else {
+                // Determine the index by matching src + alt in the built list.
+                // This is robust against dynamic reordering/injection.
+                const imgs = element.tagName === 'IMG' ? [element] : [element.querySelector('img')].filter(Boolean);
+                const img = imgs[0];
+                if (img) {
+                    index = galleryImages.findIndex(g =>
+                        g.src === img.src && g.alt === (img.alt || '')
+                    );
+                }
+            }
+            if (index === -1) {
+                // Fallback: recompute index based on DOM order of the same selector group
+                const mainImgs = Array.from(document.querySelectorAll('.mod-image img'));
+                const overviewImgs = Array.from(document.querySelectorAll('#standard img, .gamemode-section img'))
+                    .filter(img => !img.closest('.mod-image'));
+                const all = [...mainImgs, ...overviewImgs];
+                const targetImg = element.tagName === 'IMG' ? element : element.querySelector('img');
+                index = all.indexOf(targetImg);
+            }
             openGallery(index);
         });
+    }
+
+    // Bind to hero image(s)
+    document.querySelectorAll('.mod-image img').forEach(img => bindClickableImage(img, false));
+    // Bind to overview grid images (these are dynamically injected)
+    document.querySelectorAll('#standard img, .gamemode-section img').forEach(img => {
+        if (img.closest('.mod-image')) return;
+        bindClickableImage(img, false);
     });
+    // Bind to sidebar thumbnails
+    document.querySelectorAll('.sidebar-card .gallery-thumbnail').forEach(el => bindClickableImage(el, true));
+
+    // Guard one-time listeners so this function can be safely re-invoked
+    if (galleryModal.dataset.initialized === 'true') return;
+    galleryModal.dataset.initialized = 'true';
 
     galleryPrevBtn.addEventListener('click', () => {
+        if (galleryImages.length === 0) return;
         currentImageIndex = (currentImageIndex - 1 + galleryImages.length) % galleryImages.length;
         updateGalleryImage();
     });
     galleryNextBtn.addEventListener('click', () => {
+        if (galleryImages.length === 0) return;
         currentImageIndex = (currentImageIndex + 1) % galleryImages.length;
         updateGalleryImage();
     });
