@@ -1358,13 +1358,144 @@ function initializeModPageElements() {
     }
 }
 
-// Track elements that already have gallery click handlers bound,
+let galleryImages = [];
+let currentImageIndex = 0;
+
+// Track elements that already have gallery click handlers bound
 const galleryBoundElements = new WeakSet();
+
+function buildGalleryImages() {
+    galleryImages = [];
+    // Top hero image(s) inside .mod-image
+    document.querySelectorAll('.mod-image img').forEach(img => {
+        galleryImages.push({
+            src: img.src,
+            alt: img.alt,
+            caption: img.nextElementSibling?.textContent || ''
+        });
+    });
+    // Overview grid images
+    document.querySelectorAll('#standard img, .gamemode-section img').forEach(img => {
+        // Avoid double-counting if an image somehow matches both selectors
+        if (img.closest('.mod-image')) return;
+        galleryImages.push({
+            src: img.src,
+            alt: img.alt,
+            caption: img.nextElementSibling?.textContent || ''
+        });
+    });
+    // Sidebar gallery thumbnails
+    document.querySelectorAll('.sidebar-card .gallery-thumbnail img').forEach(img => {
+        galleryImages.push({
+            src: img.parentElement.href,
+            alt: img.alt,
+            caption: img.alt
+        });
+    });
+}
+
+function updateGalleryImage() {
+    const galleryMainImage = document.getElementById('galleryMainImage');
+    const galleryImageCaption = document.getElementById('galleryImageCaption');
+    if (!galleryMainImage) return;
+    const currentImage = galleryImages[currentImageIndex];
+    if (!currentImage) return;
+    galleryMainImage.src = currentImage.src;
+    galleryMainImage.alt = currentImage.alt;
+    if (galleryImageCaption) galleryImageCaption.textContent = currentImage.caption;
+    document.querySelectorAll('.gallery-thumbnail-item').forEach((thumb, idx) => {
+        thumb.classList.toggle('active', idx === currentImageIndex);
+    });
+    const activeThumb = document.querySelector('.gallery-thumbnail-item.active');
+    if (activeThumb) {
+        activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+}
+
+function closeGallery() {
+    const galleryModal = document.getElementById('galleryModal');
+    const galleryMainImage = document.getElementById('galleryMainImage');
+    if (!galleryModal) return;
+    galleryModal.classList.remove('active');
+    document.body.style.overflow = '';
+    if (galleryMainImage) galleryMainImage.classList.remove('zoomed');
+}
+
+function createThumbnails() {
+    const galleryThumbnailsContainer = document.getElementById('galleryThumbnailsContainer');
+    if (!galleryThumbnailsContainer) return;
+    galleryThumbnailsContainer.innerHTML = '';
+    galleryImages.forEach((img, index) => {
+        const thumbItem = document.createElement('div');
+        thumbItem.className = 'gallery-thumbnail-item';
+        if (index === currentImageIndex) thumbItem.classList.add('active');
+        const thumbImg = document.createElement('img');
+        thumbImg.src = img.src;
+        thumbImg.alt = img.alt;
+        thumbItem.appendChild(thumbImg);
+        thumbItem.addEventListener('click', () => {
+            currentImageIndex = index;
+            updateGalleryImage();
+        });
+        galleryThumbnailsContainer.appendChild(thumbItem);
+    });
+}
+
+function openGallery(index) {
+    const galleryModal = document.getElementById('galleryModal');
+    if (!galleryModal) return;
+    buildGalleryImages();
+    if (galleryImages.length === 0) return;
+    if (index < 0 || index >= galleryImages.length) return;
+    currentImageIndex = index;
+    createThumbnails();
+    updateGalleryImage();
+    galleryModal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function bindClickableGalleryImage(element, isThumbnail) {
+    if (galleryBoundElements.has(element)) return;
+    galleryBoundElements.add(element);
+    element.addEventListener('click', (e) => {
+        e.preventDefault();
+        buildGalleryImages();
+        let index = -1;
+        if (isThumbnail) {
+            // Sidebar thumbnails are appended after all other images
+            const allThumbs = Array.from(document.querySelectorAll('.sidebar-card .gallery-thumbnail'));
+            const thumbIndex = allThumbs.indexOf(element);
+            if (thumbIndex !== -1) {
+                const nonThumbCount = galleryImages.length - allThumbs.length;
+                index = nonThumbCount + thumbIndex;
+            }
+        } else {
+            // Determine the index by matching src + alt in the built list.
+            // This is robust against dynamic reordering/injection.
+            const imgs = element.tagName === 'IMG' ? [element] : [element.querySelector('img')].filter(Boolean);
+            const img = imgs[0];
+            if (img) {
+                index = galleryImages.findIndex(g =>
+                    g.src === img.src && g.alt === (img.alt || '')
+                );
+            }
+        }
+        if (index === -1) {
+            // Fallback: recompute index based on DOM order of the same selector group
+            const mainImgs = Array.from(document.querySelectorAll('.mod-image img'));
+            const overviewImgs = Array.from(document.querySelectorAll('#standard img, .gamemode-section img'))
+                .filter(img => !img.closest('.mod-image'));
+            const all = [...mainImgs, ...overviewImgs];
+            const targetImg = element.tagName === 'IMG' ? element : element.querySelector('img');
+            index = all.indexOf(targetImg);
+        }
+        openGallery(index);
+    });
+}
 
 function initializeImageGallery() {
     const galleryModal = document.getElementById('galleryModal');
     const galleryMainImage = document.getElementById('galleryMainImage');
-    const galleryImageCaption = document.getElementById('galleryImageCaption');
     const galleryThumbnailsContainer = document.getElementById('galleryThumbnailsContainer');
     const galleryCloseBtn = document.getElementById('galleryCloseBtn');
     const galleryPrevBtn = document.getElementById('galleryPrevBtn');
@@ -1372,155 +1503,35 @@ function initializeImageGallery() {
 
     if (!galleryModal || !galleryMainImage || !galleryThumbnailsContainer) return;
 
-    let galleryImages = [];
-    let currentImageIndex = 0;
-
-    // Rebuild the gallery image list.
-    function buildGalleryImages() {
-        galleryImages = [];
-        // Top hero image(s) inside .mod-image
-        document.querySelectorAll('.mod-image img').forEach(img => {
-            galleryImages.push({
-                src: img.src,
-                alt: img.alt,
-                caption: img.nextElementSibling?.textContent || ''
-            });
-        });
-        // Overview grid images (inside #standard / .gamemode-section)
-        document.querySelectorAll('#standard img, .gamemode-section img').forEach(img => {
-            // Avoid double-counting if an image somehow matches both selectors
-            if (img.closest('.mod-image')) return;
-            galleryImages.push({
-                src: img.src,
-                alt: img.alt,
-                caption: img.nextElementSibling?.textContent || ''
-            });
-        });
-        // Sidebar gallery thumbnails
-        document.querySelectorAll('.sidebar-card .gallery-thumbnail img').forEach(img => {
-            galleryImages.push({
-                src: img.parentElement.href,
-                alt: img.alt,
-                caption: img.alt
-            });
-        });
-    }
-
-    function openGallery(index) {
-        buildGalleryImages();
-        if (galleryImages.length === 0) return;
-        if (index < 0 || index >= galleryImages.length) return;
-        currentImageIndex = index;
-        createThumbnails();
-        updateGalleryImage();
-        galleryModal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function updateGalleryImage() {
-        const currentImage = galleryImages[currentImageIndex];
-        if (!currentImage) return;
-        galleryMainImage.src = currentImage.src;
-        galleryMainImage.alt = currentImage.alt;
-        galleryImageCaption.textContent = currentImage.caption;
-        document.querySelectorAll('.gallery-thumbnail-item').forEach((thumb, idx) => {
-            thumb.classList.toggle('active', idx === currentImageIndex);
-        });
-        const activeThumb = document.querySelector('.gallery-thumbnail-item.active');
-        if (activeThumb) {
-            activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        }
-    }
-
-    function closeGallery() {
-        galleryModal.classList.remove('active');
-        document.body.style.overflow = '';
-        galleryMainImage.classList.remove('zoomed');
-    }
-
-    function createThumbnails() {
-        galleryThumbnailsContainer.innerHTML = '';
-        galleryImages.forEach((img, index) => {
-            const thumbItem = document.createElement('div');
-            thumbItem.className = 'gallery-thumbnail-item';
-            if (index === currentImageIndex) thumbItem.classList.add('active');
-            const thumbImg = document.createElement('img');
-            thumbImg.src = img.src;
-            thumbImg.alt = img.alt;
-            thumbItem.appendChild(thumbImg);
-            thumbItem.addEventListener('click', () => {
-                currentImageIndex = index;
-                updateGalleryImage();
-            });
-            galleryThumbnailsContainer.appendChild(thumbItem);
-        });
-    }
-
-    // Bind click handlers to all clickable gallery images.
-    function bindClickableImage(element, isThumbnail) {
-        if (galleryBoundElements.has(element)) return;
-        galleryBoundElements.add(element);
-        element.addEventListener('click', (e) => {
-            e.preventDefault();
-            buildGalleryImages();
-            let index = -1;
-            if (isThumbnail) {
-                // Sidebar thumbnails are appended after all other images
-                const allThumbs = Array.from(document.querySelectorAll('.sidebar-card .gallery-thumbnail'));
-                const thumbIndex = allThumbs.indexOf(element);
-                if (thumbIndex !== -1) {
-                    const nonThumbCount = galleryImages.length - allThumbs.length;
-                    index = nonThumbCount + thumbIndex;
-                }
-            } else {
-                // Determine the index by matching src + alt in the built list.
-                // This is robust against dynamic reordering/injection.
-                const imgs = element.tagName === 'IMG' ? [element] : [element.querySelector('img')].filter(Boolean);
-                const img = imgs[0];
-                if (img) {
-                    index = galleryImages.findIndex(g =>
-                        g.src === img.src && g.alt === (img.alt || '')
-                    );
-                }
-            }
-            if (index === -1) {
-                // Fallback: recompute index based on DOM order of the same selector group
-                const mainImgs = Array.from(document.querySelectorAll('.mod-image img'));
-                const overviewImgs = Array.from(document.querySelectorAll('#standard img, .gamemode-section img'))
-                    .filter(img => !img.closest('.mod-image'));
-                const all = [...mainImgs, ...overviewImgs];
-                const targetImg = element.tagName === 'IMG' ? element : element.querySelector('img');
-                index = all.indexOf(targetImg);
-            }
-            openGallery(index);
-        });
-    }
-
-    // Bind to hero image(s)
-    document.querySelectorAll('.mod-image img').forEach(img => bindClickableImage(img, false));
-    // Bind to overview grid images (these are dynamically injected)
+    // Bind click handlers to all clickable gallery images
+    document.querySelectorAll('.mod-image img').forEach(img => bindClickableGalleryImage(img, false));
     document.querySelectorAll('#standard img, .gamemode-section img').forEach(img => {
         if (img.closest('.mod-image')) return;
-        bindClickableImage(img, false);
+        bindClickableGalleryImage(img, false);
     });
-    // Bind to sidebar thumbnails
-    document.querySelectorAll('.sidebar-card .gallery-thumbnail').forEach(el => bindClickableImage(el, true));
+    document.querySelectorAll('.sidebar-card .gallery-thumbnail').forEach(el => bindClickableGalleryImage(el, true));
 
-    // Guard one-time listeners so this function can be safely re-invoked
+    // Guard one-time modal control listeners so this function can be safely re-invoked
     if (galleryModal.dataset.initialized === 'true') return;
     galleryModal.dataset.initialized = 'true';
 
-    galleryPrevBtn.addEventListener('click', () => {
-        if (galleryImages.length === 0) return;
-        currentImageIndex = (currentImageIndex - 1 + galleryImages.length) % galleryImages.length;
-        updateGalleryImage();
-    });
-    galleryNextBtn.addEventListener('click', () => {
-        if (galleryImages.length === 0) return;
-        currentImageIndex = (currentImageIndex + 1) % galleryImages.length;
-        updateGalleryImage();
-    });
-    galleryCloseBtn.addEventListener('click', closeGallery);
+    if (galleryPrevBtn) {
+        galleryPrevBtn.addEventListener('click', () => {
+            if (galleryImages.length === 0) return;
+            currentImageIndex = (currentImageIndex - 1 + galleryImages.length) % galleryImages.length;
+            updateGalleryImage();
+        });
+    }
+    if (galleryNextBtn) {
+        galleryNextBtn.addEventListener('click', () => {
+            if (galleryImages.length === 0) return;
+            currentImageIndex = (currentImageIndex + 1) % galleryImages.length;
+            updateGalleryImage();
+        });
+    }
+    if (galleryCloseBtn) {
+        galleryCloseBtn.addEventListener('click', closeGallery);
+    }
     galleryModal.addEventListener('click', (e) => {
         if (e.target === galleryModal) closeGallery();
     });
@@ -1533,10 +1544,12 @@ function initializeImageGallery() {
         switch (e.key) {
             case 'Escape': closeGallery(); break;
             case 'ArrowLeft':
+                if (galleryImages.length === 0) return;
                 currentImageIndex = (currentImageIndex - 1 + galleryImages.length) % galleryImages.length;
                 updateGalleryImage();
                 break;
             case 'ArrowRight':
+                if (galleryImages.length === 0) return;
                 currentImageIndex = (currentImageIndex + 1) % galleryImages.length;
                 updateGalleryImage();
                 break;
@@ -1550,6 +1563,7 @@ function initializeImageGallery() {
     }, { passive: true });
     galleryMainImage.addEventListener('touchend', (e) => {
         touchEndX = e.changedTouches[0].screenX;
+        if (galleryImages.length === 0) return;
         if (touchStartX - touchEndX > 50) {
             currentImageIndex = (currentImageIndex + 1) % galleryImages.length;
             updateGalleryImage();
