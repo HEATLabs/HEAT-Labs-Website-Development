@@ -24,6 +24,9 @@ async function updateMapViewCounters() {
             // Extract the map name from the href (e.g., "maps/nord-oko.html" -> "nord-oko")
             const mapName = mapLink.getAttribute('href').split('/').pop().replace('.html', '');
 
+            // Skip view count fetch for unknown/placeholder maps
+            if (mapName === '#') continue;
+
             // Fetch the view count
             const viewsData = await fetchViewCount(mapName);
             const viewsElement = card.querySelector('.views-count');
@@ -73,8 +76,11 @@ function createMapCard(map) {
     card.setAttribute('data-state', map.state);
     card.setAttribute('data-featured', map.featured ? 'true' : 'false');
 
+    // Determine if the map is a unknown/placeholder (slug is "#")
+    const isBot = map.slug === '#';
+
     // Get the map detail page URL
-    const detailUrl = `maps/${map.slug}`;
+    const detailUrl = isBot ? '#' : `maps/${map.slug}`;
 
     // Calculate area for sorting if size is known
     let area = 0;
@@ -93,8 +99,17 @@ function createMapCard(map) {
     const featuredStar = map.featured ?
         '<i class="fas fa-star" style="color: #ff8300; margin-right: 6px;" title="Featured"></i>' : '';
 
+    // Button HTML - disabled if slug is "#"
+    const buttonHTML = isBot ?
+        `<button class="btn-accent btn-map" disabled style="opacity: 0.5; cursor: not-allowed;">
+            <i class="fas fa-map-marked-alt mr-2"></i>View Map
+        </button>` :
+        `<a href="${detailUrl}" class="btn-accent btn-map">
+            <i class="fas fa-map-marked-alt mr-2"></i>View Map
+        </a>`;
+
     card.innerHTML = `
-        <div class="map-img-container" data-url="${detailUrl}">
+        <div class="map-img-container" data-url="${detailUrl}" data-is-bot="${isBot}">
             <div class="map-views-counter">
                 <i class="fas fa-eye"></i>
                 <span class="views-count">0</span>
@@ -109,19 +124,24 @@ function createMapCard(map) {
                 <span><i class="fas fa-route"></i> ${map.type}</span>
             </div>
             <p class="map-desc">${map.description}</p>
-            <a href="${detailUrl}" class="btn-accent btn-map">
-                <i class="fas fa-map-marked-alt mr-2"></i>View Map
-            </a>
+            ${buttonHTML}
         </div>
     `;
 
     // Make the image container clickable to navigate to the map detail page
     const imgContainer = card.querySelector('.map-img-container');
     if (imgContainer) {
+        const isBotContainer = imgContainer.getAttribute('data-is-bot') === 'true';
+
         // Add click event listener to the image container
-        imgContainer.addEventListener('click', function() {
+        imgContainer.addEventListener('click', function(e) {
+            // Don't navigate if it's a unknown map (slug is "#")
+            if (isBotContainer) {
+                return;
+            }
+            // Navigate to the map detail page
             const url = this.getAttribute('data-url');
-            if (url) {
+            if (url && url !== '#') {
                 window.location.href = url;
             }
         });
@@ -133,11 +153,15 @@ function createMapCard(map) {
         }, { passive: true });
 
         imgContainer.addEventListener('touchend', function() {
+            // Don't navigate if it's a unknown map (slug is "#")
+            if (isBotContainer) {
+                return;
+            }
             // Only navigate if it was a quick tap (not a scroll)
             const touchDuration = Date.now() - (this._touchStartTime || 0);
             if (touchDuration < 300) {
                 const url = this.getAttribute('data-url');
-                if (url) {
+                if (url && url !== '#') {
                     window.location.href = url;
                 }
             }

@@ -281,6 +281,18 @@
 	opacity: 0.8;
 }
 
+/* Disabled "View Map" button (maps with slug "#") */
+.btn-accent.btn-map:disabled,
+.btn-accent.btn-map[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.map-img-container[data-is-bot="true"] {
+    cursor: default;
+}
+
 /* Responsive Styles */
 @media (max-width: 768px) {
 	.maps-hero {
